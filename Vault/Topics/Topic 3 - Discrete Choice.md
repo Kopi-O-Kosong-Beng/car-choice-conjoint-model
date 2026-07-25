@@ -1,3 +1,10 @@
+---
+title: Topic 3 — Discrete Choice
+type: topic
+tags: [course, topic-3]
+updated: 2026-07-26
+---
+
 # Topic 3 — Discrete Choice ⭐ (the competition topic)
 
 Sources: [[Raw Dump/Topic 3/discrete_choice.pdf|lecture PDF]] · `Raw Dump/Topic 3/Transportation analytics/automobiles.Rmd` · `Raw Dump/Topic 3/move analysis/oscars.Rmd`
@@ -23,7 +30,7 @@ $$P_{ij} = \frac{e^{V_{ij}}}{\sum_k e^{V_{ik}}}$$
 Let coefficients vary across people: $\beta_i \sim N(\mu, \Sigma)$. Fit with simulated ML (Halton draws; `mlogit(..., rpar=, panel=TRUE)` — panel because each person answers 19 tasks).
 - Breaks IIA, captures **taste heterogeneity**.
 - For a **new** person (our whole test set!) predict the population-averaged probability $\int P(\text{choice}|\beta) f(\beta) d\beta$ — flatter, better-calibrated probabilities than MNL → lower logloss.
-- Our fit found sd(Price-coef) ≈ 0.47 and sd(none-ASC) ≈ 2.07 — people differ *hugely* in opt-out propensity. See [[Vault/Competition/Modeling Strategy & Results]].
+- Our fit found sd(Price-coef) ≈ 0.47 and sd(none-ASC) ≈ 2.07 — people differ *hugely* in opt-out propensity. See [[Modeling Strategy & Results]].
 
 ## In our pipeline
 

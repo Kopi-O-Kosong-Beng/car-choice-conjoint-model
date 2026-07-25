@@ -97,4 +97,4 @@ treating it as just a fourth product misses that opting out is the modal behavio
 by different considerations (price level, total bundle richness) than choosing *between*
 bundles.
 
-Related: [[Vault/Topics/Topic 3 - Discrete Choice]] · [[Vault/Competition/Modeling Strategy & Results]]
+Related: [[Topic 3 - Discrete Choice]] · [[Modeling Strategy & Results]]

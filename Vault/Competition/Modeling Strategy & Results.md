@@ -71,6 +71,6 @@ genuinely different errors while models within a family do not.
 than everything gained so far. The report is worth 15 of 30 marks. Past a point, writing
 beats tuning.
 
-Findings for the report: [[Vault/Competition/Key Findings]] ·
-Theory: [[Vault/Topics/Topic 3 - Discrete Choice]] ·
-Data: [[Vault/Competition/Data Dictionary]]
+Findings for the report: [[Key Findings]] ·
+Theory: [[Topic 3 - Discrete Choice]] ·
+Data: [[Data Dictionary]]

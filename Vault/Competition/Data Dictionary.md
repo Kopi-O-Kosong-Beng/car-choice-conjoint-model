@@ -1,3 +1,10 @@
+---
+title: Data Dictionary
+type: reference
+tags: [competition, data]
+updated: 2026-07-26
+---
+
 # Data Dictionary
 
 Files: `Raw Dump/Competition Data/train2024.csv` (21,565 rows), `test2024.csv` (4,997), `sample_submission2024.csv` (submit on `No` + `Ch1..Ch4`).
@@ -33,4 +40,4 @@ Each in up to 3 encodings: label (`segment`), integer code (`segmentind`), numer
 
 Test respondents are ~2× richer. Consequences: (1) local CV understates leaderboard loss; (2) price-sensitivity×income must extrapolate correctly → we added an explicit `Price×income` term to the choice models; (3) tree models can't extrapolate beyond train income support — blending with linear-in-income models covers that.
 
-Related: [[Vault/Competition/Modeling Strategy & Results]] · [[Vault/Topics/Topic 3 - Discrete Choice]]
+Related: [[Modeling Strategy & Results]] · [[Topic 3 - Discrete Choice]]

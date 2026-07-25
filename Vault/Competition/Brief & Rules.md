@@ -1,3 +1,10 @@
+---
+title: Brief & Rules
+type: reference
+tags: [competition, rules]
+updated: 2026-07-26
+---
+
 # Competition Brief & Rules (distilled)
 
 Source: [[Raw Dump/The Analytics Edge Data Competition 2026.pdf|official brief PDF]]
@@ -13,7 +20,7 @@ Source: [[Raw Dump/The Analytics Edge Data Competition 2026.pdf|official brief P
 ## Leaderboard mechanics (exploit correctly!)
 - Test = 4,997 rows → **70% public / 30% private**, random split, redrawn each year.
 - Final ranking = **private** LB. Your **best public** submission is auto-selected for private scoring → submitting an improvement is essentially risk-free.
-- Private has only ~1,500 rows → expect ±0.02 public↔private wobble ([[Vault/Competition/Modeling Strategy & Results|see strategy]]).
+- Private has only ~1,500 rows → expect ±0.02 public↔private wobble ([[Modeling Strategy & Results|see strategy]]).
 
 ## Rules
 - **2 submissions per team per day** (resets ~08:00 SGT for us). ONE Kaggle account per team (ours: Sheil's, team name `sheil_mistry_team_3`). Extra accounts = ethics violation.

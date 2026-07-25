@@ -170,6 +170,23 @@ design encoding retains only 77%, since its shares encode a poorer population's 
 
 ---
 
+## The knowledge base
+
+`Vault/` is an Obsidian vault covering the course theory and the competition work.
+**Open the repository root as the vault** (not `Vault/` itself) so the lecture PDFs under
+`Raw Dump/` open as links inside Obsidian. Note-to-note links use bare filenames, so they
+resolve either way; the PDF links need the repo root.
+
+<!-- To add the graph view: in Obsidian press Ctrl+G (graph view), arrange it, then use
+     Win+Shift+S to snip. Save as docs/images/vault-graph.png and this will render. -->
+![Obsidian graph view of the vault](docs/images/vault-graph.png)
+
+Start at `Vault/00 Hub.md`. The competition notes are:
+[Brief & Rules](Vault/Competition/Brief%20&%20Rules.md) ·
+[Data Dictionary](Vault/Competition/Data%20Dictionary.md) ·
+[Modeling Strategy & Results](Vault/Competition/Modeling%20Strategy%20&%20Results.md) ·
+[Key Findings](Vault/Competition/Key%20Findings.md)
+
 ## Reading order for someone new
 
 1. This README
