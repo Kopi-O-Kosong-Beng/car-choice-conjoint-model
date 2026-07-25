@@ -1,0 +1,5 @@
+﻿# Models in the production blend. One name per line; each needs an
+# oof_<name>.rds / test_<name>.rds pair in model/artifacts/.
+# Trailing # comments are stripped. Delete this file to auto-discover (not advised).
+mnl_pw        # part-worth conditional logit      OOF 1.15686   blend weight ~0.38
+xgb_lw        # listwise-objective xgboost        OOF 1.14477   blend weight ~0.62
