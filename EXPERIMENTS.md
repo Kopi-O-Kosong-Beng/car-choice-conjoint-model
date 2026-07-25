@@ -320,6 +320,49 @@ randomize only the none-constant. One change at a time.
 
 ---
 
+## Iteration 04 — Heterogeneous part-worths via glmnet (no score gain, real insight)
+
+**Program:** `experiments/iter04_glmnet_pw/run.R`
+
+**Hypothesis:** part-worth coding was worth +0.020 to the plain MNL. With L1/L2 shrinkage,
+glmnet can afford part-worths *interacted with demographics* — a heterogeneous part-worth
+model the unregularized MNL cannot support — while staying linear in income, which matters
+because the test population is twice as wealthy.
+
+**Result:** 1.18118 → **1.16718** (+0.014). Part-worth coding now confirmed to help a
+third model family, so the constraint was the level coding, not the estimator. But it
+trails `mnl_pw` (1.15686), and when added to the blend it earned **weight 0.001** and moved
+the nested score by nothing (1.13883 either way). **Not promoted.** 551 of 958 coefficients
+survived the L1 penalty.
+
+**The finding worth keeping.** The strongest surviving interactions are price part-worths
+crossed with age, and they are concentrated entirely at the *top* of the price range:
+
+| interaction | coefficient |
+|---|---|
+| Price_L12 × age | **−0.398** |
+| Price_L11 × age | −0.326 |
+| Price_L7 × age | −0.280 |
+| Price_L9 × age | −0.273 |
+| Price_L8 × age | −0.266 |
+| Price_L10 × age | −0.244 |
+
+Nothing comparable appears for price levels 1–6. This **refines the earlier linear result**
+(Price × age = −0.31): older respondents are not uniformly more price-sensitive — they
+specifically reject the *expensive* tiers, while behaving like everyone else at low prices.
+A linear price × age term averages that threshold effect into a single slope and hides it.
+
+Positive interactions are smaller but interpretable: gender × certain feature levels
+(LB_L3, SC_L4, NS_L2), night-driving × BU_L1, urban × NS_L5.
+
+**Reflection.** A model can be worth running purely for its coefficients. This one will not
+appear in the submission, yet it produced the most specific behavioural claim we have —
+which serves the report's insights section (5 marks) better than another 0.002 of logloss
+would have served the leaderboard. Worth remembering when deciding what to run next:
+the two goals are scored separately.
+
+---
+
 ## Iteration 07 — Shift-aware blend calibration ❌ HYPOTHESIS REFUTED
 
 **Program:** `experiments/iter07_shift_blend/run.R`

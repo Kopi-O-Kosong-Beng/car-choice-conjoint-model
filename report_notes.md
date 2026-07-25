@@ -56,6 +56,28 @@ Weber–Fechner (log) response. Coding price linearly, as we and most teams did 
 fits a straight line through a clearly curved response; freeing the shape was worth
 **+0.020 logloss (z = 11.8)**, the single largest gain of the project.
 
+### 1b. Older respondents reject *expensive* bundles, not price in general
+
+The plain MNL gives a single Price × age interaction of −0.31 (z = −18), which reads as
+"older respondents are more price-sensitive". A regularized model carrying price
+part-worths *interacted* with demographics shows that reading is too coarse. The age
+interaction is concentrated entirely at the top of the price range:
+
+| interaction | coefficient |
+|---|---|
+| Price_L12 × age | **−0.398** |
+| Price_L11 × age | −0.326 |
+| Price_L7 × age | −0.280 |
+| Price_L8–L10 × age | −0.24 to −0.27 |
+| Price_L1–L6 × age | (nothing comparable) |
+
+So it is a **threshold effect, not a slope**: at low and middling prices older respondents
+behave much like everyone else, then drop away sharply once bundles reach the expensive
+tiers. A linear Price × age term averages this into one number and conceals it.
+
+**Commercial reading:** premium bundles lose older buyers disproportionately, so the
+relevant question is not "are older customers price-sensitive" but "where is the cliff".
+
 ### 2. Taste heterogeneity is large — but not usable at prediction time
 
 Mixed logit with a log-normal price coefficient estimates σ = 1.31, meaning price
