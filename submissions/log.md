@@ -38,4 +38,34 @@ Implications for the remaining days:
    evidence — treat the 58% as a working estimate, not a law.
 
 **Standing: 1.201 beats the rival reference (1.210) and our own previous best (1.2230).**
+
+---
+
+## ⚠️ We have hit the public leaderboard's resolution limit (26 Jul)
+
+| submission | local nested | public |
+|---|---|---|
+| `sub_20260725_2349.csv` | 1.13878 | **1.201** |
+| `sub_20260726_0116.csv` | 1.13556 | **1.201** |
+
+A local improvement of 0.0032 produced **no visible change**. This is not evidence the
+improvement was fake. At the ~58% transfer rate the expected public gain was ≈0.0019, and
+Kaggle displays three decimals — so anything under ≈0.001 is invisible by construction,
+and 0.0019 can easily hide inside the rounding of "1.201".
+
+**Consequences for how we spend the remaining days:**
+
+1. **Incremental tuning is now unmeasurable.** Gains of 0.003 local cannot be confirmed or
+   refuted on the public leaderboard. Chasing more of them is a bet placed blind.
+2. **To move the public number we need ≈0.01+ local**, which will not come from
+   hyperparameters. It requires a structurally different model — a different decomposition
+   of the choice problem, or a model family we do not yet have.
+3. **The private leaderboard still rewards genuine accuracy.** It is scored at full
+   precision on ~1,500 rows, so a real improvement raises expected private performance even
+   when the public display cannot show it. Structurally justified gains remain worth having.
+4. **The report is worth 15 of 30 marks** and is not subject to any of this noise.
+
+Revised offset estimate: two of our own points now sit at 1.13878 → 1.201 (+0.062) and
+1.13556 → 1.201 (+0.065). Use **public ≈ local + 0.063**, and treat differences below
+0.005 local as untestable on the public board.
 | 2026-07-26 01:16 | sub_20260726_0116.csv | mnl_pw+xgb_lw2 | 1.13556 | expect public ~1.186 | (pending) |
