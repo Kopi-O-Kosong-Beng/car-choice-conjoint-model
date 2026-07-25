@@ -1,36 +1,24 @@
 # =============================================================================
-# ITERATION 08 — Monotone price constraint COMBINED with the tuned hyperparameters.
+# ITERATION 08b — Monotone constraint on Price_c ONLY (raw Price left free).
 #
-# HYPOTHESIS: iteration 06 tested these separately and both beat the old settings:
-#     base (eta .05, depth 6)                    1.14477
-#     mono (monotone price, base settings)       1.14298
-#     slow_deep (eta .03, depth 8, mcw 20)       1.14152   <- now in production
-# They were never combined. They address different things -- the constraint injects a
-# structural prior (utility cannot increase with price), the tuning gives the trees more
-# capacity for the interaction-shaped contrasts the listwise objective rewards -- so
-# there is no obvious reason they should conflict.
+# HYPOTHESIS: the run.R header names this as the fix if the two-constraint version
+# fails. The all-zero "none of these" alternative has Price = 0, so it is ALWAYS the
+# cheapest option in its choice set. A monotone constraint on raw Price therefore
+# forces "score is non-increasing in raw Price" across the none-vs-bundle boundary,
+# where the utility difference is the none-constant, not a price effect. The model
+# then cannot give the none-option a lower score than a cheap bundle purely on the
+# Price split, and has to route the none-constant through alt4 / richness / lvlsum
+# instead. Price_c (the within-task centered price contrast) has no such problem:
+# within a task it is a genuine relative-expensiveness signal, and demanding utility
+# be non-increasing in it is exactly the intended economics.
 #
-# The constraint should matter most where training support is thinnest, which is the
-# rich end of the distribution, and the test population is twice as wealthy as training.
-# So a gain here should transfer BETTER than average to the leaderboard. Check that with
-# model/shift_audit.R afterwards, not just the headline number.
-#
-# ONE CHANGE UNDER TEST: adding monotone_constraints to the production configuration.
-# Everything else -- features, folds, seeds, objective, early stopping -- is identical to
-# model/03_xgb_listwise.R.
+# ONE CHANGE UNDER TEST vs experiments/iter08_mono_tuned/run.R: the Price entry of
+# `mono` is 0 instead of -1. Everything else -- features, folds, seeds, objective,
+# early stopping, hyperparameters -- is identical.
 #
 # HOW TO RUN
-#   & "C:\Program Files\R\R-4.6.0\bin\Rscript.exe" experiments/iter08_mono_tuned/run.R
-#   & "C:\Program Files\R\R-4.6.0\bin\Rscript.exe" model/compare.R xgb_lw2 xgb_mono
-# If the paired test says CONFIRMED, add `xgb_mono` to model/members.txt and run:
-#   & "C:\Program Files\R\R-4.6.0\bin\Rscript.exe" model/run_all.R blend submit
-# Then record the result and a reflection in EXPERIMENTS.md -- including if it fails.
-#
-# IF IT SCORES WORSE: the likely cause is that the all-zero "none" alternative has
-# Price = 0, so it is always the cheapest option in its choice set, and forcing utility
-# to be non-increasing in raw Price fights the none-constant. The fix to try next is
-# constraining ONLY Price_c (the within-task contrast) and leaving raw Price free --
-# set the Price entry of `mono` below to 0 and rerun.
+#   & "C:\Program Files\R\R-4.6.0\bin\Rscript.exe" experiments/iter08_mono_tuned/run_pricec_only.R
+#   & "C:\Program Files\R\R-4.6.0\bin\Rscript.exe" model/compare.R xgb_lw2 xgb_monoc
 # =============================================================================
 suppressMessages({ library(data.table); library(xgboost) })
 source("model/99_utils.R")
@@ -67,13 +55,12 @@ eval_tasklogloss <- function(preds, dtrain) {
   list(metric = "tasklogloss", value = -mean(log(pmax(P[Y == 1], 1e-15))))
 }
 
-# utility must not increase with price; 0 = unconstrained for every other feature
+# ONLY the within-task price contrast is constrained; raw Price is free so the tree
+# can still use it to express the none-constant.
 mono <- rep(0, length(feat))
-mono[match("Price",   feat)] <- -1
 mono[match("Price_c", feat)] <- -1
 cat("constrained features:", paste(feat[mono != 0], collapse = ", "), "\n")
 
-# production hyperparameters (iteration 06 "slow_deep") + the constraint
 params <- list(eta = 0.03, max_depth = 8, min_child_weight = 20,
                subsample = 0.8, colsample_bytree = 0.8, base_score = 0, nthread = 4,
                monotone_constraints = mono)
@@ -116,12 +103,10 @@ for (k in 1:5) {
 }
 oof <- rbindlist(oof_list); setorder(oof, No)
 ll <- logloss(ytr, as.matrix(oof[, .(p1,p2,p3,p4)]))
-cat(sprintf("\n>>> XGB listwise + monotone price OOF: %.5f\n", ll))
+cat(sprintf("\n>>> XGB listwise + monotone Price_c ONLY OOF: %.5f\n", ll))
 cat("    production (tuned, unconstrained): 1.14152\n")
-cat("    monotone with OLD hyperparameters: 1.14298\n")
-cat(if (ll < 1.14152) "    -> candidate; confirm with model/compare.R xgb_lw2 xgb_mono\n"
-    else "    -> no gain. See the header for the Price_c-only variant to try next.\n")
-saveRDS(oof, "model/artifacts/oof_xgb_mono.rds")
+stopifnot(nrow(oof) == 21565, all(abs(rowSums(as.matrix(oof[, -1])) - 1) < 1e-9))
+saveRDS(oof, "model/artifacts/oof_xgb_monoc.rds")
 
 set.seed(7)
 es_cases <- sample(unique(trl$Case), round(0.1 * uniqueN(trl$Case)))
@@ -130,5 +115,5 @@ P <- softmax_by_task(raw_pred(fit_full, tel))
 tp <- data.table(No = unique(tel$No), p1=P[,1], p2=P[,2], p3=P[,3], p4=P[,4])
 setorder(tp, No)
 stopifnot(nrow(tp) == 4997, all(abs(rowSums(as.matrix(tp[, -1])) - 1) < 1e-9))
-saveRDS(tp, "model/artifacts/test_xgb_mono.rds")
-cat("OK -- wrote oof_xgb_mono.rds and test_xgb_mono.rds\n")
+saveRDS(tp, "model/artifacts/test_xgb_monoc.rds")
+cat("OK -- wrote oof_xgb_monoc.rds and test_xgb_monoc.rds\n")

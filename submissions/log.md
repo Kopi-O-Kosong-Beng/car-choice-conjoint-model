@@ -68,4 +68,31 @@ and 0.0019 can easily hide inside the rounding of "1.201".
 Revised offset estimate: two of our own points now sit at 1.13878 → 1.201 (+0.062) and
 1.13556 → 1.201 (+0.065). Use **public ≈ local + 0.063**, and treat differences below
 0.005 local as untestable on the public board.
-| 2026-07-26 01:16 | sub_20260726_0116.csv | mnl_pw+xgb_lw2 | 1.13556 | expect public ~1.186 | (pending) |
+---
+
+## Submission history (clean table)
+
+| when | file | members | local nested | expected public | actual public |
+|---|---|---|---|---|---|
+| 25 Jul 23:49 | `sub_20260725_2349.csv` | 9 members (7 at zero weight) | 1.13878 | ~1.189 | **1.201** |
+| 26 Jul 01:16 | `sub_20260726_0116.csv` | mnl_pw + xgb_lw2 | 1.13556 | ~1.186 | **1.201** |
+| 26 Jul 06:51 | `sub_20260726_0651.csv` | xgb_lw2 + xgb_mono + lcmnl3 (mnl_pw at 0) | **1.13044** | **~1.195** | (pending) |
+
+The "expected public" column used a naive `local + 0.063` early on, which over-predicted
+improvement because it assumed full transfer. The realistic estimate for the 26 Jul 06:51
+submission applies the ~58% transfer rate to the *change*:
+`1.201 − 0.58 × (1.13556 − 1.13044) ≈ 1.198`, with `~1.195` if transfer is closer to full.
+A move from 1.201 to 1.198 is the first change large enough to be visible at three decimals.
+
+**Why submitting a riskier model is close to free:** Kaggle automatically scores the
+*best public* submission on the private leaderboard. A submission that performs worse
+publicly simply never gets selected — it cannot damage the final grade, it only costs a
+slot. That makes exploration cheap and argues for submitting the best local model even
+when its extrapolation behaviour is uncertain.
+
+**Risk carried by this submission.** `lcmnl3` predicts a much lower "none" rate on the test
+set than the tree models do (0.223 versus ~0.275), because its demographic membership model
+routes the wealthier test respondents toward buying classes. That is either a genuine
+insight or an over-extrapolation; the blend tempers it to 0.250 versus 0.255 for the
+previous submission. Only 79% of its gain survives income reweighting, against ~100% for
+the earlier structural wins. This submission is partly a test of that behaviour.

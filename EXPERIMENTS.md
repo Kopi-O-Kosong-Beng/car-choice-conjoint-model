@@ -10,78 +10,90 @@ should be able to read it top to bottom and continue the work.
 
 # 👉 PICK UP HERE — next ideas, ranked
 
-**State as of 26 Jul 2026, 01:30 SGT:** nested blend **1.13556**, public leaderboard
-**1.201** (from the previous 1.13878 blend). Latest submission file
-`submissions/sub_20260726_0116.csv` is **written but not yet uploaded** — send it up when
-the daily quota resets (~08:00 SGT).
+**State as of 26 Jul 2026, 07:00 SGT:** nested blend **1.13044**, public leaderboard
+**1.201**. `submissions/sub_20260726_0651.csv` is written and pending upload.
 
-### 1. Monotone price constraint + tuned hyperparameters ⭐ start here
+Production blend is now **xgb_lw2 + xgb_mono + lcmnl3** (`mnl_pw` still listed but earns
+weight 0.000 — the latent-class model strictly generalises it).
 
-**Script is already written and ready to run:** `experiments/iter08_mono_tuned/run.R`
+### ⚠️ Read this before optimising anything else
 
-```powershell
-& "C:\Program Files\R\R-4.6.0\bin\Rscript.exe" experiments/iter08_mono_tuned/run.R
-& "C:\Program Files\R\R-4.6.0\bin\Rscript.exe" model/compare.R xgb_lw2 xgb_mono
-# if it wins: add xgb_mono to model/members.txt, then
-& "C:\Program Files\R\R-4.6.0\bin\Rscript.exe" model/run_all.R blend submit
-```
+Two submissions with local 1.13878 and 1.13556 **both scored 1.201**. At a ~58% transfer
+rate and a three-decimal display, gains under ~0.005 local are *invisible* on the public
+board. Incremental tuning can no longer be confirmed or refuted publicly. The private
+leaderboard still scores at full precision, so genuine gains remain worth having — but
+prefer structurally justified changes, and remember the report is 15 of 30 marks.
 
-**Why:** in iteration 06 these were tested separately and *both* beat the old settings —
-monotone constraint 1.14298, tuned hyperparameters 1.14152, versus 1.14477. They were
-never combined. They address different things (a structural prior on price versus tree
-capacity) so there is no obvious reason they should conflict.
+### 1. Leak-free residual design encoding ⭐ highest measured value
 
-**Expected:** roughly 1.138–1.141 on the model, blend perhaps 1.132–1.134. Runtime ~10 min.
-**Risk:** the constraint may bind awkwardly on the all-zero "none" option, whose Price is 0
-and therefore always the cheapest. If it scores *worse* than 1.14152, that is the likely
-cause and the fix is to constrain only `Price_c` (the within-task contrast) and not `Price`.
+`experiments/iter12_residual_encoding/control_leakfree_full.R` — measured **1.13721**
+versus 1.14152 for the incumbent, i.e. +0.0043 as a single model.
 
-### 2. Residual-based design encoding
+Read the header of `experiments/iter12_residual_encoding/run.R` first — it is the most
+instructive document in this repo. The original version scored 1.09962 (z = 9.52) and was
+**pure leakage**, diagnosed and dissected by the agent that built it.
 
-Iteration 01 encoded the raw empirical choice share per design (+0.005, z = 2.9). Encode
-the model's **residual** per design instead — observed minus predicted, averaged over the
-respondents who saw that design. Residuals have smaller variance than raw choice
-indicators, so shrinkage should retain more signal. Reuse `model/encode_design.R` and swap
-`chosen` for `chosen - p_model`, taking `p_model` from `oof_xgb_lw2.rds`.
-**Watch out:** the leakage control must stay — a training row in fold k may only use
-residuals from respondents in other folds.
+**The mechanism, because it will bite again:** the fold rule was honoured — the encoding
+for a fold-k row used only folds ≠ k. But each reference respondent's residual is
+`chosen − p_model`, and `p_model` came from `xgb_lw2`'s OOF, produced by a model trained on
+folds that *include* fold k. A depth-8 tree carrying design-share features can partially
+memorise a choice set, so the baseline already embedded fold-k choices; subtracting it
+handed the target's own label back, sign-flipped. **Fold-honest reference sets are not
+enough — the reference respondents' predictions must also be honest with respect to the
+scored fold.** That requires a nested (double) out-of-fold baseline.
 
-### 3. Bundle-level rather than choice-set-level encoding
+The control closes the leak by using `mnl_pw` as the baseline (~150 global coefficients,
+no design-level features, structurally unable to memorise a set). It is leak-free by
+*argument*, not by construction. **Next step: build the properly nested double-OOF version**
+and see whether it retains the +0.0043.
 
-17,043 unique bundles appear across 79,686 slots, so a given bundle recurs in *different*
-choice sets. Its win rate across contexts is better supported than the set-level share
-(~4.7 observations) and carries different information. Same leakage rules.
+### 2. Bundle-level rather than choice-set-level encoding
 
-### 4. Latent-class MNL
+17,043 unique bundles across 79,686 slots, so a bundle recurs in *different* choice sets.
+Its win rate across contexts is better supported than the set-level share (~4.7
+observations) and carries different information. Same leakage rules — and now you know the
+subtle version of them.
 
-Discrete taste segments (2–4 classes) with class membership predicted from demographics.
-Strong report material — it would give named, interpretable buyer segments — and it is a
-genuinely different way to handle the heterogeneity that mixed logit failed to exploit
-(see Iteration 05 for why continuous heterogeneity did not pay off).
+### 3. Latent-class refinements (the round's winner — push it further)
 
-### 5. Hierarchical Bayes (`bayesm::rhierMnlRwMixture`)
+`lcmnl3` (3 classes) is now the highest-weighted blend member at 0.447. Untried:
+4–5 classes; richer membership models (interactions among demographics); class-specific
+price *part-worths* rather than shared shapes; and combining latent classes with the
+design encoding.
+**Caution:** 93% of its gain runs through the demographic membership channel, and the test
+population is twice as wealthy. It retains only 79% under income reweighting, versus ~100%
+for the earlier structural wins. It also predicts a much lower test "none" rate (0.223 vs
+~0.275 for the tree models). The 26 Jul 06:51 submission is partly a test of whether that
+extrapolation helps or hurts.
 
-Highest theoretical ceiling on conjoint data, slowest to fit — an overnight run. Given
-that mixed logit underperformed for structural reasons (every test respondent is unseen,
-so only population-averaged predictions are possible), temper expectations.
+### 4. Hierarchical Bayes (`bayesm::rhierMnlRwMixture`)
 
-### ⛔ Do not repeat — already tested
+Highest theoretical ceiling, slowest to fit — an overnight run. Temper expectations:
+mixed logit underperformed for structural reasons (every test respondent is unseen, so only
+population-averaged predictions are possible), and latent class already captures much of
+the available heterogeneity through a demographic channel.
+
+### ⛔ Do not repeat — already tested and settled
 
 | idea | outcome |
 |---|---|
-| Retuning listwise hyperparameters | done, iteration 06 — `slow_deep` won and is in production |
+| Two-stage none-vs-buy decomposition | **decisively rejected**, iteration 09 — 1.17169, z = −11.04 |
+| Nested logit, {1,2,3} vs {4} | iteration 10 — 1.15681, statistically identical to `mnl_pw`, zero blend weight |
+| Residual encoding off a tree baseline | **leakage**, iteration 12 — 1.09962 is fake; use the `mnl_pw` baseline |
+| Retuning listwise hyperparameters | iteration 06 — `slow_deep` won, in production |
 | Softening the blend for the harder test set | **refuted**, iteration 07 — degrades monotonically |
 | Tuning the blend on an income-reweighted objective | **refuted**, iteration 07 — worse on its own metric |
-| Mixed logit with heterogeneous price | iterations 05 — improved but still loses to the part-worth MNL, zero blend weight |
-| Part-worth glmnet with demographic interactions | iteration 04 — blend weight 0.001, kept only for its coefficients |
-| Wide 4-class xgboost, elastic net, linear-coded MNL | all zero blend weight, in `model/legacy/` |
+| Mixed logit, continuous heterogeneity | iteration 05 — loses to the part-worth MNL, zero weight |
+| Part-worth glmnet with demographic interactions | iteration 04 — weight 0.001, kept for its coefficients |
+| Wide 4-class xgboost, elastic net, linear-coded MNL | all zero weight, in `model/legacy/` |
 
-### Before spending a submission
+### Method note earned the hard way
 
-Local gains transfer to the leaderboard at roughly 58%, and the private leaderboard is
-~1,500 rows with SE ≈ ±0.02 — larger than everything gained so far. **The report is worth
-15 of 30 marks.** `report_notes.md` is already a solid draft; past this point, an hour on
-the report probably beats an hour on the model.
+`model/compare.R` compares single models. To compare two *blends* you must reproduce
+`06_blend.R`'s nested loop, save the held-out blend predictions per fold, and apply the
+same respondent-clustered paired statistic to those. Also: evaluating many member sets
+against the nested number introduces search bias — the cleanest statistic is a contrast
+where the challenger was pre-selected by its own single-model result.
 
 ---
 
@@ -185,6 +197,18 @@ logit → latent class/HB if time allows.
 | 05 | Mixed logit respecified (log-normal price, log-price, part-worths) | 1.18743 → 1.17281 | ⚠️ partial, zero blend weight |
 | 06 | Hyperparameters retuned for the listwise objective | 1.14477 → **1.14152** | ✅ confirmed, z = 2.48 |
 | 07 | Soften the blend for the harder test population | no improvement | ❌ refuted |
+| 08 | Monotone price constraint + tuned hyperparameters | 1.14152 → 1.13980 | ⚠️ z = 1.35 alone, but earns 0.34 blend weight |
+| 09 | Two-stage none-vs-buy decomposition | 1.17169 | ❌ decisively worse, z = −11.04 |
+| 10 | Nested logit, real bundles vs outside option | 1.15681 | ❌ indistinguishable from MNL, zero weight |
+| 11 | **Latent-class MNL (3 classes)** | mnl_pw 1.15686 → **1.14396** | ✅ **confirmed, z = 3.77** |
+| 12 | Residual-based design encoding | 1.09962 | 🚨 **leakage** — honest value ≈ +0.004 |
+
+### Blend progression, continued
+
+| members | nested OOF | submission |
+|---|---|---|
+| mnl_pw + xgb_lw2 | 1.13556 | `sub_20260726_0116.csv` → public **1.201** |
+| + xgb_mono + lcmnl3 (`mnl_pw` falls to weight 0) | **1.13044** | `sub_20260726_0651.csv` ← pending |
 
 ### Blend progression
 

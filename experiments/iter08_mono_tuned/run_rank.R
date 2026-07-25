@@ -1,36 +1,33 @@
 # =============================================================================
-# ITERATION 08 — Monotone price constraint COMBINED with the tuned hyperparameters.
+# ITERATION 08c — add a monotone constraint on price_rank ON TOP of xgb_mono.
 #
-# HYPOTHESIS: iteration 06 tested these separately and both beat the old settings:
-#     base (eta .05, depth 6)                    1.14477
-#     mono (monotone price, base settings)       1.14298
-#     slow_deep (eta .03, depth 8, mcw 20)       1.14152   <- now in production
-# They were never combined. They address different things -- the constraint injects a
-# structural prior (utility cannot increase with price), the tuning gives the trees more
-# capacity for the interaction-shaped contrasts the listwise objective rewards -- so
-# there is no obvious reason they should conflict.
+# CONTEXT: run.R (constrain Price and Price_c, -1 each) scored 1.13980 OOF, beating
+# production xgb_lw2 = 1.14152. run_pricec_only.R (constrain Price_c alone) scored
+# 1.14123, i.e. no real gain -- so the header's predicted failure mode (the raw-Price
+# constraint fighting the all-zero none-option) did NOT materialise. The stronger,
+# more complete constraint is the better one. That suggests the prior is doing real
+# work rather than binding awkwardly, and invites one more of the same kind.
 #
-# The constraint should matter most where training support is thinnest, which is the
-# rich end of the distribution, and the test population is twice as wealthy as training.
-# So a gain here should transfer BETTER than average to the leaderboard. Check that with
-# model/shift_audit.R afterwards, not just the headline number.
+# HYPOTHESIS: price_rank is rank(Price) within the choice set, 1 = cheapest
+# (model/00_load.R:38). A higher rank means the alternative is more expensive
+# RELATIVE TO ITS RIVALS, which should not raise its utility -- so the economically
+# correct sign is -1, exactly as for Price and Price_c. Adding it makes the model's
+# price behaviour monotone in all three of its price representations (absolute,
+# task-centered, ordinal-relative) instead of two, closing the remaining route by
+# which a tree can fit a non-monotone price artefact in a thin region.
 #
-# ONE CHANGE UNDER TEST: adding monotone_constraints to the production configuration.
-# Everything else -- features, folds, seeds, objective, early stopping -- is identical to
-# model/03_xgb_listwise.R.
+# ONE CHANGE UNDER TEST vs experiments/iter08_mono_tuned/run.R: the price_rank entry
+# of `mono` is -1 instead of 0. Everything else -- features, folds, seeds, objective,
+# early stopping, hyperparameters -- is identical.
+#
+# EXPECTED: small. Price_rank is a coarser, partly redundant encoding of information
+# already carried by Price_c, so most of the constraint's content is already imposed.
+# Anything from 1.138 to 1.141 is plausible; a paired z of ~0 against xgb_mono would
+# mean the constraint is redundant, which is itself a clean finding.
 #
 # HOW TO RUN
-#   & "C:\Program Files\R\R-4.6.0\bin\Rscript.exe" experiments/iter08_mono_tuned/run.R
-#   & "C:\Program Files\R\R-4.6.0\bin\Rscript.exe" model/compare.R xgb_lw2 xgb_mono
-# If the paired test says CONFIRMED, add `xgb_mono` to model/members.txt and run:
-#   & "C:\Program Files\R\R-4.6.0\bin\Rscript.exe" model/run_all.R blend submit
-# Then record the result and a reflection in EXPERIMENTS.md -- including if it fails.
-#
-# IF IT SCORES WORSE: the likely cause is that the all-zero "none" alternative has
-# Price = 0, so it is always the cheapest option in its choice set, and forcing utility
-# to be non-increasing in raw Price fights the none-constant. The fix to try next is
-# constraining ONLY Price_c (the within-task contrast) and leaving raw Price free --
-# set the Price entry of `mono` below to 0 and rerun.
+#   & "C:\Program Files\R\R-4.6.0\bin\Rscript.exe" experiments/iter08_mono_tuned/run_rank.R
+#   & "C:\Program Files\R\R-4.6.0\bin\Rscript.exe" model/compare.R xgb_mono xgb_monor
 # =============================================================================
 suppressMessages({ library(data.table); library(xgboost) })
 source("model/99_utils.R")
@@ -67,13 +64,12 @@ eval_tasklogloss <- function(preds, dtrain) {
   list(metric = "tasklogloss", value = -mean(log(pmax(P[Y == 1], 1e-15))))
 }
 
-# utility must not increase with price; 0 = unconstrained for every other feature
 mono <- rep(0, length(feat))
-mono[match("Price",   feat)] <- -1
-mono[match("Price_c", feat)] <- -1
+mono[match("Price",      feat)] <- -1
+mono[match("Price_c",    feat)] <- -1
+mono[match("price_rank", feat)] <- -1
 cat("constrained features:", paste(feat[mono != 0], collapse = ", "), "\n")
 
-# production hyperparameters (iteration 06 "slow_deep") + the constraint
 params <- list(eta = 0.03, max_depth = 8, min_child_weight = 20,
                subsample = 0.8, colsample_bytree = 0.8, base_score = 0, nthread = 4,
                monotone_constraints = mono)
@@ -116,12 +112,12 @@ for (k in 1:5) {
 }
 oof <- rbindlist(oof_list); setorder(oof, No)
 ll <- logloss(ytr, as.matrix(oof[, .(p1,p2,p3,p4)]))
-cat(sprintf("\n>>> XGB listwise + monotone price OOF: %.5f\n", ll))
-cat("    production (tuned, unconstrained): 1.14152\n")
-cat("    monotone with OLD hyperparameters: 1.14298\n")
-cat(if (ll < 1.14152) "    -> candidate; confirm with model/compare.R xgb_lw2 xgb_mono\n"
-    else "    -> no gain. See the header for the Price_c-only variant to try next.\n")
-saveRDS(oof, "model/artifacts/oof_xgb_mono.rds")
+cat(sprintf("\n>>> XGB listwise + monotone Price/Price_c/price_rank OOF: %.5f\n", ll))
+cat("    xgb_mono  (Price + Price_c):        1.13980\n")
+cat("    xgb_monoc (Price_c only):           1.14123\n")
+cat("    xgb_lw2   (production, no constr.): 1.14152\n")
+stopifnot(nrow(oof) == 21565, all(abs(rowSums(as.matrix(oof[, -1])) - 1) < 1e-9))
+saveRDS(oof, "model/artifacts/oof_xgb_monor.rds")
 
 set.seed(7)
 es_cases <- sample(unique(trl$Case), round(0.1 * uniqueN(trl$Case)))
@@ -130,5 +126,5 @@ P <- softmax_by_task(raw_pred(fit_full, tel))
 tp <- data.table(No = unique(tel$No), p1=P[,1], p2=P[,2], p3=P[,3], p4=P[,4])
 setorder(tp, No)
 stopifnot(nrow(tp) == 4997, all(abs(rowSums(as.matrix(tp[, -1])) - 1) < 1e-9))
-saveRDS(tp, "model/artifacts/test_xgb_mono.rds")
-cat("OK -- wrote oof_xgb_mono.rds and test_xgb_mono.rds\n")
+saveRDS(tp, "model/artifacts/test_xgb_monor.rds")
+cat("OK -- wrote oof_xgb_monor.rds and test_xgb_monor.rds\n")
