@@ -8,6 +8,83 @@ should be able to read it top to bottom and continue the work.
 
 ---
 
+# 👉 PICK UP HERE — next ideas, ranked
+
+**State as of 26 Jul 2026, 01:30 SGT:** nested blend **1.13556**, public leaderboard
+**1.201** (from the previous 1.13878 blend). Latest submission file
+`submissions/sub_20260726_0116.csv` is **written but not yet uploaded** — send it up when
+the daily quota resets (~08:00 SGT).
+
+### 1. Monotone price constraint + tuned hyperparameters ⭐ start here
+
+**Script is already written and ready to run:** `experiments/iter08_mono_tuned/run.R`
+
+```powershell
+& "C:\Program Files\R\R-4.6.0\bin\Rscript.exe" experiments/iter08_mono_tuned/run.R
+& "C:\Program Files\R\R-4.6.0\bin\Rscript.exe" model/compare.R xgb_lw2 xgb_mono
+# if it wins: add xgb_mono to model/members.txt, then
+& "C:\Program Files\R\R-4.6.0\bin\Rscript.exe" model/run_all.R blend submit
+```
+
+**Why:** in iteration 06 these were tested separately and *both* beat the old settings —
+monotone constraint 1.14298, tuned hyperparameters 1.14152, versus 1.14477. They were
+never combined. They address different things (a structural prior on price versus tree
+capacity) so there is no obvious reason they should conflict.
+
+**Expected:** roughly 1.138–1.141 on the model, blend perhaps 1.132–1.134. Runtime ~10 min.
+**Risk:** the constraint may bind awkwardly on the all-zero "none" option, whose Price is 0
+and therefore always the cheapest. If it scores *worse* than 1.14152, that is the likely
+cause and the fix is to constrain only `Price_c` (the within-task contrast) and not `Price`.
+
+### 2. Residual-based design encoding
+
+Iteration 01 encoded the raw empirical choice share per design (+0.005, z = 2.9). Encode
+the model's **residual** per design instead — observed minus predicted, averaged over the
+respondents who saw that design. Residuals have smaller variance than raw choice
+indicators, so shrinkage should retain more signal. Reuse `model/encode_design.R` and swap
+`chosen` for `chosen - p_model`, taking `p_model` from `oof_xgb_lw2.rds`.
+**Watch out:** the leakage control must stay — a training row in fold k may only use
+residuals from respondents in other folds.
+
+### 3. Bundle-level rather than choice-set-level encoding
+
+17,043 unique bundles appear across 79,686 slots, so a given bundle recurs in *different*
+choice sets. Its win rate across contexts is better supported than the set-level share
+(~4.7 observations) and carries different information. Same leakage rules.
+
+### 4. Latent-class MNL
+
+Discrete taste segments (2–4 classes) with class membership predicted from demographics.
+Strong report material — it would give named, interpretable buyer segments — and it is a
+genuinely different way to handle the heterogeneity that mixed logit failed to exploit
+(see Iteration 05 for why continuous heterogeneity did not pay off).
+
+### 5. Hierarchical Bayes (`bayesm::rhierMnlRwMixture`)
+
+Highest theoretical ceiling on conjoint data, slowest to fit — an overnight run. Given
+that mixed logit underperformed for structural reasons (every test respondent is unseen,
+so only population-averaged predictions are possible), temper expectations.
+
+### ⛔ Do not repeat — already tested
+
+| idea | outcome |
+|---|---|
+| Retuning listwise hyperparameters | done, iteration 06 — `slow_deep` won and is in production |
+| Softening the blend for the harder test set | **refuted**, iteration 07 — degrades monotonically |
+| Tuning the blend on an income-reweighted objective | **refuted**, iteration 07 — worse on its own metric |
+| Mixed logit with heterogeneous price | iterations 05 — improved but still loses to the part-worth MNL, zero blend weight |
+| Part-worth glmnet with demographic interactions | iteration 04 — blend weight 0.001, kept only for its coefficients |
+| Wide 4-class xgboost, elastic net, linear-coded MNL | all zero blend weight, in `model/legacy/` |
+
+### Before spending a submission
+
+Local gains transfer to the leaderboard at roughly 58%, and the private leaderboard is
+~1,500 rows with SE ≈ ±0.02 — larger than everything gained so far. **The report is worth
+15 of 30 marks.** `report_notes.md` is already a solid draft; past this point, an hour on
+the report probably beats an hour on the model.
+
+---
+
 ## Protocol (the rules we hold ourselves to)
 
 1. **One decision number.** Nested, respondent-grouped OOF from `model/06_blend.R`.

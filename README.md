@@ -187,6 +187,19 @@ Start at `Vault/00 Hub.md`. The competition notes are:
 [Modeling Strategy & Results](Vault/Competition/Modeling%20Strategy%20&%20Results.md) ·
 [Key Findings](Vault/Competition/Key%20Findings.md)
 
+## Want to continue the work?
+
+Open [`EXPERIMENTS.md`](EXPERIMENTS.md) and read the **"👉 PICK UP HERE"** section at the
+top. It holds the current state, five ranked ideas with expected payoffs, and a table of
+things already tried so nobody repeats them.
+
+The top-ranked idea has its script written and ready:
+
+```powershell
+& "C:\Program Files\R\R-4.6.0\bin\Rscript.exe" experiments/iter08_mono_tuned/run.R
+& "C:\Program Files\R\R-4.6.0\bin\Rscript.exe" model/compare.R xgb_lw2 xgb_mono
+```
+
 ## Reading order for someone new
 
 1. This README

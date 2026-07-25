@@ -90,19 +90,19 @@ Current state: local nested CV **1.13556**, public leaderboard **1.201**
 | What scored what on Kaggle? | `submissions/log.md` |
 | Course theory | `Vault/` (Obsidian; `Vault/Topics/Topic 3 - Discrete Choice.md` is the relevant one) |
 
-## Open ideas, roughly by expected value
+## Open ideas
 
-1. Residual-based design encoding (encode the model's *error* per design, not the raw share)
-2. Bundle-level rather than choice-set-level encoding — better support per unit
-3. Latent-class MNL — discrete taste segments, strong report material
-4. Combine the monotone price constraint with the tuned hyperparameters — each beat the
-   old settings separately (1.14298 and 1.14152 vs 1.14477) but they have never been run
-   together
-5. Hierarchical Bayes (`bayesm`) — highest ceiling, slowest to fit
+**Read the "👉 PICK UP HERE" section at the top of `EXPERIMENTS.md`.** It is the single
+source of truth: current state, five ranked ideas with expected payoffs and failure modes,
+and a ⛔ table of things already tested so you do not repeat them.
 
-Already done, do not repeat: retuning the listwise hyperparameters (iteration 06,
-`slow_deep` won and is now in production); softening the blend for the harder test
-population (iteration 07, refuted — softening degrades monotonically).
+The top-ranked idea already has a runnable script at
+`experiments/iter08_mono_tuned/run.R` — combine the monotone price constraint with the
+tuned hyperparameters, which beat the old settings separately (1.14298 and 1.14152 versus
+1.14477) but have never been run together.
+
+Do not re-run: listwise hyperparameter tuning (iteration 06, done), blend softening or
+income-reweighted blend tuning (iteration 07, both refuted).
 
 Diminishing returns warning: the private leaderboard is ~1,500 rows with SE ≈ ±0.02,
 which is larger than everything gained so far. The report carries 15 of 30 marks; past a
