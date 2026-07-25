@@ -104,8 +104,10 @@ logit → latent class/HB if time allows.
 | 01 | Design-level empirical shares add signal no attribute model captures | 1.15516 → **1.15055** | ✅ confirmed, z = 2.94 |
 | 02 | Part-worth level coding beats linear coding for utility models | 1.17731 → **1.15686** | ✅ confirmed, z = 11.84 |
 | 03 | Listwise softmax objective beats pointwise binary + renormalize | 1.15055 → **1.14477** | ✅ confirmed, z = 4.30 |
-| 04 | Part-worths + demographic interactions inside glmnet | running | |
-| 05 | Mixed logit respecified (log-normal price, log-price, part-worths) | running | |
+| 04 | Part-worths + demographic interactions inside glmnet | 1.18118 → 1.16718 | ⚠️ no blend value, real insight |
+| 05 | Mixed logit respecified (log-normal price, log-price, part-worths) | 1.18743 → 1.17281 | ⚠️ partial, zero blend weight |
+| 06 | Hyperparameters retuned for the listwise objective | 1.14477 → **1.14152** | ✅ confirmed, z = 2.48 |
+| 07 | Soften the blend for the harder test population | no improvement | ❌ refuted |
 
 ### Blend progression
 
@@ -113,11 +115,59 @@ logit → latent class/HB if time allows.
 |---|---|---|
 | mnl + mixl + xgb_long + xgb_wide | 1.15294 | `sub_20260725_2204.csv` |
 | + mnl_pw + xgb_de + glmnet | 1.14211 | `sub_20260725_2326.csv` |
-| + xgb_lw | **1.13888** | **`sub_20260725_2334.csv`** ← current best |
+| + xgb_lw | 1.13888 | `sub_20260725_2349.csv` → **public 1.201** |
+| xgb_lw replaced by tuned xgb_lw2 | **1.13556** | **`sub_20260726_0116.csv`** ← current best |
 
-Weights at 1.13888: xgb_lw 0.616, mnl_pw 0.384, everything else 0. Temperature 0.938,
-uniform mix 2.7%. Note the blend keeps exactly one member from each family — the tree
-and the linear-utility model — and discards the rest as redundant.
+Weights at 1.13556: xgb_lw2 0.636, mnl_pw 0.364. Temperature 0.941, uniform mix 3.3%.
+The blend keeps exactly one member from each family — the tree and the linear-utility
+model — and discards everything else as redundant. Nine members were tried; adding the
+seven zero-weight ones changes the nested score by 0.00005, so production runs two.
+
+---
+
+## Iteration 06 — Hyperparameters retuned for the listwise objective
+
+**Program:** `experiments/iter06_lw_tuning/run.R` · full results in `all_results.rds`
+
+**Hypothesis:** iteration 03 changed the objective but kept hyperparameters chosen for the
+old pointwise one. Best-iteration counts jumped from ~250 to 400–600, which suggests the
+optimum moved. Separately, economics says utility must decrease in price, so a monotone
+constraint is a free prior — most valuable where training support is thinnest, which is
+the richer end of the test distribution.
+
+**Method:** five configurations, each given a full honest 5-fold OOF on the fixed folds.
+All reported, not only the winner.
+
+| config | OOF | rounds used |
+|---|---|---|
+| **`slow_deep`** eta 0.03, depth 8, mcw 20 | **1.14152** | 375–875 |
+| `mono` monotone price constraint, base settings | 1.14298 | 424–921 |
+| `base` (inherited settings) | 1.14462 | 207–894 |
+| `slow_shal` eta 0.03, depth 4 | 1.14814 | 774–1798 |
+| `reg` heavy L1/L2, mcw 30 | 1.14989 | 108–737 |
+
+**Result:** `slow_deep` confirmed by paired clustered test: **+0.00325, SE 0.00131,
+z = 2.48**, better on 56.3% of respondents. Promoted to production; blend went
+1.13883 → **1.13556**.
+
+**Two things worth noting.**
+
+*The monotone constraint also worked* (+0.0018 over base), which is a genuinely principled
+result — it encodes "utility decreases in price" as a hard structural prior rather than
+something the trees must learn. It lost to `slow_deep` only because that config was tuned
+harder. **The two have never been run together**, and there is no reason they should
+conflict. That is the most promising untested idea remaining.
+
+*Depth was the active ingredient, not the learning rate.* `slow_shal` (same eta 0.03,
+depth 4) was the second-worst config and needed ~1,700 rounds to get there, while
+`slow_deep` (depth 8) won with ~600. The listwise objective evidently rewards deeper
+interactions — consistent with it optimising *contrasts within a choice set*, which are
+inherently interaction-shaped, rather than each alternative in isolation.
+
+**Selection-bias caveat, stated honestly.** Picking the best of five configs on the same
+folds is a mild selection bias, so 1.14152 is slightly optimistic as an unbiased estimate.
+The paired test against the incumbent (z = 2.48) is the defensible claim; the ranking among
+the five losers is not.
 
 **Incumbent blend to beat: 1.15294** (nested).
 

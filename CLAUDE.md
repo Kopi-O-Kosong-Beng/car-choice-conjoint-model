@@ -10,7 +10,7 @@ Kaggle competition for SUTD's *The Analytics Edge* (2026), graded coursework. Pr
 which of 4 car safety-feature bundles a respondent picks. Metric: mean multiclass logloss.
 **R only** — this is a hard competition rule, never propose Python.
 
-Current state: local nested CV **1.13883**, public leaderboard **1.201**
+Current state: local nested CV **1.13556**, public leaderboard **1.201**
 (benchmark 1.38629, rival team 1.210).
 
 ## Environment
@@ -95,9 +95,14 @@ Current state: local nested CV **1.13883**, public leaderboard **1.201**
 1. Residual-based design encoding (encode the model's *error* per design, not the raw share)
 2. Bundle-level rather than choice-set-level encoding — better support per unit
 3. Latent-class MNL — discrete taste segments, strong report material
-4. Retune xgboost hyperparameters for the listwise objective (they were inherited from a
-   different objective; round counts jumped 250 → 600, so the optimum moved)
+4. Combine the monotone price constraint with the tuned hyperparameters — each beat the
+   old settings separately (1.14298 and 1.14152 vs 1.14477) but they have never been run
+   together
 5. Hierarchical Bayes (`bayesm`) — highest ceiling, slowest to fit
+
+Already done, do not repeat: retuning the listwise hyperparameters (iteration 06,
+`slow_deep` won and is now in production); softening the blend for the harder test
+population (iteration 07, refuted — softening degrades monotonically).
 
 Diminishing returns warning: the private leaderboard is ~1,500 rows with SE ≈ ±0.02,
 which is larger than everything gained so far. The report carries 15 of 30 marks; past a

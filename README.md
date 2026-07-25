@@ -16,7 +16,7 @@ Predicting which of four car safety-feature bundles a respondent chooses.
 | Benchmark (25% for everything) | 1.38629 |
 | Our first submission | 1.2230 public |
 | Rival team's known best | 1.210 public |
-| **Ours now** | **1.201 public** (local CV 1.13878) |
+| **Ours now** | **1.201 public** (local CV 1.13556) |
 
 Our local cross-validation and the Kaggle score differ by about +0.06. That gap is
 expected — see [Why local ≠ Kaggle](#why-local--kaggle-matters) below, it's one of the
@@ -63,9 +63,9 @@ either supporting infrastructure or superseded work kept for the record.
 
 | file | model | OOF | blend weight |
 |---|---|---|---|
-| [`model/03_xgb_listwise.R`](model/03_xgb_listwise.R) | xgboost with a **custom listwise softmax objective** | **1.14477** | 0.62 |
-| [`model/02_mnl_partworth.R`](model/02_mnl_partworth.R) | conditional logit with **part-worth coded** levels | 1.15686 | 0.38 |
-| [`model/06_blend.R`](model/06_blend.R) | combines them in log-space + temperature + uniform mix | **1.13883** | — |
+| [`model/03_xgb_listwise.R`](model/03_xgb_listwise.R) | xgboost with a **custom listwise softmax objective** | **1.14152** | 0.64 |
+| [`model/02_mnl_partworth.R`](model/02_mnl_partworth.R) | conditional logit with **part-worth coded** levels | 1.15686 | 0.36 |
+| [`model/06_blend.R`](model/06_blend.R) | combines them in log-space + temperature + uniform mix | **1.13556** | — |
 
 If you only read two files, read those two models.
 

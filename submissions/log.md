@@ -38,3 +38,4 @@ Implications for the remaining days:
    evidence — treat the 58% as a working estimate, not a law.
 
 **Standing: 1.201 beats the rival reference (1.210) and our own previous best (1.2230).**
+| 2026-07-26 01:16 | sub_20260726_0116.csv | mnl_pw+xgb_lw2 | 1.13556 | expect public ~1.186 | (pending) |

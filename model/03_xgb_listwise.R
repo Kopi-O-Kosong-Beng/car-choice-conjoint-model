@@ -1,7 +1,7 @@
 # =============================================================================
-# PRODUCTION MODEL 2 of 2 — xgboost with a listwise softmax objective. OOF 1.14477
-# Best single model; ~62% of the final blend. Originally experiments/iter03_listwise/.
-# Writes: model/artifacts/{oof,test}_xgb_lw.rds
+# PRODUCTION MODEL 2 of 2 — xgboost with a listwise softmax objective. OOF 1.14152
+# Best single model; ~64% of the final blend. From experiments/iter03 + iter06 tuning.
+# Writes: model/artifacts/{oof,test}_xgb_lw2.rds
 #
 # HYPOTHESIS: our xgboost is optimizing the wrong loss. It treats every
 # alternative as an independent binary "was this chosen?" problem, then we
@@ -16,8 +16,8 @@
 # This is the same algebra as multiclass softmax, but grouped DOWN rows
 # (4 consecutive rows = 1 task) instead of across columns.
 #
-# Held constant vs iteration 01 (features, folds, hyperparameters) so the only
-# change under test is the objective. Baseline to beat: xgb_de = 1.15055.
+# Progression: pointwise binary + renormalize 1.15055 -> listwise objective 1.14477
+# (iteration 03) -> hyperparameters retuned for that objective 1.14152 (iteration 06).
 #
 # Run: & "C:\Program Files\R\R-4.6.0\bin\Rscript.exe" model/03_xgb_listwise.R
 # Runtime: ~15 min. Requires 00_load.R and 01_folds.R to have run first.
@@ -61,7 +61,11 @@ eval_tasklogloss <- function(preds, dtrain) {
   list(metric = "tasklogloss", value = -mean(log(pmax(P[Y == 1], 1e-15))))
 }
 
-params <- list(eta = 0.05, max_depth = 6, min_child_weight = 10,
+# Hyperparameters from the iteration-06 sweep ("slow_deep"). The originals were
+# inherited from the pointwise objective and were no longer optimal once the objective
+# changed: OOF 1.14477 -> 1.14152, paired z = 2.48. A monotone price constraint also
+# beat the originals (1.14298) but lost to this; combining the two is untested.
+params <- list(eta = 0.03, max_depth = 8, min_child_weight = 20,
                subsample = 0.8, colsample_bytree = 0.8, base_score = 0, nthread = 0)
 new_api <- packageVersion("xgboost") >= "2.1.0"
 get_best_iter <- function(fit) {
@@ -80,7 +84,7 @@ raw_pred <- function(fit, d) {
 train_one <- function(dtr, des) {
   a <- list(params = params,
             data = xgb.DMatrix(as.matrix(dtr[, ..feat]), label = as.numeric(dtr$chosen)),
-            nrounds = 3000, early_stopping_rounds = 100, verbose = 0,
+            nrounds = 5000, early_stopping_rounds = 150, verbose = 0,
             obj = obj_listwise, maximize = FALSE)
   m_es <- xgb.DMatrix(as.matrix(des[, ..feat]), label = as.numeric(des$chosen))
   if (new_api) { a$evals <- list(es = m_es); a$custom_metric <- eval_tasklogloss }
@@ -104,8 +108,8 @@ for (k in 1:5) {
 oof <- rbindlist(oof_list); setorder(oof, No)
 cat(">>> XGB listwise OOF logloss:",
     round(logloss(ytr, as.matrix(oof[, .(p1, p2, p3, p4)])), 5),
-    "  (pointwise + same features: 1.15055)\n")
-saveRDS(oof, "model/artifacts/oof_xgb_lw.rds")
+    "  (previous tuning: 1.14477)\n")
+saveRDS(oof, "model/artifacts/oof_xgb_lw2.rds")
 
 set.seed(7)
 es_cases <- sample(unique(trl$Case), round(0.1 * uniqueN(trl$Case)))
@@ -114,6 +118,6 @@ P <- softmax_by_task(raw_pred(fit_full, tel))
 tp <- data.table(No = unique(tel$No), p1 = P[,1], p2 = P[,2], p3 = P[,3], p4 = P[,4])
 setorder(tp, No)
 stopifnot(nrow(tp) == 4997, all(abs(rowSums(as.matrix(tp[, -1])) - 1) < 1e-9))
-saveRDS(tp, "model/artifacts/test_xgb_lw.rds")
+saveRDS(tp, "model/artifacts/test_xgb_lw2.rds")
 print(head(as.data.frame(xgb.importance(model = fit_full))[, c("Feature", "Gain")], 10))
 cat("OK\n")
