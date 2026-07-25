@@ -1,0 +1,397 @@
+---
+title: "Oscars-Discrete Choice Notebook"
+output: html_notebook
+---
+
+The oscars dataset consists of data on Oscar nominees and winners
+
+```{r}
+rm(list=ls())
+oscars<- read.csv("oscars.csv")
+str(oscars)
+summary(oscars)
+```
+
+Year: Movie year
+
+Name: Nominee name
+
+PP: Indicator for picture
+
+DD: Indicator for director
+
+MM: Indicator for lead actor (male)
+
+FF: Indicator for lead actor (female)
+
+Mode: Alternative (choice) number (1 to 5 here)
+
+Ch: 1=Winner, 2=No
+
+Movie: Movie name
+
+Nom: Number of Oscar nominations
+
+Pic: Picture nomination
+
+Dir: Director nomination
+
+Aml: Lead actor (male) nomination
+
+Afl: Lead actor (female) nomination
+
+PrN: Total previous acting/directing nominations (includes supporting actor)
+
+PrW: Total previous acting/directing wins (includes supporting actor)
+
+PrNl: Previous lead acting nominations
+
+PrWl: Previous lead acting wins
+
+Gdr: Golden Globe drama winner
+
+Gmc: Golden Globe musical or comedy winner
+
+Gd: Golden Globe director winner
+
+Gm1: Golden Globe drama actor winner (male)
+
+Gm2: Golden Globe musical or comedy actor winner (male)
+
+Gf1: Golden Globe drama actor winner (female)
+
+Gf2: Golden Globe musical or comedy actor winner (female)
+
+PGA: Producers guild winner
+
+DGA: Directors guild winner
+
+SAM: Screen actors guild actor winner (male)
+
+SAF: Screen actors guild actor winner (female)
+
+Age: Actor age in movie year
+
+Length: Run time
+
+Days: Days between release date and Oscars ceremony
+
+We first convert the variable Ch: 0=No, 1=winner
+
+```{r}
+oscars$Ch <- 2-oscars$Ch
+```
+
+The dataset consists of nominees and winners in four categories: Best
+Picture, Best Director, Best Actor (male) and Best Actor (female).
+
+To predict the winner for a year, we can make use of the data available
+before the awards are announced. Such information could include the
+number of nominations that a movie got in the Oscars, if the movie, its
+actors or the director won awards earlier in the season in other award
+ceremonies such as the Golden Globe or if the actor, director have been
+nominated in earlier years (to represent a body of work).
+
+Let us first check a few possible relationships between the variables. 
+Is it true that the winner of the Best Picture has on average more nominations in Oscar categories as compared to the losing nominees?
+
+```{r}
+tapply(oscars$Nom[oscars$PP==1],oscars$Ch[oscars$PP==1],mean)
+```
+
+In the data set, the winning movies on average have 9.526 nominations
+compared to the 6.780 for losing nominees. Let us compare the variance of
+the observations and see if they are comparable.
+
+```{r}
+tapply(oscars$Nom[oscars$PP==1],oscars$Ch[oscars$PP==1],var)
+```
+
+The variance is comparable across observations. Let us do a t-test next. The null hypothesis is that the winner of Best Picture has lesser than or equal nominations in Oscars as compared to losing nominees while the alternate hypothesis is that winner of Best Picture has more nominations in Oscars as compared to losing nominees.
+
+```{r}
+t.test(oscars$Nom[oscars$PP==1 & oscars$Ch==1],oscars$Nom[oscars$PP==1 &oscars$Ch==0], alternative = "greater")
+```
+
+The p-value is very low. Therefore we are confident in rejecting the null hypothesis that the winning pictures have equal or fewer nominations than losing nominees.
+
+Let us next check: Is it true that the Best Picture winners tend to have more nominations for Best Director as compared to Best Picture losing nominees? Let us start by calculating the number of Best Picture winners which were nominated for Best Director. 
+
+```{r}
+table(oscars$Dir[oscars$PP==1 & oscars$Ch==1])
+```
+
+Of the 57 best picture winners, only 1 of them did not get a best director nomination. Which movie was this??
+
+```{r}
+which(oscars$Dir==0 & oscars$PP==1 & oscars$Ch==1)
+```
+
+Row 362.
+
+To find the name of the movie and the year
+
+```{r}
+# oscars[which(oscars$Dir==0 & oscars$PP==1 & oscars$Ch==1),]
+oscars[which(oscars$Dir==0 & oscars$PP==1 & oscars$Ch==1), c("Year","Name")]
+```
+
+This movie is Driving Miss Daisy which did not get a best director nomination but went on to win the best picture. Let us next look at the losing nominees for best picture and how many got a best director nomination.
+
+```{r}
+table(oscars$Dir[oscars$PP==1 & oscars$Ch==0])
+table(oscars$Dir[oscars$PP == 1], oscars$Ch[oscars$PP == 1])
+```
+Of the 228 losing nominees for the best picture award, 80 of them did not get a best director nomination while 148 did. The proportions are 0.35 and 0.65 respectively. Of the 57 winning nominees for the best picture, only 1 of them did not get a best director nomination. There seems to be indication that best picture winner also receive nominations for best director. You can run statistical tests to check this formally (such as the chi squared test or two proportion z test but we will not pursue it here since we will ultimately fit a full model).
+
+Is it true that the Best Actor (male and female) winners have nominations for movies in the Best Picture category?
+
+```{r}
+table(oscars$Pic[oscars$MM==1 & oscars$Ch==1])
+```
+
+Out of 57 movies for which the best actor (male) was awarded, 14 were not nominated in best picture category.
+
+```{r}
+table(oscars$Pic[oscars$FF==1 & oscars$Ch==1])
+```
+
+Out of 58 movies for which the best actor (female) was awarded, 23 were not nominated for best picture. Surprisingly there is one extra winner in this category.
+
+```{r}
+oscars$Year[oscars$FF==1 & oscars$Ch==1]
+```
+
+We can see that in 1968 there were two awards.
+
+```{r}
+subset(oscars, Year==1968 & FF==1)
+```
+
+Katherine Hepburn for the picture Lion in Winter and Barbara Streisand for the picture Funny Girl shared the Best Actor (female) award with 3030 votes each. The pattern holds — most winners in both acting categories did have a best picture nomination — but the overlap is far weaker than what we saw for best director.
+
+The Golden Globe awards are awarded one to two months before the Oscars. The award is bestowed by 93 members of the Hollywood Foreign Press Association. The award has been given every year since 1944.
+
+The Directors Guild of America has been awarding Best Motion Picture Director since 1949, Producer Guild of America has been awarding Best Producer since 1989. Since 1994, Screen Guild has been awarding Best Male Actor and Female Actor in a leading role. These awards are also given before the Oscars and hence might yielding predictive power in the model.
+
+Is it true that the Golden Globe award winners can help predict the Oscar winners? Let us check how many of the best Picture winners in Oscars won the Golden Globe too. Out of the 57 Best Picture award given between 1951 and 2006, 39 won the Golden Globe Best picture award.
+
+```{r}
+table(oscars$Gdr[oscars$PP==1 & oscars$Ch==1] + oscars$Gmc[oscars$PP==1 & oscars$Ch==1])
+```
+
+Best Picture: 39/57 = 0.684. Out of the 57 Best Director award, 31 won the Golden Globe Best Director award.
+
+```{r}
+table(oscars$Gd[oscars$DD==1 & oscars$Ch==1])
+```
+
+Best Director: 31/57 = 0.543. Out of the 57 Best Lead Actor (Male) award, 42 won the Golden Globe Best Lead Actor (Male) award.
+
+```{r}
+table(oscars$Gm1[oscars$MM==1 & oscars$Ch==1]+oscars$Gm2[oscars$MM==1 & oscars$Ch==1]) 
+```
+
+Best Male Actor: 42/57 = 0.736 Out of the 58 Best Lead Actor (Female) award, 40 won the Golden Globe Best Lead Actor (Female) award.
+
+```{r}
+table(oscars$Gf1[oscars$FF==1 & oscars$Ch==1] + oscars$Gf2[oscars$FF==1 & oscars$Ch==1])
+```
+
+Best Female Actor: 40/58 = 0.689
+
+What is the effect of having Oscar nominations in the previous years on winning in the current year? Does it have a positive or negative effect? 
+What is the effect of having won Oscar awards in the previous years on the winning chances in a current year? Does it have a positive or negative effect? 
+
+```{r}
+T <- table(oscars$PrNl[oscars$MM==1], oscars$Ch[oscars$MM==1])
+T
+T[1,2]/(T[1,1]+T[1,2])
+sum(T[2:9,2])/(sum(T[2:9,2])+sum(T[2:9,1]))
+```
+
+27/(111+27) = 0.195
+
+(14+3+6+3+2+2)/(14+3+6+3+2+2+43+29+11+14+7+6+5+2) = 0.204
+
+About 19.5% of Best Actor (male) nominees with no previous lead nominations won.
+
+About 20.4% of Best Actor (male) nominees with one or more previous lead nominations won. These are fairly similar numbers and do not seem to indicate a strong effect of previous nominations on winning for best actor (Male). Having been nominated before doesn't seem to meaningfully help or hurt your chances.
+
+```{r}
+table(oscars$PrWl[oscars$MM==1], oscars$Ch[oscars$MM==1])
+```
+
+51/(176+51) = 0.224
+
+6/(6+41+11)=0.103
+
+About 22.4% of Best Actor (male) nominees with no previous lead actor wins won.
+
+About 10.3% of Best Actor (male) nominees with one or more previous lead actor wins won. These percentages are further apart and indicate that there might be some positive effect of not winning best actor (male) previously on winning best actor (male) in the current year. You can do similar analysis for Best Actor (female) and find similar conclusions.
+
+
+We will now use the mlogit package from R to estimate a multinomial logit model for this dataset.
+
+Load the package mlogit
+
+```{r}
+#install.packages("mlogit")
+library(mlogit)
+```
+
+Create dataframes for Best Picture, Best Director, Best Male Actor, Best Female Actor
+
+```{r}
+oscarsPP <- subset(oscars, PP==1)
+oscarsDD <- subset(oscars, DD==1)
+oscarsMM <- subset(oscars, MM==1)
+oscarsFF <- subset(oscars, FF==1)
+```
+
+```{r}
+str(oscarsPP)
+summary(oscarsPP)
+```
+
+Best Picture: 285 observations Best Picture winner given by Ch=1 (winner), Ch=0 for losing nominee
+
+Let us consider the set of possible predictors for Best Picture: Nom (no. of Oscar nominations) Dir (1 = director nominated for Oscar that year, 0 otherwise) GG (Gmc + Gdr = 1 if movie wins Golden Globe, 0 otherwise)
+Aml (Lead actor (male) nomination) Afl (Lead actor (female) nomination) PGA (Producers Guild Award) Days (Days between release and Oscars ceremony) Length (Run time of movie)
+
+We define a new variable that captures if a movie won a Golden Globe for best picture.
+
+```{r}
+oscarsPP$GG <- oscarsPP$Gmc + oscarsPP$Gdr
+```
+
+Let us use the data from 1944 to 2006 to develop the logit model. For discrete choice models, setting up the data is more involved since we need to identify the alternatives, the attributes, the choices made etc. The mlogit package uses a function called dfidx to prepare the data for fitting (you can refer to https://cran.r-project.org/web/packages/mlogit/index.html). You can go through the vignettes there for more details on the package.
+
+```{r}
+D <- dfidx(subset(oscarsPP, Year <=2006), choice="Ch", shape="long", idx=c("Year","Mode"))
+head(D)
+```
+
+This creates a data set for applying the mlogit function where choice is a variable indicating the choice mode (here "Ch"). shape capture the format of the data frame (here "long" since each row is an alternative) and
+idx contains the indices that helps identify the alternatives (here "Mode" and "Year"). We will use shape="wide" when there is one row for each choice observation. An idx column is added to the data which contains the relevant indices.
+
+```{r}
+M <- mlogit(Ch~Nom+Dir+GG+Aml+Afl+PGA+Days+Length-1, data=D)
+```
+
+This fits a multinomial (conditional) logit model where Ch is the response. The -1 is
+used since we do not want an intercept to be estimated. Note that the five alternatives across different years (choice observations) are not comparable and hence we should not introduce alternative specific constants here.
+
+```{r}
+summary(M)
+```
+
+Nom, Dir, GG and PGA are the most significant variables in the fit. The
+length of the movie, the number of days it was released before the
+Oscars, whether a lead actor got nominated for the best picture are less
+significant. The variables Aml and Afl are in fact part of the Nom
+variable (as is Dir but there is some additional information provided by Dir and Nom as indicated by statistical significance).
+$$P(\text{movie } k \text{ wins}) = \frac{e^{v_k}}{\sum_{l=1}^{5} e^{{v}_l}}$$
+
+where the utility for each nominee is:
+
+$$\hat{v}_k = 0.277 \cdot \text{Nom}_k + 2.681 \cdot \text{Dir}_k + 0.758 \cdot \text{GG}_k - 0.543 \cdot \text{Aml}_k - 0.572 \cdot \text{Afl}_k + 2.114 \cdot \text{PGA}_k + 0.002 \cdot \text{Days}_k - 0.003 \cdot \text{Length}_k$$
+
+Consider a simpler model using only the variables: Nom (No, of Oscar
+nominations), Dir (Director nomination), GG (Golden Globe winner), PGA
+(Producer Guild winner). Output: Ch
+
+```{r}
+M1 <- mlogit(Ch~Nom+Dir+GG+PGA-1, data=D)
+summary(M1)
+```
+
+${P}(\text{movie k wins}) = \frac{e^{0.21Nom_k + 2.63Dir_k + 0.69GG_k + 1.84PGA_k}}{\sum_{l=1}^5 e^{0.21Nom_l + 2.63Dir_l + 0.69GG_l + 1.84PGA_l}}$
+
+Observe that all beta parameters here have positive signs indicating that increasing any independent variable will increase the probability of winning.
+
+Suppose we picked the winners with equal probability regardless of the
+predictor variables. The log-likelihood will be given by:
+${LL}(0) = 56 \log (1/5)$ where each alternative is picked equally
+likely with $\beta=0$. Here there are 56 choice tasks and 1/5 chance of
+a winner being picked in a year.
+
+Likelihood ratio index is given by:
+$\rho = 1 - \frac{LL(\hat{\beta})}{LL(0)} = 1 - \left(\frac{-38.17}{56 \log (1/5)}\right) = 0.576$
+
+$AIC = 2p -2 LL(\hat{\beta}) = 2*4 - 2*(-38.17)= 84.34$
+
+```{r}
+LL0 <- 56*log(1/5)
+LLbeta = as.numeric(M1$logLik)
+LLR = 1-LLbeta/LL0
+LLR
+p = 4
+AIC = -2*LLbeta + 2*p
+AIC
+```
+
+Note that if we use an expanded model with the variables Nom, Dir, GG,
+Aml, Afl, PGA, Days, Length, the AIC value = 89.44 (larger which is worse). Smaller model is more preferable.
+
+To predict the out of sample winners for year 2007:
+
+```{r}
+D1 <- dfidx(subset(oscarsPP, Year==2007), choice="Ch", shape="long", idx=c("Year","Mode"))
+P1 <- predict(M1, newdata= D1)
+P1
+```
+
+Winner for Oscars 2007 best picture: No Country for Old Men.
+
+```{r}
+subset(oscarsPP, Year==2007)
+```
+
+This movie had the highest predicted probability from the model. The
+movie had eight Oscar nominations, the director was nominated for best
+picture, the movie won the PGA but not the Golden Globe award.
+
+One interesting use of the model is that we can identify surprise winners. P which is calculated below provides the probability of each of the nominated movies winning the best picture. This is also available directly from the M$probabilities. We look at the movies that actually won though the probability of winning was predicted to be low (all this is being done here in the training set).
+
+```{r}
+P <- predict(M, newdata=D)
+P
+P["2000",]
+subset(oscarsPP, oscarsPP$Year == 2000)
+P["2004",]
+subset(oscarsPP, oscarsPP$Year == 2004)
+# Alternatively
+M$probabilities["2000",]
+M$probabilities["2004",]
+```
+
+For example, in the year 2004, Million Dollar Baby won the Best Picture where the probability of winning is 0.02934 while The Aviator was the overwhelming favorite with a predicted probability of 0.907. In the year 2000, on the other hand, Gladiator won and it was the overwhelming favorite with a probability of winning at 0.921788748. 
+
+Let us now build the models in an iterative manner making use of the data available till that year. We will check the number of times the Best Actor (Male) winner who had the highest predicted win probability did not actually win.
+
+```{r}
+Fail <- 0
+Predict <- NULL
+coefficients <- NULL  # reserved keyword for null object in R
+for(i in 1960:2006){
+  D <- dfidx(subset(oscarsMM, Year<=i), choice="Ch", shape="long", idx=c("Year","Mode"))
+  M <- mlogit(Ch~Pic+Gm1+Gm2+PrNl+PrWl-1, data=D)
+  coefficients <- rbind(coefficients, M$coefficients)
+  D1 <- dfidx(subset(oscarsMM, Year == (i+1)), choice="Ch", shape="long", idx=c("Year","Mode"))
+  P1 <- predict(M, newdata=D1)
+  Predict <- rbind(Predict, P1)
+  Fail <- Fail + as.logical(which.max(P1) - which.max(subset(oscarsMM, Year==i+1)$Ch))
+}
+Predict
+Fail
+```
+
+
+Out of 47 winner, 14 times (Fail) the Best Actor (Male) was won by a
+person who the model did not predict as the highest probability winner.
+
+```{r}
+summary(M)
+```
+Note you can also check from the results (summary(M)) that PrNl does not seem to be significant in predicting winners as we discussed earlier while PrWl seems to have predictive value. The beta coefficient for PrWl is negative indicating previous wins reduces chance of winning current award. You can decide to include additional variables such as SAM which is Screen Male Actor award - however this was given only after 1995.

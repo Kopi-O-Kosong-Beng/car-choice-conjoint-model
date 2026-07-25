@@ -1,0 +1,293 @@
+---
+title: "Recommendation systems (Part 2)"
+author: "Modified by Yihan based on past code by Xiaotang, Bikramjit, and Karthik"
+date: "Term 5, 2026"
+output: 
+ html_document: 
+    toc: true
+    toc_depth: 2
+    toc_float: true
+    highlight: tango
+geometry: margin=1in
+fontsize: 12pt
+linkcolor: blue    
+---
+
+First, we prepare the working environment.
+```{r}
+rm(list=ls()) # Clear the environment
+# setwd("...")  # Setup the working directory
+```
+
+
+# `ratings` dataset
+
+The data come from [grouples](https://grouplens.org), a research lab in the Department of Computer Science and Engineering at the University of Minnesota. We begin by loading the data. 
+
+```{r}
+ratings <- read.csv("ratings.csv")
+str(ratings)
+```
+
+A quick look at the dataframe:
+
+```{r}
+length(unique(ratings$userId))  
+length(unique(ratings$movieId)) 
+sort(unique(ratings$rating))    
+```
+
+The `ratings` dataframe consists of 100,023 observations of 3 variables (userId, movieId, and rating). We have 706 users, 8552 movies, and 100,023 ratings. Ratings go from 0.5 to 5.0, with 0.5 increments.
+
+We use the table() function to compute the frequency. 
+
+Let's now look at the user behavior. `table(ratings$userId)` computes the number of movies that each user has rated.
+
+```{r}
+# table(ratings$userId) counts how many times each userId appears
+max(table(ratings$userId)) 
+min(table(ratings$userId)) 
+```
+
+Users have rated from 20 to 2268 movies. Which user has watched and rated these movies?
+
+```{r}
+which(table(ratings$userId)==2268)
+which(table(ratings$userId)==20)
+```
+
+`table(ratings$movieId)` computes the number of ratings that each movie has received. 
+
+```{r}
+# table(ratings$movieId) counts how many times each movieId appears
+max(table(ratings$movieId))
+min(table(ratings$movieId))
+```
+
+Movies have from 1 to 337 ratings.
+
+# Data preparation
+
+Create an empty matrix with 706 rows (users) and 8552 columns (movies). We name the rows and columns with the unique userId and movieId in the dataset.
+
+```{r}
+Data <- matrix(nrow=length(unique(ratings$userId)), ncol=length(unique(ratings$movieId)))
+rownames(Data) <- unique(ratings$userId)
+colnames(Data) <- unique(ratings$movieId)
+```
+
+Now, let's fill in the matrix:
+
+```{r}
+# as.character(): Convert IDs to texts so R uses them as direct labels instead of row/column numbers
+for(i in 1:nrow(ratings))
+{Data[as.character(ratings$userId[i]),as.character(ratings$movieId[i])] <- ratings$rating[i]}
+# dim(Data)
+```
+
+Visual check: how are the ratings distributed?
+
+```{r}
+hist(as.vector(Data))
+# as.vector(Data) flattens the matrix into a long vector of all values
+```
+
+Normalize the ratings of each user so that bias is reduced (`na.rm=TRUE` to omit the missing values).
+
+```{r}
+Datanorm <- Data - rowMeans(Data,na.rm=TRUE)
+# This line normalizes the data in each row of the matrix Data by subtracting the row mean — i.e., the average rating given by each user.
+# na.rm = TRUE means it ignores missing values (NA) when computing the mean
+```
+
+The histogram below shows that we now have a more symmetric rating. 
+
+```{r}
+hist(as.vector(Datanorm))
+```
+
+Finally, we create a matrix with `users_train` + `users_test` rows and `movies_train` + `movies_test` columns
+ 
+```{r}
+set.seed(1)       
+users_train <- sample(1:nrow(Data), 0.98*nrow(Data)) # users_train has 98% of the rows
+users_test <- setdiff(1:nrow(Data),users_train)           # users_test has the remaining ones
+set.seed(2)
+movies_train <- sample(1:ncol(Data), 0.8*ncol(Data))  # movies_train has 80% of the columns
+movies_test <- setdiff(1:ncol(Data),movies_train)           # movies_test has the rest
+```
+
+Check the dimensions
+
+```{r}
+length(users_train)  
+length(users_test) 
+length(movies_train)  
+length(movies_test) 
+```
+
+
+# Models
+We will compare three recommendation approaches:
+
+1. Baseline model 1: predict using average movie ratings.
+2. Baseline model 2: predict using average user ratings.
+3. User-based collaborative filtering.
+
+The first two models serve as simple benchmarks.
+The third model uses information from similar users.
+
+First, we initialize the matrices that will contain the model predictions.
+
+```{r}
+Base1    <- matrix(nrow=length(users_test), ncol=length(movies_test))
+Base2    <- matrix(nrow=length(users_test), ncol=length(movies_test))
+UserPred <- matrix(nrow=length(users_test), ncol=length(movies_test))
+```
+
+## Baseline model 1
+
+Baseline model 1 assumes that every user behaves similarly, and predicts ratings based only on items (movies).
+
+For each test movie, we compute its average rating among the training users  `users_train`:
+
+```{r}
+for(i in 1:length(users_test))  
+{Base1[i,] <- colMeans(Data[users_train,movies_test], na.rm=TRUE)} # assign the same row that stores the average rating of each movie in 'movies_test' to every users_test i
+```
+
+Under Baseline model 1, all users (rows) give the same ratings:
+
+```{r}
+Base1[,1:10]
+```
+
+## Baseline model 2
+
+Baseline model 2 assumes that a user tends to give similar ratings across different movies, and predicts ratings based only on users.
+
+For each test user, we compute their average rating across the training movies `movies_train`:
+
+```{r}
+for(j in 1:length(movies_test)) 
+{Base2[,j] <- rowMeans(Data[users_test,movies_train], na.rm=TRUE)} # assign the same coloumn that stores the average rating of each user in 'users_test' to every movies_test j
+```
+
+Under Baseline model 2, all movies (columns) have the same ratings:
+
+```{r}
+Base2[,1:10] 
+```
+
+## User-based collaborative filtering model
+
+Collaborative filtering is based on the idea that users with similar past rating patterns are likely to have similar future preferences.
+
+Instead of using global averages, we identify users whose rating patterns are most similar to a target user, and use their ratings to make predictions.
+
+### Calculate the correlation between users
+
+To identify similar users, we compute the Pearson correlation coefficient between the target user and every user in the training dataset.
+
+Correlation values range from -1 to 1:
+
+- 1: very similar preferences
+- 0: no linear relationship
+- -1: opposite preferences
+
+Users with larger correlations are considered better neighbors.
+
+Initialize matrices:
+
+```{r}
+Cor   <- matrix(nrow=length(users_train),ncol=1) # store the Pearson correlation coefficients between the current test user and all training users
+Order <- matrix(nrow=length(users_test), ncol=length(users_train)) # for each test user, store training users ranked by decreasing Pearson correlation coefficients
+```
+
+With this command, we create an `Order` matrix of dimensions 15x691. Each row is the neighbors (among training users) for each test user ranked by decreasing Pearson correlation coefficients. This order will later be used to select the nearest neighbors. The `NA` represents users who have no common rated movies with the current test user.
+
+The parameter `use = "pairwise.complete.obs"` means that the correlation is computed only using movies rated by both users.
+
+```{r, message=FALSE, warning=FALSE}
+# For test user i:
+# Compute the Pearson correlation coefficient between the test user i and every training user, based only on training movies (movies_train). Then, store the result in Cor[j].
+for(i in 1:length(users_test)){
+  for(j in 1:length(users_train)){
+      Cor[j] <- cor(Data[users_test[i],movies_train],Data[users_train[j],movies_train],use = "pairwise.complete.obs")
+  }
+  # return the indices of training users sorted by how similar they are to the current test user
+  # na.last = NA means any NA correlations are excluded from the ranking
+  neighbor_order <- order(Cor, decreasing=TRUE, na.last=NA)
+  # pad the rest of the row with NAs to keep the row length consistent
+  Order[i,] <- c(neighbor_order, rep(NA, times=length(users_train)-length(neighbor_order)))
+}
+```
+
+Let's check the results
+
+```{r}
+length(Cor)
+dim(Order)
+# Order[,1:20]
+# Order[,500:520]
+# Order[,671:691]
+```
+
+### Predictions
+
+Now, we compute user predictions by looking at the 250 nearest neighbours and averaging equally over all these user ratings in the items in `movies_test`:
+
+```{r}
+for(i in 1:length(users_test))
+{UserPred[i,] <- colMeans(Data[users_train[Order[i,1:250]],movies_test], na.rm=TRUE)}    
+```
+
+Check:
+
+```{r}
+UserPred[,1:10]
+```
+
+## It’s a good practice to explore more advanced user-based collaborative filtering models by applying weighted averages of neighbors and incorporating weighted adjustments, as discussed on slides 32 and 33. 
+
+## Compare the model performance
+
+Calculate the model error:
+
+```{r}
+RMSEBase1    <- sqrt(mean((Data[users_test,movies_test] - Base1)^2, na.rm=TRUE)) 
+RMSEBase2    <- sqrt(mean((Data[users_test,movies_test] - Base2)^2, na.rm= TRUE)) 
+RMSEUserPred <- sqrt(mean((Data[users_test,movies_test] - UserPred)^2,na.rm=TRUE)) 
+```
+
+Oddly, baseline model 1 seems to still perform better. This may be because the number of neighbors k=250 used in the user-based collaborative filtering is not appropriate. 
+
+To study the influence of the number of neighbors, we vary it from 10 to 499 and compute the RMSE for each value.
+
+
+```{r}
+RMSE <- rep(NA, times=490)
+for(k in 10:499)
+{for(i in 1:length(users_test))
+{UserPred[i,] <- colMeans(Data[users_train[Order[i,1:k]],movies_test], na.rm=TRUE)}
+  RMSE[k-9] <- sqrt(mean((Data[users_test,movies_test] - UserPred)^2,na.rm=TRUE))}
+  # RMSE[1] corresponds to k=10, RMSE[2] corresponds to k=11, etc. So we store the RMSE for neighborhood size k at position k-9.
+plot(10:499,RMSE,pch=20,lwd=0.5, xlab="The Number of Neighbors k",
+  ylab="RMSE",
+  main="The Influence of the Number of Neighbors on the Prediction Accuracy")
+```
+
+The optimal neighborhood size k corresponds to the minimum point of the RMSE curve. 
+Then, we choose the optimal neighborhood size, and run the user-based collaborative filtering model.
+
+```{r}
+min(RMSE,na.rm=TRUE)
+opt_k <- which.min(RMSE)+9
+# which.min(RMSE) returns the position in the RMSE vector. Since RMSE[i] corresponds to k=i+9, we add 9 to recover the actual neighborhood size.
+print(opt_k)
+UserPred_opt_k <- matrix(nrow=length(users_test), ncol=length(movies_test))
+for(i in 1:length(users_test))
+{UserPred_opt_k[i,] <- colMeans(Data[users_train[Order[i,1:opt_k]],movies_test], na.rm=TRUE)}
+RMSEUserPred_opt_k <- sqrt(mean((Data[users_test,movies_test] - UserPred_opt_k)^2,na.rm=TRUE))
+print(RMSEUserPred_opt_k)
+```

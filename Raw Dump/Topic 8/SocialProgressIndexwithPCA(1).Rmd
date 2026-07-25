@@ -1,0 +1,336 @@
+---
+title: "Social Progress Index with PCA"
+author: "Modified by Yihan Du based on past code by Xiaotang, Bikramjit, and Karthik"
+date: "Term 5, 2026"
+output: 
+ html_document: 
+    toc: true
+    toc_depth: 2
+    toc_float: true
+    highlight: tango
+geometry: margin=1in
+fontsize: 12pt
+linkcolor: blue    
+---
+
+First, we prepare the working environment.
+```{r}
+rm(list=ls()) # Clear the environment
+# setwd("...")  # Setup the working directory
+```
+
+
+# Introduction
+
+
+**New York Times opinion column:**
+
+https://www.nytimes.com/2020/09/09/opinion/united-states-social-progress.html 
+
+**Social Progress Imperative** 
+
+https://www.socialprogress.org/
+
+Quoting from their report: The Social Progress Index is a well-established measure, published since 2013, that is meant to catalyze improvement and drive actions by presenting social outcome data in a useful and reliable way. Composed of multiple dimensions, the Social Progress Index can be used to benchmark success and provide a holistic, transparent, outcome-based measure of a country’s well-being that is independent of economic indicators. Policymakers, businesses, and countries’ citizens alike can use it to compare their country against others on different facets of social progress, allowing the identification of specific areas of strength or weakness. 
+
+We look at a recent social progress data from 2011-2020. Among the 192 countries listed in 2020, 163 are ranked according to Social Progress Index. We will consider this data set for our study.
+
+
+## Motivation
+Can we come up with a reasonable index of social progress from the data that we have?
+
+## Read data
+```{r, results='hide'}
+### install.packages("factoextra")
+### Read data
+sp2011to2020 <- read.csv("socprog2020.csv")
+sp2011to2020
+### data check
+### head(sp2011to2020)
+dim(sp2011to2020)
+```
+
+Note that there is a ranking of the countries and a social progress index mentioned here.
+
+## Data processing
+
+We select the relevant parts for use. First we take the country information and remove first few columns. Keep year 2020 and *Ranked* ones.
+
+```{r}
+spi2020<-subset(sp2011to2020,SPI.year =="2020" & Status=="Ranked")
+rownames(spi2020)<-spi2020[,2]
+### sets the row names equal to the values in column 2 of the data frame
+spi2020["United States",]
+spi2020["Singapore",]
+spi2020<-spi2020[,-c(1:6)] # remove the first six columns to directly get SPI data
+dim(spi2020)
+#spi2020
+```
+
+Then we remove columns which do not have available data (remove "NA").
+
+```{r,results='hide'}
+NAobject<-colnames(spi2020)[apply(is.na(spi2020),2,any)] # find the names of the columns that contain any NA values, where the parameter '2' refers to the column-wise operation.
+spi2020<-spi2020[,!names(spi2020)%in% NAobject] # remove columns with NA values from the spi2020 dataset
+# check the data
+dim(spi2020)
+### head(spi2020)
+```
+
+## Some Statistics
+
+```{r}
+summary(spi2020$Access.to.Basic.Knowledge)
+spi2020[which.max(spi2020$Access.to.Basic.Knowledge),]
+# returns the row in spi2020 where the value of Access.to.Basic.Knowledge is the highest
+```
+
+We can also compute the mean, median, and standard deviation of each SPI indicator among all countries.
+```{r}
+Stats<-as.data.frame(cbind(apply(spi2020, 2, mean),apply(spi2020, 2, "median"),apply(spi2020, 2, "sd")))
+colnames(Stats)<-c("mean", "median","std.dev")
+head(Stats)
+# View(Stats)
+```
+
+# PCA without scaling
+Let us do some basic principal component analysis (PCA) for Social Progress Index without standardization.
+```{r, results='hide'}
+?prcomp
+pca_result_noscale=prcomp(spi2020, scale=F) # Run PCA on the dataset spi2020 without scaling the variables
+pca_result_noscale$rotation     # Each column corresponds to one principal component direction (eigenvector)
+pca_result_noscale$x[1:10,1:5]  # Principal component scores for the first 10 countries on the first 5 principal component directions
+```
+
+## Scree plot
+```{r}
+#plot scree: the variance of each principle component  lamdba_1,...,\lambda_p (eigenvalues of the sample covariance matrix)
+plot(pca_result_noscale, type="l", main="Scree Plot")
+```
+
+## Cumulative Proportion of Variance Explained (PVE) by principal components
+```{r}
+#plot the cumulative proportion of the variance explained by principal components
+pca_result_noscale_var=pca_result_noscale$sdev^2 # \lambda_1, ..., \lambda_p
+pca_result_noscale_var_prop=pca_result_noscale$sdev^2/sum(pca_result_noscale$sdev^2) # \lambda_1 / (\sum_{i=1}^{p} \lambda_i), ..., \lambda_p / (\sum_{i=1}^{p} \lambda_i)
+
+# (\sum_{i=1}^{k} \lambda_i) / (\sum_{i=1}^{p} \lambda_i)
+plot(cumsum(pca_result_noscale_var_prop), xlab="Principal Component", ylab="Cumulative Proportion of Variance Explained", ylim=c(0,1),type='b')+abline(h=0.9,col="red", main="Cumulative Proportion Plot")
+# first PC explanation: how much of the total variance is explained by the first principal component
+pca_result_noscale_var_prop[1]
+# The second principal component explains only a small proportion of the total variance, 
+# most of the variability in the data is already captured by the first component
+pca_result_noscale_var_prop[2]
+```
+
+From the `Scree plot' and the 'Cumulative Proportion Plot': The first principal component actually explains 93% of the variability.
+
+
+## Country rankings, significant loadings (entries of eigenvectors)
+
+Each observation has many variables (features). A direction in the data space specifies how much we move along each variable. So a principal component direction is a linear combination of all the variables (combines all the variables into one direction).
+
+A loading (i.e., an entry of the eigenvector) is simply the weight of a variable when defining this principal component direction (eigenvector). A larger absolute loading means that this variable has a larger weight in defining this principal component direction.
+
+```{r, results='hide'}
+# Create a new data frame containing only the first two principal component scores (PC1 and PC2) from your PCA result.
+two_prin_comp<-data.frame(pca_result_noscale$x[,1:2])
+# Return the rows (countries) of two_prin_comps, sorted in descending order of PC1 values
+two_prin_comp[order(-two_prin_comp$PC1),]
+two_prin_comp[order(-two_prin_comp$PC2),]
+
+# Extract the eigenvectors for the first two PCs. These weights (loadings) help interpret which variables define PC1 and PC2.
+two_eigenvectors<-data.frame(pca_result_noscale$rotation[,1:2])
+
+#View(two_eigenvectors)
+#View(two_eigenvectors[order(-two_eigenvectors[,1]),][c(1:5,50:54),])
+#View(two_eigenvectors[order(-two_eigenvectors[,2]),][c(1:5,50:54),])
+``` 
+We observe that PC1 is dominated by Green house gas emission. PC2 is dominated by Internet.users.
+
+# PCA with scaling
+What is often suggested here is to scale (standardize) the data.
+
+## Scree plot
+```{r, results='hide'}
+### Each variable is standardized to have mean 0 and standard deviation 1.
+pca_result_scale=prcomp(spi2020, scale=TRUE)
+plot(pca_result_scale, type="l", main="Scree plot") #plot scree: the variance of each principle component
+plot(pca_result_scale, type="l", main="Scree plot")+abline(h=1,col="red") # plot a red line of y=1
+pca_result_scale_var=pca_result_scale$sdev^2 # \lambda_1, ..., \lambda_p
+prop_var=pca_result_scale_var/sum(pca_result_scale_var) # \lambda_1 / (\sum_{i=1}^{p} \lambda_i), ..., \lambda_p / (\sum_{i=1}^{p} \lambda_i)
+## Normalizes the variances so that each component's contribution to total variance is expressed as a proportion
+plot(prop_var, xlab="Principal Component", ylab="Proportion of Variance Explained", ylim=c(0,1),type='b')
+
+# (\sum_{i=1}^{k} \lambda_i) / (\sum_{i=1}^{p} \lambda_i)
+plot(cumsum(prop_var), xlab="Principal Component", ylab="Cumulative Proportion of Variance Explained", ylim=c(0,1),type='b')  + abline(h=0.8,col="red")+abline(v=6,col="blue")
+# cumsum(prop_var) computes the cumulative sum of vector prop_var
+```
+
+## Country rankings, significant loadings (eigenvectors) 
+```{r}
+# Extract the first four PCs for all countries
+four_prin_comp<-data.frame(pca_result_scale$x[,1:4])
+# Rank all countries by decreasing PC1
+four_prin_comp[order(-four_prin_comp$PC1),]
+
+## Extract Eigenvectors for Top 4 PCs
+four_eigenvectors<-data.frame(pca_result_scale$rotation[,1:4])
+## Rank variables by their decreasing loading (weights) in the first principal component direction
+four_eigenvectors[order(-four_eigenvectors[,1]),]
+``` 
+
+# PCA with only the core quantities
+Looking at the documentation, we see that the SPI is constructed hierarchically: the overall SPI is computed from three dimensions, and each dimension is computed from four sub-dimensions. Since these variables are aggregate measures derived from other indicators, we remove them and perform PCA using only the basic (core) indicators. This allows us to identify the fundamental patterns in the data.
+ 
+```{r}
+# The three top-level composite dimensions of SPI.
+bigdim<-c("Basic.Human.Needs","Foundations.of.Wellbeing","Opportunity")
+# 12 mid-level composite sub-dimensions that roll up into the three big dimensions
+subdim<-c("Nutrition.and.Basic.Medical.Care","Water.and.Sanitation","Shelter","Personal.Safety","Access.to.Basic.Knowledge","Access.to.Information.and.Communications","Health.and.Wellness","Environmental.Quality","Personal.Rights","Personal.Freedom.and.Choice","Inclusiveness","Access.to.Advanced.Education")
+# Remove 3 top-level composite dimensions and 12 mid-level composite sub-dimensions to focus on core indicators
+spi2020core<-spi2020[,!names(spi2020)%in% c(bigdim,subdim)]
+dim(spi2020core) 
+```
+
+Now we conduct a PCA.
+
+```{r}
+pca_result_scale_core=prcomp(spi2020core, scale=TRUE)
+plot(pca_result_scale_core, type="l", main="Scree plot for core indicators") +abline(h=1,col="red") # \lambda_1, ..., \lambda_p
+
+pca_result_scale_core_var=pca_result_scale_core$sdev^2 # \lambda_1, ..., \lambda_p
+prop_var_core=pca_result_scale_core_var/sum(pca_result_scale_core_var) # \lambda_1 / (\sum_{i=1}^{p} \lambda_i), ..., \lambda_p / (\sum_{i=1}^{p} \lambda_i)
+plot(prop_var_core, xlab="Core indicators: Principal Component", ylab="Proportion of Variance Explained", ylim=c(0,1),type='b')
+```
+
+We observe that the PC1 explains 50.0%, PC2 explains 14.2%, PC3 explains  4.6%, and PC4 explains  3.7%.
+
+```{r}
+# (\sum_{i=1}^{k} \lambda_i) / (\sum_{i=1}^{p} \lambda_i)
+plot(cumsum(prop_var_core), xlab="Core indicators: Principal Component", ylab="Cumulative Proportion of Variance Explained", ylim=c(0,1),type='b')
+```
+
+```{r}
+n<-dim(spi2020core)[1]
+k<-dim(spi2020core)[2]
+
+nup <- 5
+kup <- 5
+
+## creates a new data frame that contains PC scores for each country for PC1 to PC4
+four_prin_comp_core<-data.frame(pca_result_scale_core$x[,1:4])
+## creates a data frame of the first four eigenvectors
+four_eigenvectors_core<-data.frame(pca_result_scale_core$rotation[,1:4])
+
+## rank variables by their decreasing loading (weights) in the first principal component direction, and then extract the top and bottom kup variables
+four_eigenvectors_core[order(-four_eigenvectors_core[,1]),][c(1:kup,(k-kup+1):k),]
+## return the names of the top and bottom kup variables
+top_bot_var1<-row.names(four_eigenvectors_core[order(-four_eigenvectors_core[,1]),])[c(1:kup,(k-kup+1):k)]
+## rank countries by their decreasing first principal component scores, and then extract the top and bottom nup countries
+four_prin_comp_core[order(-four_prin_comp_core$PC1),][c(1:nup,(n-nup+1):n),]
+## return the names of the top and bottom nup countries
+top_bot_coun1<-row.names(four_prin_comp_core[order(-four_prin_comp_core$PC1),])[c(1:nup,(n-nup+1):n)]
+ 
+four_eigenvectors_core[order(-four_eigenvectors_core[,2]),][c(1:kup,(k-kup+1):k),]
+top_bot_var2<-row.names(four_eigenvectors_core[order(-four_eigenvectors_core[,2]),])[c(1:kup,(k-kup+1):k)]
+four_prin_comp_core[order(-four_prin_comp_core$PC2),][c(1:nup,(n-nup+1):n),]
+top_bot_coun2<-row.names(four_prin_comp_core[order(-four_prin_comp_core$PC2),])[c(1:nup,(n-nup+1):n)]
+ 
+four_eigenvectors_core[order(-four_eigenvectors_core[,3]),][c(1:kup,(k-kup+1):k),]
+top_bot_var3<-row.names(four_eigenvectors_core[order(-four_eigenvectors_core[,3]),])[c(1:kup,(k-kup+1):k)]
+four_prin_comp_core[order(-four_prin_comp_core$PC3),][c(1:nup,(n-nup+1):n),]
+top_bot_coun3<-row.names(four_prin_comp_core[order(-four_prin_comp_core$PC3),])[c(1:nup,(n-nup+1):n)]
+ 
+four_eigenvectors_core[order(-four_eigenvectors_core[,4]),][c(1:kup,(k-kup+1):k),]
+top_bot_var4<-row.names(four_eigenvectors_core[order(-four_eigenvectors_core[,4]),])[c(1:kup,(k-kup+1):k)]
+four_prin_comp_core[order(-four_prin_comp_core$PC4),][c(1:nup,(n-nup+1):n),]
+top_bot_coun4<-row.names(four_prin_comp_core[order(-four_prin_comp_core$PC4),])[c(1:nup,(n-nup+1):n)]
+
+```
+
+
+# Plotting the component loadings and the individuals (countries)
+
+Now we do some plotting of component loadings and the individuals (countries) along PCAs. We use soemthing called a biplot. The library `factoextra` is used here.
+ 
+```{r}
+library(factoextra)
+ #fviz_eig(pr.out)
+
+## This plot shows how each country (observation) projects onto the first two principal component directions, i.e., how large its principal component scores are on these two directions. This helps visualize data patterns.
+## X-axis: the first principal component scores. Y-axis: the second principal component scores.
+
+ fviz_pca_ind(pca_result_scale_core, labelsize=3,
+             col.ind = "contrib", # Color by contribution to the selected principal component directions
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             geom = c("point","text"),
+             #select.ind = list(cos2 = 30),
+             select.ind= list(name=c(top_bot_coun1,top_bot_coun2)), # Display only the selected top and bottom countries
+             repel = TRUE     # Avoid text overlapping
+             )
+ 
+ ggsave("CountryPC1PC2.png")
+
+## Plot how each variable aligns with and contributes to the first two principal component directions.
+## X-axis: Loading of each variable on PC1. Y-axis: Loading of each variable on PC2.
+ 
+## The direction of the arrow shows how a variable aligns with PC1 and PC2.
+## The length of the arrow indicates how strongly the variable contributes (loading magnitude).
+## The color shows which variables contribute most to PC1 and PC2.
+ 
+fviz_pca_var(pca_result_scale_core, labelsize=3,
+            col.var = "contrib", # Color by contribution to the selected principal component directions
+            gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+            select.var = list(name=c(top_bot_var1,top_bot_var2)),
+            repel = TRUE     # Avoid text overlapping
+             )
+ 
+ggsave("PC1PC2.png")
+
+## This plot shows how each country (observation) projects onto the third and fourth principal component directions, i.e., how large its principal component scores are on these two directions. 
+## X-axis: the third principal component scores. Y-axis: the fourth principal component scores.
+  
+fviz_pca_ind(pca_result_scale_core, labelsize=3,
+             col.ind = "contrib", # Color by contribution to the selected principal component directions
+             axes=c(3,4), # plot PC3, PC4
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             geom = c("point","text"),
+             #select.ind = list(cos2 = 30),
+             #theme(text = element_text(size = 2)),
+             select.ind= list(name=c(top_bot_coun3,top_bot_coun4)),
+             repel = TRUE     # Avoid text overlapping
+             )
+  
+ggsave("CountryPC3PC4.png")
+
+## Plot how each variable aligns with and contributes to the third and fourth principal component directions.
+## X-axis: Loading of each variable on PC3. Y-axis: Loading of each variable on PC4.
+
+fviz_pca_var(pca_result_scale_core, labelsize=3,
+             col.var = "cos2", # Color by quality of representation
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             axes=c(3,4), # plot PC3, PC4
+             select.var = list(name=c(top_bot_var3,top_bot_var4)),
+             repel = TRUE     # Avoid text overlapping
+             )
+ggsave("PC3PC4.png")
+
+```
+
+# An rank of our own
+ 
+Can we come up with a rank based on the PCAs. We can just use the first principal component score. 
+
+```{r}
+spi2020_orig_col<-subset(sp2011to2020,SPI.year =="2020" & Status=="Ranked")
+spi_rank<-spi2020_orig_col[,1] # the ranking based on the original SPI score
+spi_PC1_data<-data.frame(four_prin_comp[,1]) 
+rownames(spi_PC1_data)<-rownames(four_prin_comp) # set row names to country names
+spi_PC1_data$PC1_rank<-rank(-spi_PC1_data[,1]) # compute the ranking based on the PC1 scores in decreasing order as the second column
+spi_PC1_data$spi_rank<-spi_rank # add the ranking based on the original SPI score as the third column
+colnames(spi_PC1_data)<-c("PC1 Score","Rank PC1","Rank SPI") 
+spi_PC1_data[order(spi_PC1_data[,2]),][c(1:10,154:163),] # sort countries by Rank PC1, and displays the top 10 and bottom 10 countries based on PCA ranking
+```
+
+###### End of PCA Analysis for Social Progress data.

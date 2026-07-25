@@ -1,0 +1,238 @@
+---
+title: "Hitters Notebook"
+output: html_notebook
+---
+
+The hitters dataset consists of 322 observations of 21 variables with the following information - X, AtBat, Hits, HmRun (home runs), Runs, RBI, Walks, Years, CAtBat, CHits, CHmRun, CRuns, CRBI, CWalks, League, Division, PutOuts, Assists, Errors, Salary, New League. The variable definitions are:
+
+X: Name
+
+AtBat: Number of times at bat in 1986
+
+Hits: Number of hits in 1986
+
+HmRun: Number of home runs in 1986
+
+Runs: Number of runs in 1986
+
+RBI: Number of runs batted in in 1986
+
+Walks: Number of walks in 1986
+
+Years: Number of years in the major leagues
+
+CAtBat: Number of times at bat during his career
+
+CHits: Number of hits during his career
+
+CHmRun: Number of home runs during his career
+
+CRuns: Number of runs during his career
+
+CRBI: Number of runs batted in during his career
+
+CWalks: Number of walks during his career
+
+League: A and N indicating player's league at the end of 1986
+
+Division: E and W indicating player's division at the end of 1986
+
+PutOuts: Number of put outs in 1986
+
+Assists: Number of assists in 1986
+
+Errors: Number of errors in 1986
+
+Salary: 1987 annual salary on opening day in thousands of dollars
+
+NewLeague: A and N indicating player's league at the beginning of 1987.
+
+Here League, Division and NewLeagues are variables with 2 categories. We drop rows with missing entries and are left with 263 observations.
+
+```{r}
+rm(list=ls())
+hitters <- read.csv("hitters.csv")
+str(hitters)
+hitters<-na.omit(hitters)
+str(hitters)
+```
+
+# Subset selection
+
+The leaps package in R does subset selection with the regsubsets function. By default, the maximum number of subsets, this function uses is 8. We extend this to do a complete subset selection by changing the default value of nvmax argument in this function. Note that CRBI is in the model with 1 to 6 variables but not in the model with 7 and 8 variables. In the display "\*" indicates variable is included and " " indicates variable is not included.
+
+```{r}
+#install.packages("leaps")
+library(leaps)
+?regsubsets
+hitters <- hitters[,2:21]
+model1 <- regsubsets(Salary~.,data=hitters)
+summary(model1)
+model2<-regsubsets(Salary~.,data=hitters,nvmax=19)
+summary(model2)
+```
+
+```{r}
+names(summary(model2))
+summary(model2)$rsq
+plot(summary(model2)$rsq)
+plot(summary(model2)$rss)
+plot(summary(model2)$adjr2)
+which.max(summary(model2)$adjr2)
+coef(model2,11)
+```
+
+The figures indicate that R-squared increase as the number of variables in the subset increases and likewise the residual sum of squared (sum of squared errors) decreases as the size of the subsets increases. On the other hand the adjusted R-squared increases first and then decreases.
+
+Forward stepwise selection: In this example, the best model identified by the forward stepwise selection is the same as that obtained by the best subset selection. It is also possible to run this algorithm using a backward method where you drop variables one a time rather add. In general, the solutions from these two methods can be different.
+
+```{r}
+model3<-regsubsets(Salary~.,data=hitters,nvmax=19,method="forward")
+which.max(summary(model3)$adjr2)
+coef(model3,11)
+summary(model2)$adjr2-summary(model3)$adjr2
+plot(summary(model3)$adjr2)
+```
+
+```{r}
+model4<-regsubsets(Salary~.,data=hitters,nvmax=19,method="backward")
+which.max(summary(model4)$adjr2)
+coef(model3,11)
+summary(model2)$adjr2-summary(model4)$adjr2
+plot(summary(model4)$adjr2)
+```
+
+The following is AI generated code to help with making the plots fancier.
+
+```{r}
+par(mfrow = c(1, 3))
+
+plot(summary(model2)$adjr2, type = "b", xlab = "# Variables", ylab = "Adj. R²",
+     main = "Exhaustive", pch = 20)
+abline(v = which.max(summary(model2)$adjr2), col = "red", lty = 2)
+
+plot(summary(model3)$adjr2, type = "b", xlab = "# Variables", ylab = "Adj. R²",
+     main = "Forward", pch = 20)
+abline(v = which.max(summary(model3)$adjr2), col = "red", lty = 2)
+
+plot(summary(model4)$adjr2, type = "b", xlab = "# Variables", ylab = "Adj. R²",
+     main = "Backward", pch = 20)
+abline(v = which.max(summary(model4)$adjr2), col = "red", lty = 2)
+
+par(mfrow = c(1, 1))
+```
+
+# LASSO
+
+The generalized linear model with penalized maximum likelihood package glmnet in R implements the LASSO method. To run the glmnet() function, we need to pass in the arguments as X (input matrix), y (output vector), rather than the y\~X format that we used thus far. The model.matrix() function produces a matrix corresponding to the 19 predictors and the intercept and helps transform qualitative variables into dummy quantitative variables. This is important since glmnet() works only with quantitative variables. We will work with the X matrix directly from this point onwards and get the solutions. We will also drop the first column corresponding to the intercept term that is introduced in X since glmnet() by default estimates the intercept and outputs it.
+
+```{r}
+#install.packages("glmnet")
+library(glmnet)
+X <- model.matrix(Salary ~ ., data = hitters)[, -1]  
+# drop intercept column
+str(X)
+colnames(X)
+y <- hitters$Salary
+str(X)
+```
+
+We now choose a range for the lambda parameters and create a training and test set. We then build the LASSO model on this data. The output from the model provides the Df (non of nonzeros), %Dev and Lambda values. The deviance measure is given as 2(loglike_sat - loglike), where loglike_sat is the log-likelihood for the saturated model (a model with a free parameter per observation) and loglike is the log-likelihood of your model. Smaller the deviance, better the fit to the data. The deviance measure for linear regression is exactly the sum of squared errors. Null deviance is defined to be 2(loglike_sat - loglike(NULL)) where the NULL model refers to the intercept model only. The null deviance for linear regression is exactly total sum of squares. The deviance ratio is dev.ratio=1-deviance/nulldev. You can interpret the dev.ratio simply as the Rsquared value for regression problems (this will be sufficient for our analysis). Higher the deviance ratio, better the fit to the data. As lambda decreases, the dev.ratio increases (more importance given to model fit than model complexity). The a0 output gives the intercept estimate and beta gives the beta estimates. We run glmnet here with the default lambda values. We can specify them too if we want.
+
+```{r}
+set.seed(1)
+train <- sample(1:nrow(X),nrow(X)/2)
+test <- -train
+modellasso <- glmnet(X[train,],y[train])
+summary(modellasso)
+modellasso
+deviance(modellasso)
+plot(modellasso,label=TRUE)
+plot(modellasso,xvar="lambda",label=TRUE)
+```
+
+We see from the plot that as lambda increases, many of the coefficients get close to zero. We can retrieve these coefficients at specific values of lambda. The a0 term keeps track of the intercept in glmnet. Note that the number of non-zero coefficients does not change in a fully monotonic way, as lambda increases or decreases but the general trend is that as lambda increases, the number of zero coefficients increases (or number of non-zero coefficients decrease).
+
+```{r}
+modellasso$df
+modellasso$a0
+as.matrix(modellasso$beta)
+modellasso$lambda[1]
+modellasso$a0[1]
+modellasso$beta[,1]
+modellasso$lambda[70]
+modellasso$a0[70]
+modellasso$beta[,70]
+modellasso$lambda[100]
+modellasso$a0[100]
+modellasso$beta[,100]
+```
+
+We can also return the coefficients using the coef command. It returns it for specific values of lambda. For values in the grid it returns the exact beta parameters while for values not in the grid, it returns values using interpolation between closest lambda values in the grid. You can use the exact=T with the training data to get the exact beta values.
+
+```{r}
+coef(modellasso,s=15)
+coef(modellasso,s=15,exact=T,x=X[train,],y=y[train])
+```
+
+Predictions: We start with a prediction for the model fitted with lambda = 100. The test mean squared error for this model is 151898.1. Suppose, we change lambda to 50, we get 144989 and if we change lambda to 200, we get 183137.7. Note that by default if prediction is done at lambda values that are not tried in the fitting algorithm, it uses linear interpolation to make predictions. We can use exact=T in the argument to get the exact value by refitting. In addition, you need to then pass also the original training set data to the function. You get a test error of 167213.2 with the full model (all variables) while 224669.9 with a very large value of lambda. Thus choosing lambda appropriately will be important in the quality of the fit. This can be done with cross-validation.
+
+```{r}
+modellasso$lambda
+predictlasso1 <- predict(modellasso,newx=X[test,],s=100)
+mean((predictlasso1-y[test])^2)
+predictlasso2 <- predict(modellasso,newx=X[test,],s=50)
+mean((predictlasso2-y[test])^2)
+predictlasso3 <- predict(modellasso,newx=X[test,],s=200)
+mean((predictlasso3-y[test])^2)
+predictlasso1a <- predict(modellasso,newx=X[test,],s=100,exact=T,x=X[train,],y=y[train])
+mean((predictlasso1a-y[test])^2)
+predictlasso2a <- predict(modellasso,newx=X[test,],s=50,exact=T,x=X[train,],y=y[train])
+mean((predictlasso2a-y[test])^2)
+predictlasso3a <- predict(modellasso,newx=X[test,],s=200,exact=T,x=X[train,],y=y[train])
+mean((predictlasso3a-y[test])^2)
+predictlasso4 <- predict(modellasso,newx=X[test,],s=0,exact=T,x=X[train,],y=y[train])
+mean((predictlasso4-y[test])^2)
+predictlasso5 <- predict(modellasso,newx=X[test,],s=10^10,exact=T,x=X[train,],y=y[train])
+mean((predictlasso5-y[test])^2)
+```
+
+Cross-validation: By default, you perform 10 fold cross validation. Note that glmnet uses randomization in choosing the folds which we should be able to control better by setting the seed to be the same. The optimal value of lambda found from cross validation is 8.461927. You can plot the relation between the lambda parameter and the cross-validated mean error (cvm). We see that the best fit from model with the optimal lambda gives a much smaller error on the test set (143803.3) than the model which is based on complete linear regression or the model with only an intercept. We can print out the coefficients to identify that 10 predictor variables are chosen (excluding the intercept).
+
+```{r}
+set.seed(2)
+cvlasso <- cv.glmnet(X[train,],y[train])
+cvlasso$glmnet.fit
+cvlasso$lambda.min
+plot(cvlasso$lambda,cvlasso$cvm)
+predictlassocv <- predict(modellasso,s=8.461927,newx=X[test,])
+mean((predictlassocv-y[test])^2)
+coef(modellasso,s=8.461927)
+predictlassocvexact <- predict(modellasso,s=8.461927,newx=X[test,],exact=T,x=X[train,],y=y[train])
+mean((predictlassocvexact-y[test])^2)
+```
+
+You can also plot the output (cross-valiation error curve) directly for LASSO as follows:
+```{r}
+plot(cvlasso)
+```
+Here's what each element means:
+
+X-axis (bottom): −log(λ) — as you move left, λ increases (more regularization, fewer variables). Moving right means less regularization.
+
+X-axis (top): The number of non-zero coefficients in the model at each λ value.
+
+Y-axis: Cross-validated mean-squared error (CV MSE), averaged across the 10 folds.
+
+Red dots: The CV MSE at each λ tried during fitting.
+
+Gray bars: ±1 standard error around each CV MSE estimate, reflecting variability across folds.
+
+Left dashed line (lambda.min): The λ that minimizes CV MSE — this is the best-fitting model (λ ≈ 8.46, 10 predictors in our case).
+
+Right dashed line (lambda.1se): The largest λ thathose CV MSE is within 1 standard error of the minimum — a more parsimonious model that trades a small increase in error for fewer predictors (λ ≈ 151.35, 3 predictors in our case).
+
+The wide gray bands indicate there's meaningful variability in the CV error, so the difference between models in the flat region of the curve is not large.
+
+
+In the implementation of LASSO in glmnet the model that is solved is given by: $$\min \frac{1}{2n} \sum_{i=1}^{n}(y_i-\beta_0-\beta_1x_1-\ldots-\beta_px_p)^2 + \lambda \sum_{j=1}^{p} |x_j| $$ and scale (standardize) the variable before running the fit. The coefficients are returned on the original scale. You can look at <https://glmnet.stanford.edu/articles/glmnet.html> for details.

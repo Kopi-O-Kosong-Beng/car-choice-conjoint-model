@@ -1,0 +1,126 @@
+---
+title: "Economic growth Notebook"
+output: html_notebook
+---
+
+We will use a dataset that was used in the paper: I just ran two million regressions by Sala-I-Martin and Model uncertainty in cross country growth regression by Fernandez et. al. The dataset has 41 possible explanatory variables with 72 countries. The data consists of 43 columns with the Country, y (economic growth in per capita GDP) and 41 possible predictor variables. 
+```{r}
+rm(list=ls())
+eg <- read.csv("economicgrowth.csv")
+str(eg)
+eg1 <- subset(eg,select=-c(Country))
+#Alternatively eg1 <- eg[,2:43]
+str(eg1)
+```
+
+Here if we use all 41 variables to explain y , it is reasonable to expect a good fit (p = 41, n = 72). We are interested in finding smaller sized subsets of variables (few variables) that provide good fit to the data.
+
+```{r}
+model0 <- lm(y~.,data=eg1)
+summary(model0)
+# The following is AI generated code to help sort the variables in terms of p-values
+summary(model0)$coefficients |>
+  as.data.frame() |>
+  tibble::rownames_to_column("Variable") |>
+  dplyr::arrange(`Pr(>|t|)`)
+```
+
+
+We now do model selection by exhaustive search. Note that we have 2^41 which is approximately 2 trillion possible regressions to run. The leaps package has some smart ways to search over this space by avoiding visiting parts of the space where the optimum cannot exist. It employs a branch and bound algorithm to search more efficiently. This would take a few minutes to run on a laptop. The plot shows the bias-variance tradeoff where the adjusted Rsquared value increases first and then decreases. We can also plot the variables identified using the plot command. Here the model with best adjusted Rsquared value has 27 predictor variables. The plot rendered, though some variable labels are cut off due to the 41-predictor width.
+
+```{r}
+library(leaps)
+model1 <- regsubsets(y~.,data=eg1,nvmax=41)
+plot(summary(model1)$rsq)
+plot(summary(model1)$adjr2)
+plot(model1,scale=c("r2"))
+which.max(summary(model1)$adjr2)
+coef(model1,27)
+plot(model1,scale=c("adjr2"))
+```
+
+I prompted the Posit Assistant to make a plot with all variables shown on the axis "Can you plot with all 41 variables shown clearly?". It gave the code below.
+```{r}
+library(ggplot2)
+library(tidyr)
+library(dplyr)
+
+s1 <- summary(model1)
+
+# Build a long data frame: rows = subset size, cols = variable, value = included (T/F)
+which_df <- as.data.frame(s1$which) |>
+  mutate(r2 = round(s1$rsq, 3), subset_size = row_number()) |>
+  pivot_longer(-c(r2, subset_size), names_to = "Variable", values_to = "Included") |>
+  filter(Variable != "(Intercept)")
+
+
+options(repr.plot.width = 16, repr.plot.height = 10)
+
+ggplot(which_df, aes(x = Variable, y = factor(round(r2, 2)), fill = Included)) +
+  geom_tile(color = "white", linewidth = 0.3) +
+  scale_fill_manual(values = c("TRUE" = "#2c7bb6", "FALSE" = "grey90")) +
+  theme_minimal(base_size = 9) +
+  theme(
+    axis.text.x  = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 8),
+    axis.text.y  = element_text(size = 8),
+    legend.position = "none",
+    panel.grid   = element_blank(),
+    plot.title   = element_text(size = 10, face = "bold")
+  ) +
+  labs(x = NULL, y = expression(R^2), title = "Best Subsets by R² (Exhaustive Search)")
+```
+
+We next use the forward stepwise selection method which runs much faster as should be expected. Note that the results are not identical to what we obtained with the exhaustive selection approach. Here the model with the best adjusted Rsquared has 29 predictor variables.
+```{r}
+model2 <- regsubsets(y~.,data=eg1,nvmax=41,method="forward")
+plot(summary(model2)$rsq)
+plot(summary(model2)$adjr2)
+which.max(summary(model2)$adjr2)
+coef(model2,29)
+plot(model2,scale=c("r2"))
+```
+The results indicate that with model 1, we have 
+1) EquipInv, 
+2) Confucian, EquipInv, 
+3) Buddha, Confucian, EquipInv, 
+4) YrsOpen, Confucian, Protestants, EquipInv 
+while for model 2, we have 
+1) EquipInv, 
+2) Confucian, EquipInv, 
+3) Buddha, Confucian, EquipInv, 
+4) Buddha, Protestants, EquipInv, Confucian and so on. 
+The results are different from the two models. Also observe that the results are different to choosing variables simply based on smallest p-values to highest p-values.
+```{r}
+summary(model1)$which
+summary(model2)$which
+```
+
+LASSO model: The results indicate that for variables such as EquipInv, YrsOpen, Confucian show up for many values of lambda while some other variables such as CivlLib, Abslat, Popg do not show up as often. Such results help illustrate the reliability of predictors for economic growth and also help cast doubts on the robustness of the results for certain variables which might be proposed as being correlated with growth but do not show up often. You can also look at the signs of the beta coefficients to see how they relate to growth. 
+```{r}
+library(glmnet)
+x <- eg1[,c(2:42)] # here you do not need to use as.matrix(eg1[,c(2:42)]) as the variables are stored as  numeric values; code will still work correctly if you use as.matrix(eg1[,c(2:42)])
+model3 <- glmnet(x,eg1$y)
+model3
+summary(model3)
+```
+
+```{r}
+model3$df
+model3$beta["EquipInv",]
+model3$beta["YrsOpen",]
+model3$beta["Confucian",]
+model3$beta["CivlLib",]
+model3$beta["Abslat",]
+model3$beta["Popg",]
+plot(model3,xvar="lambda")
+```
+In the display below . denotes 0 and | denotes nonzero. For example, growth rate seems to be positively related to school enrollment rates and negatively related to the initial 1960 level of real per capita GDP.
+```{r}
+model3$beta
+model3$beta!=0
+model3$beta["PrScEnroll",]
+model3$beta["GDP60",]
+```
+
+
+

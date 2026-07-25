@@ -1,0 +1,93 @@
+---
+title: "Old Faithful Notebook"
+output: html_notebook
+---
+
+Lists datasets available in R
+
+```{r}
+rm(list=ls())
+data()
+```
+
+We will look at a specific dataset - Old Faithful Geyser dataset
+
+```{r}
+data(faithful)
+ls()
+```
+
+str - compactly displays the internal structure of the R object and is an alternative to summary. Here it is a dataframe with 272 observations and 2 variables
+
+```{r}
+str(faithful)
+summary(faithful)
+```
+
+Old Faithful Geyser is a hot spring that occasionally becomes unstable and erupts hot water and steam in the air. The Old Faithful Geyser is at Yellowstone Park, Wyoming (see video). Let us start by doing some basic visual plots of the data.
+
+We will do some simple plots: scatter plot, histogram, time series plot, empirical cumulative distribution, Q-Q plot, box plot
+
+```{r}
+?plot
+plot(faithful)
+hist(faithful$eruptions)
+?hist
+hist(faithful$eruptions,seq(1.6,5.2,0.2))
+plot(faithful$eruptions)
+plot(faithful$eruptions,type="l")
+?plot.ecdf
+plot.ecdf(faithful$eruptions)
+?qqnorm
+qqnorm(faithful$eruptions)
+qqnorm(faithful$eruptions[faithful$eruptions>3])
+qqnorm(faithful$eruptions[faithful$eruptions<=3])
+boxplot(faithful$eruptions)
+```
+
+Some observations that we can make from the plots:
+
+1\. Eruption times and the waiting times between successive eruptions exhibit highly oscillatory behavior, low values are followed by high values and high values are followed by low values.
+
+2\. Eruption times have a bimodal distribution.
+
+3\. Lower eruption times are followed by lower waiting times. Higher eruption times are followed by higher waiting times. This might be useful information for predicting when the next geyser eruption will occur. For example, during a short eruption, less water and less energy (heat) are used and so both are restored in shorter time. During longer eruptions, more time is needed to restore.
+
+Let us perform a one sample t-test to test the null hypothesis that the mean value = 0 and derive the 95% confidence interval for the mean parameter. With 95% confidence, if the eruption time \< 3, the average waiting time is between 53.31 and 55.67 and if the eruption time \>= 3, the average waiting time is between 79.09 and 80.88. Here I decided to divide the data with eruption time  values below 3 and above 3 from a visual inspection of the histograms so as to split the distribution into its two mixtures. One can try out other values, for example say values below and above 3.5 and see the results do not change much. 
+
+```{r}
+faithful1 <- subset(faithful,faithful$eruptions <= 3)
+faithful2 <- subset(faithful,faithful$eruptions > 3)
+summary(faithful1$waiting)
+?t.test
+str(faithful1)
+t.test(faithful$waiting)
+t.test(faithful1$waiting)
+t.test(faithful2$waiting)
+```
+
+Let us perform a two sample t-test to test the hypothesis that the difference in means = 0. We can clearly reject the null hypothesis in this case.
+
+```{r}
+t.test(faithful1$waiting,faithful2$waiting)
+```
+Based on the t-test results and the 95 percent confidence interval, we could suggest a couple of prediction rules.
+One rule is to use the result of the entire dataset and use the following rule
+
+The next eruption time is predicted to occur between 69.27 and 72.52 minutes (from a practical perspective you might prescribe something like 71 minutes plus or minus 2 minutes). 
+
+This rule while simple to implement does not use the latest eruption time to make the prediction on the waiting time till the next eruption.
+A more refined rule that seems to be somewhat like what is being used currently is as follows:
+
+If the eruption time < 3, the next eruption is predicted to occur between 53.32 and 55.67 minutes
+
+If the eruption time >= 3, the  next eruption will occur between 79.09 and 80.88 minutes
+
+Here we can use the sample mean and the associated confidence intervals conditional on the information on the eruption time to give as prediction. One can use higher confidence intervals such as say 0.99 or 0.999 or 0.99999 (use t.test(faithful1$waiting,conf.level=0.99999)) and see that the confidence intervals change slightly. 
+From a practical perspective, we might use somewhat nicer numbers to communicate to the public such as:
+
+If the eruption time < 3, the next eruption is predicted to occur between 50 and 60 minutes (55 minutes plus or minus 5 minutes)
+
+If the eruption time >= 3, the  next eruption will occur between 75 and 85  minutes (80 minutes plus or minus 5 minutes)
+
+If you want to communicate a single number to the public, you can possibly give the lower value in the confidence interval (so that there are lesser chances of missing the next eruption).

@@ -1,0 +1,157 @@
+---
+title: "Data censoring in social sciences"
+author: "Modified by Yihan Du based on past code by Xiaotang, Bikramjit, and Karthik"
+date: "Term 5, 2026"
+output: 
+ html_document: 
+    toc: true
+    toc_depth: 2
+    toc_float: true
+    highlight: tango
+geometry: margin=1in
+fontsize: 12pt
+linkcolor: blue    
+---
+
+# Data preparation
+
+First, we prepare the working environment, load the survival package and `extramarital.csv` data.
+```{r}
+rm(list=ls()) # Remove all variables from the R environment to create a fresh start
+# setwd("...")  # Setup the working directory
+```
+
+### Installation
+
+Next we install the `survival` package, which includes functions for running the Tobit model.
+
+```{r}
+if(!require(survival)){
+  install.packages("survival")}
+library(survival)
+```  
+
+Next we read the "extramarital.csv" file.
+```{r}
+exm <- read.csv("extramarital.csv")
+str(exm)
+```
+
+The dataset consists of 6366 observations of 7 variables:
+
+ - `marriage_rating`: 5 = very good, 1 = very poor
+ - `age`: 17.5 = under 20, 22 = 20 to 24, ..., 42 = 40 or over 
+ - `yrs_married`: 0.5 = less than 1 year, 2.5 = 1 to 4 years ...
+ - `religiosity`: 4 = strong, ..., 1 = no
+ - `education`: level of education, 9 = grade school, 12 = high school, ... 
+ - `occupation`: 6 = professional with advanced degree, 5 = managerial, administration, ... 1 = student
+ - `time_in_affairs`: amount of time spent in extra-marital affairs
+
+The dataset was collected in a survey by Redbook and analyzed by Ray C. Fair (Yale).
+
+# Modeling and Analysis
+
+##  Modelling 
+  Let's take a better look at the data
+```{r}  
+table(exm$time_in_affairs>0)
+```
+We observe that about 32% of people in the dataset are having an affair. 
+<!-- # FALSE  TRUE  -->
+<!-- # 4313  2053  -->
+
+Let's look at the distribution of `time_in_affairs` (with 100 bins).
+```{r}
+hist(exm$time_in_affairs,100)
+```
+
+Note that in this dataset there are a large number of zeros for the affair variable. If someone is not having an affair, a small decrease in one of the predictors may not change his/her  chances of having an affair in comparison to a person having an affair. Hence, one needs to account for possibly two types of people: those who are unlikely to be moved away from 0 by modest changes in the predictors, and those who are not 0 and likely to change by modest change in predictors.
+To do this, we use the *Tobit* model.
+
+## Training and test dataset
+
+We create a training and a test dataset first.
+```{r}
+set.seed(100)
+spl <- sample(nrow(exm),0.7*nrow(exm)) # Randomly select 70% of rows
+train <- exm[spl,]
+test <- exm[-spl,] # Remaining rows not in spl
+str(train)
+str(test)
+```
+
+## Tobit model
+Now we fit the  Tobit model.
+```{r}
+?Surv     # Create a survival object, usually used as a response variable in a model formula.
+?survreg  # Fit a parametric survival regression model.
+model1 <- survreg(Surv(time_in_affairs,time_in_affairs>0,type="left")~.,data=train,dist="gaussian")
+## time_in_affairs: the observed variable (e.g., duration of an affair).
+## time_in_affairs > 0: this is a logical indicator — TRUE means the value is not censored (we know the exact value), and FALSE means it's censored (we only know it's less than or equal to the observed value).
+## type = "left": this is left-censoring.
+```
+
+This fits a Tobit model where the data are left censored at zero. The error terms are assumed to be Gaussian (normally distributed). Let us look at the model summary.
+```{r}
+ summary(model1)
+```
+
+Now, let's look at the estimated parameters ($\beta$-coefficients. )
+ 
+ - `marriage_rating`: negative, meaning that as the marriage rating increases, the chances/length of an affair decrease.
+ - `occupation`: positive, meaning that there are greater chances of an affair with a better occupation.
+ - `yrs_married`: positive
+ - `religiosity`: negative
+
+Also, note that all coefficients are fairly significant. The model has a log likelihood of -5436.9.
+
+### Prediction
+To check how good our model fits, we predict on the test data 
+
+```{r}
+predict1 <- predict(model1,newdata=test) # Prediction provides the latent predicted values of the variables (positive and negative)
+# plot(predict1)
+```
+
+## Benchmark model
+
+We also use a benchmark model, namely *linear regression* to compare.
+```{r}
+model2 <- lm(time_in_affairs~.,data=train)
+# summary(model2)
+predict2 <- predict(model2,newdata=test)
+# plot(predict2)
+```
+
+
+## Model comparison
+
+Now let's compare the two models
+```{r}
+table(predict1 <= 0, test$time_in_affairs==0)
+```
+<!-- #       FALSE TRUE -->
+<!-- # FALSE    129   48 -->
+<!-- # TRUE    473 1260 -->
+```{r}
+table(predict2 <= 0, test$time_in_affairs==0)
+```
+<!-- #       FALSE  TRUE -->
+<!-- # FALSE   571 1184 -->
+<!-- # TRUE    31   124 -->
+<!-- # -->
+
+Clearly, the Tobit model has better accuracy in terms of accounting for  the large number of individuals for whom the extra-marital affairs variable was 0.
+
+Note that here we simply classify observations according to whether the predicted latent mean $\beta_0+\sum_{j=1}^{p}\beta_j x_{ij}$ is above or below zero. 
+A more principled approach is to compute the probabilities
+\[
+\mathbb P(Y_i>0)=\mathbb P(Y_i^*>0),
+\qquad
+\mathbb P(Y_i=0)=\mathbb P(Y_i^*\le 0),
+\]
+since the Tobit model specifies a full probability distribution for the latent variable $Y_i^*=\beta_0+\sum_{j=1}^{p}\beta_j x_{ij}+\epsilon_i$ rather than only its predicted mean.
+
+
+##### End of Data censoring for social sciences analyses.
+

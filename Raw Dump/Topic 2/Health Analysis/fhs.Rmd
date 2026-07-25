@@ -1,0 +1,120 @@
+---
+title: "Framingham Heart Study Notebook"
+output: html_notebook
+---
+
+The dataset consists of 11627 observations of 39 variables. It contains repeated measures per patient (up to 3 periods) We need to preprocess the data before building the model. We start by identifying the subset of the dataframe such that each individual has only one observation corresponding to PERIOD = 1 and is free of CHD at the the time (PREVCHD = 0). The new dataframe consists of 4240 observations of 39 variables.
+```{r}
+rm(list=ls())
+framing <- read.csv("framingham.csv")
+str(framing)
+framing1 <- subset(framing,PERIOD==1&PREVCHD==0)
+str(framing1)
+length(unique(framing1$RANDID))
+```
+To model the event data, we need to identify patients who had CHD in 10 years from their first visit. We do so by converting time for CHD to years (roughly) and checks if CHD occurs in 10 years. The maximum range of the data in years is 24 in this dataset; roughly 8766 days (use summary). Of the 4240 patients at their first visit with no prior CHD, 644 developed CHD within 10 years. 
+```{r}
+framing1$TENCHD <- as.integer((framing1$TIMECHD/365)<=10)
+table(framing1$TENCHD)
+```
+We work with some of the more relevant patient variables for the purposes of making potentially useful predictions. The variable - RANDID are of no value here (it is unique for each observation), variables - HDLC, LDLC have all missing entries in this period, variables - PREVCHD, PREVAP, PREVMI, TIME, PERIOD are all constants, variables - DEATH, ANGINA, HOSPMI, MI_FCHD, ANYCHD, STROKE, CVD, HYPERTEN are all outcome variables that happen after the followup and cannot be used for predicting at the time, variables - TIMEAP, TIMEMI, TIMEMIFC. TIMECHD, TIMEDTH, TIMEHYP are all followup time vairbales, variable - TIMECVD was used to construct TENCHD. So the variable most relevant for predictions are SEX, TOTCHOL, AGE, SYSBP, DIABP, CURSMOKE, CIGPDAY, BMI, DIABETES, BPMEDS, HEARTRTE, GLUCOSE, EDUC. We can also use PREVSTRK and PREVHYP where the variable PREVSTRK seems to have low variance in the dataset. 
+```{r}
+colSums(is.na(framing1))
+colnames(framing1)
+sapply(framing1, var, na.rm = TRUE)
+framing2 <- framing1[, c("SEX", "TOTCHOL", "AGE", "SYSBP", "DIABP", "CURSMOKE", 
+                          "CIGPDAY", "BMI", "DIABETES", "BPMEDS", "HEARTRTE", 
+                          "GLUCOSE", "educ", "PREVSTRK", "PREVHYP", "TENCHD")]
+str(framing2)
+```
+The variables in the new dataframe include RANDID (identification number), SEX (1=M,2=F), TOTCHOL (total cholesterol in mg/dL), AGE (age at the exam in years), SYSBP (systolic blood pressure), DIABP (diastolic blood pressure), CURSMOKE (current smoking 0=N,1=Y), CIGPDAY (cigarettes per day), BMI (body mass index), DIABETES (0=Not diabetic,1=Diabetic), BPMEDS (use of antihypertensive medication 1=YES,0=NO), HEARTRTE (heart rate in beats/min), GLUCOSE (glucose in mg/dL), educ (1=0-11 years,2=High school,3=Some college or vocational,4=College or more), PREVSTRK (1=YES, 0 = NO), PREVHYP (1=YES, 0 = NO). We will use these variables to predict TENCHD. Note that when we use data from secondary sources, we might need to understand and do some pre-processing (manually or automated) before we can build models with it so that it is interpretable.
+
+Split the dataset into a training and test set. We will use the training set to build the model and the test set to simply check how the model does. We do so while preserving the ratios of the outcome variable in the two sets to keep the dataset balanced. The caTools package can help to do so with the sample.split function. We set a seed to make the results replicable across different computers. Note that the split maintains the balance of people with CHD and without CHD in both the training and test sets.
+```{r}
+#install.packages("caTools")
+library(caTools)
+?sample.split
+set.seed(1)
+split <- sample.split(framing2$TENCHD,SplitRatio=0.65)
+split
+training <- subset(framing2,split==TRUE)
+test <- subset(framing2,split==FALSE)
+mean(training$TENCHD)
+mean(test$TENCHD)
+```
+Develop a logistic regression model. The use of ~. lets us use all the variables (other than TENCHD) in making a prediction. EDUC for example does not seem significant though some might argue that if a person is more educated, they give greater importance to health.
+```{r}
+model1 <- glm(TENCHD~.,data=training,family="binomial")
+summary(model1)
+```
+The result indicate that the variables significant at the 0.05 level are the SEX, AGE, SYSBP, CIGPDAY, GLUCOSE (and the intercept). The effects of these variables can be interpreted as:
+OLDER people have higher CHD risk,
+FEMALES have lower CHD risk,
+higher systolic blood pressure patients have higher CHD risk,
+patients who smoked more cigarettes have higher CHD risk,
+higher glucose level patients have higher CHD risk.
+We will also try and rebuild the model with these significant variables (p-value here below 0.05).
+```{r}
+model2 <- glm(TENCHD~SEX+AGE+SYSBP+CIGPDAY+GLUCOSE,data=training,family="binomial")
+summary(model2)
+```
+All the variables are highly significant. Note that there are missing entries - we dropped 372 observations in model 1 and 259 observations in model 2 (see output from logistic regression models). Here we will stick with model 2 primarily for interpretability reasons as it has fewer variables, all of which are significant. There are variables in model 1 that seem to be highly correlated such as CIGPDAY and CURSMOKE. Also AIC as a model selection criterion is not suitable due to the different observations used in fitting due to the missing entries in the dataset. You can in fact run the models with the same sized training sets (use na.omit(training) in the fit; this will drop all rows with any missing entry) and then we can verify that the model with the fewer variables will outperform the model with more variables on the AIC value.  
+
+```{r}
+model1a <- glm(TENCHD~.,data=na.omit(training),family="binomial")
+summary(model1a)
+model2a <- glm(TENCHD~SEX+AGE+SYSBP+CIGPDAY+GLUCOSE,data=na.omit(training),family="binomial")
+summary(model2a)
+```
+Suppose we have a male who is 60 years old with a systolic blood pressure of 145, smokes two cigarettes per day with a glucose level of 80. For this patient, we can predict the probability of getting a 10 year CHD as roughly 0.279.
+
+```{r}
+model2$coefficients
+x <- model2$coefficients%*%c(1,1,60,145,2,80)
+exp(x)/(1+exp(x))
+# alternative
+new_patient <- data.frame(SEX = 1, AGE = 60, SYSBP = 145, CIGPDAY = 2, GLUCOSE = 80)
+prob <- predict(model2, newdata = new_patient, type = "response")
+cat("Predicted probability of 10-year CHD:", round(prob, 4), "\n")
+```
+
+Prediction; 
+```{r}
+predict_test <- predict(model3,newdata=test,type="response")
+CM <- table(predict_test > 0.5,test$TENCHD)
+CM
+Accuracy <- (CM[1,1]+CM[2,2])/sum(CM)
+Accuracy
+BaseAccuracy <-  (sum(CM[1:2,1]))/sum(CM)
+BaseAccuracy
+Specificity <- (CM[1,1])/sum(CM[1:2,1])
+Specificity
+Sensitivity <- (CM[2,2])/sum(CM[1:2,2])
+Sensitivity
+(1113+21)/(1113+21+187+9)
+summary(test)
+```
+The accuracy in the test set is 0.8526. We can compare this to a baseline model which predicts no one has CHD. The accuracy of the baseline model is 0.8436. Note that we have fewer observations in the test set then the full set on which we make predictions as there are some missing entries in the dataframe - predictions on 1330 observations though there are 1484 observations in the test set since some of the predictor variables (CIGPDAY and GLUCOSE) are missing in the test set. Observe that if we use the full test set in finding the baseline model accuracy using the command table(test$TENCHD), it is very close to this number - we will get 1259/(225+1259) which is 0.8483,
+
+Using a threshold of 0.5, the model beats the baseline model by a small amount. Suppose we use a lower threshold (say 0.25). We are prone to making more false positives (incorrectly predicting a patient will have CHD when they do not) but this is reasonable for the application as compared to obtaining more false negatives  (incorrectly predicting a patient will have not have CHD when they do). Here even if a healthy patient gets identified incorrectly and is sent for further testing, lifestyle changes or medication, the costs may not be has high to say to a patient who is fine and gets no preventive medication and develops CHD later. The effects of false negatives tends to be more than false positive in this application. If clinicians used this model, then 222 (135+87) patients would be suggested some treatment, of which 135 would be unnecessary. Accuracy might not always be the most important measure in certain applications as this example illustrates.
+```{r}
+table(training$TENCHD)
+table(predict_test > 1,test$TENCHD)
+table(predict_test > 0.25,test$TENCHD)
+table(predict_test > 0.1,test$TENCHD)
+```
+
+
+More detailed tests
+```{r}
+library(ROCR)
+pr2 <- !is.na(predict_test)
+# Alternative approach pr2 <- complete.cases(predict_test)
+predict2 <- prediction(predict_test[pr2],test$TENCHD[pr2])
+perf2 <- performance(predict2,x.measure="fpr",measure="tpr")
+plot(perf2)
+performance(predict2,measure="auc")
+str(performance(predict2,measure="auc"))
+as.numeric(performance(predict2,measure="auc")@y.values)
+```
+Here we need to deal with the issue that some of the probabilities in pred_test are missing and the ROCR package does not seem to automatically deal with it. The AI tools can automate these issues. For the prediction function in ROCR, we will input only the entries that are available. We find that AUC = 0.757. The result indicates that the model can distinguish between low and high risk patients better than random guessing. We can see the ROC curve is much smoother here compared to the ROC curve for the Challenger example - because of the larger dataset here.

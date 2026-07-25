@@ -1,0 +1,24 @@
+# Model artifacts — regenerable with `Rscript model/run_all.R`, ~12 MB, and they
+# would churn on every run. Kept out so diffs stay readable.
+model/artifacts/
+
+# Local Claude Code settings (machine-specific paths). Shared settings would
+# go in .claude/settings.json, which is NOT ignored.
+.claude/settings.local.json
+
+# R session junk
+.RData
+.Rhistory
+.Rproj.user/
+*.Rproj
+.Renviron
+
+# Obsidian workspace state (per-user UI state, not content)
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+.obsidian/cache
+
+# OS noise
+.DS_Store
+Thumbs.db
+desktop.ini

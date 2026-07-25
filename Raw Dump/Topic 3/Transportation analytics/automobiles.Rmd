@@ -1,0 +1,319 @@
+---
+title: 'Safety features preference data in automobiles'
+output: html_notebook
+---
+
+
+```{r}
+safety <- read.csv("safetydata.csv")
+str(safety)
+summary(safety)
+head(safety)
+```
+
+There are a total of 9500 observations on 112 variables. Each customer performs 19 different choice tasks and there are a total of 500 customers. The variables are defined next:
+Case: Customer number (1 to 500)
+No: Observation number (1 to 9500)
+Task: Task number for a customer (1 to 19)
+
+Each customer has to make a choice among four packages in each task. For example customer 1 in the first choice task chooses Ch2. In this choice situations, the attributes were:
+Alternative 1 (Ch1) - GN 1, NS 4, BU 4, FP 3, RP 1, PP 1, TS 1, NV 1, MA 1, Price 2
+Alternative 2 (Ch2) - GN 2, NS 1, BU 2, FP 2, RP 1, PP 1, TS 1, NV 1, MA 1, Price 2
+Alternative 3 (Ch3) - GN 2, NS 4, BU 5, FP 3, RP 2, PP 3, TS 3, NV 1, MA 1, Price 2
+Alternative 4 (Ch4) - Outside option
+The variables are as follows:
+
+CC: Cruise control - 3 levels
+
+GN: Go notifier - 2 levels
+
+NS: Navigation system - 5 levels
+
+BU: Backup aids - 6 levels
+
+FA: Front park assist - 2 levels
+
+LD  Lane departure - 3 levels
+
+BZ: Blind zone alert - 3 levels
+
+FC: Front collision warning - 2 levels
+
+FP: Front collision protection - 4 levels
+
+RP: Rear collision protection - 4 levels
+
+PP: Parallel park aids - 3 levels
+
+KA: Knee air bags - 2 levels
+
+SC: Side air bags - 4 levels
+
+TS: Emergency notification - 3 levels
+
+NV: Night vision system - 3 levels
+
+MA: Driver assisted adjustment - 4 levels
+
+LB: Low speed breaking assist - 4 levels
+
+AF: Adaptive Front lighting - 3 levels
+
+HU: Head up display - 2 levels
+
+Price: 11 levels of price (300, 1000, 1500, 2000, 2500, 3000, 4000, 5000, 7500, 10000, 12000)
+
+The variables from "segment" to "income" give demographic information:
+
+segment = segment of car population that individual has
+
+year = year
+
+miles = mileage
+
+night = % of time customer drives at night
+
+gender = gender(Female or Male)
+
+age = age bracket
+
+educ = Education level (college (4 years), Grade School, High School, Postgrad, college (1-3 yrs), vocational school)
+
+region = resident of region (MW, NE, SE, SW, W)
+
+Urb = resident of  Rural, Suburban, Urban
+
+income = income
+
+Ch1 = 1 if package 1 is chosen, 0 otherwise
+
+Ch2 = 1 if package 2 is chosen, 0 otherwise
+
+Ch3 = 1 if package 3 is chosen, 0 otherwise
+
+Ch4 = 1 if package 4 is chosen, 0 otherwise
+
+Choice = Ch1 or Ch2 or Ch3 or Ch4 (depending on which option is chosen)
+
+```{r}
+table(safety$Choice)
+```
+
+```{r}
+which(colnames(safety)=="CC1")
+```
+```{r}
+which(colnames(safety)=="Price4")
+```
+
+Columns 4 to 83 of the safety data frame contains the attribute levels for each of the 4 alternatives (choices) indexed by 1,2,3 and 4 respectively. Note the zero level in all cases indicate the attribute is not available with the fourth choice being the OUTSIDE option. Higher levels for attributes correspond to more technically advanced features. We can capture the variables either directly or by adding dummy variables that take a value of 1 or 0 depending on the level.
+
+Let us start by developing a multinomial logit model for this dataset. We first read the data using dfidx. This command takes the data frame where:
+1) We use the first 12 choice tasks for each customer in our training set (12 out of 19),
+2) shape="wide" indicates that the shape of the data frame is wide (where each row here is an observation), 
+3) choice="Choice"indicates that the variable indicating the choice made by the customer is defined by 'Choice'
+4) sep="" indicates that the separator of the variable name and the alternative name is blank (this helps the mlogit package to identify the variables and the alternative names), 
+5) varying=c(4:83) indicates the columns that contain variables that are alternative specific, 
+6) idx=c("No,"Case") identifies the relevant indices for mlogit
+Reading in the data is slightly more complicated here. The warning from .mapply is generated internally by dfidx (or mlogit) and is benign in this context. It arises because of how dfidx constructs its internal index structure and is not a sign of data or a modeling problem. The warning is purely an internal implementation quirk of the dfidx package and you can leave it as is.
+
+```{r}
+library(mlogit)
+S <- dfidx(subset(safety, Task<=12), shape="wide", choice="Choice", sep="", varying = c(4:83), idx = c("No", "Case"))
+```
+
+
+```{r}
+head(S)
+```
+
+This creates a data frame of the long format to which we can use the mlogit fit.
+
+```{r}
+M <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1, data=S)
+summary(M)
+```
+
+Log-likelihood at optimality $LL(\hat{\beta}) = -7567.9$
+
+$AIC = -2LL(\hat{\beta})+ 2(p) = 15175.8$
+
+Likelihood Ratio = $1-\frac{LL(\hat{\beta})}{LL(0)} = 1 - \frac{-7567.8}{6000 \log 1/4} = 1-\frac{-7567.9}{-8317.76} = 0.09$
+
+Results indicate that CC (cruise control), KA (knee air bags), TS (emerging notification), MA (driver adjusted assessment), Price are very significant at 0.001 level. As should be expected, Price has a negative coefficient.
+
+LD (lane departure) and SC (side air bags) are significant at 0.01 level.
+
+The non price coefficients have positive signs indicating that higher the levels of these safety features is better. 
+
+Willingness to pay: For cruise control 
+```{r}
+wtp<- as.numeric(-M$coefficients["CC"]/M$coefficients["Price"])
+wtp
+```
+$WTP = \frac{0.1085}{0.2036} = 0.533$
+
+To compute WTP for each safety feature and plot it (I used the AI assistant to provide this code)
+
+```{r}
+price_coef <- M$coefficients["Price"]
+wtp <- -M$coefficients[names(M$coefficients) != "Price"] / price_coef
+
+wtp_df <- data.frame(
+  Feature = names(wtp),
+  WTP     = round(as.numeric(wtp), 4)
+)
+wtp_df[order(-wtp_df$WTP), ]
+library(ggplot2)
+
+wtp_df$Feature <- factor(wtp_df$Feature, levels = wtp_df$Feature[order(wtp_df$WTP)])
+
+ggplot(wtp_df, aes(x = WTP, y = Feature)) +
+  geom_col() +
+  geom_vline(xintercept = 0, colour = "grey40") +
+  labs(title = "Willingness to Pay per feature level",
+       x = "WTP (price-level units)", y = NULL) +
+  theme_minimal(base_size = 12)
+```
+Predictions
+First we check the prediction accuracy in our training model based on the maximum predicted choice probability:
+
+```{r}
+ActualChoice <- subset(safety, Task<=12)[,"Choice"]
+P <- predict(M, newdata=S)
+PredictedChoice <- apply(P,1,which.max)
+```
+
+ActualChoice keeps track of actual observed choice. P predicts the choice probability for the given dataset. The apply function applies to the matrix P, across rows (indexed by 1), the function of which.max (identifies index that is maximum).
+
+```{r}
+Tabtrain=table(PredictedChoice, ActualChoice)
+Tabtrain
+```
+
+```{r}
+CorPredTrain<-sum(diag(Tabtrain))/sum(Tabtrain)
+CorPredTrain
+```
+
+Correct predictions (accuracy on train set) = $\frac{616+647+629+700}{6000} = 0.432$ - well above 25% random baseline.
+
+Assuming a complete random choice for predicting the choice would result in 0.25.
+
+```{r}
+Test <- dfidx(subset(safety, Task>12), shape="wide", choice="Choice", varying = c(4:83), sep="",idx = c("No", "Case"))
+TestPredict <- predict(M, newdata=Test)
+ActualChoice <- subset(safety, Task>12)[,"Choice"]
+PredictedChoice <- apply(TestPredict, 1, which.max)
+Tabtest <- table(PredictedChoice, ActualChoice)
+Tabtest
+```
+
+
+```{r}
+CorPredTest<-sum(diag(Tabtest))/sum(Tabtest)
+CorPredTest
+```
+Correct predictions (accuracy on test set)= $\frac{376+436+356+517}{3500} = 0.481$
+
+Building more sophisticated models (mixed logit): Here the mlogit code requires us to read the data in dfidx as a list.
+
+```{r}
+S<-dfidx(subset(safety, Task<=12), shape="wide", choice="Choice", varying =c(4:83), sep="",idx = list(c("No", "Case")))
+M1 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1, data=S, rpar=c(CC='n', GN='n', NS='n', BU='n',FA='n',LD='n',BZ='n',FC='n',FP='n',RP='n',PP='n',KA='n',SC='n',TS='n',NV='n',MA='n',LB='n',AF='n',HU='n',Price='n'), panel = TRUE, print.level=TRUE)
+```
+
+This fits a mixed logit model where the coefficients are treated as random variables. This is captured with rpar(random parameters) argument where 'n' indicates it is modeled as a normal random variable, panel data captures the fact that we have multiple choice observations per individual.
+
+```{r}
+summary(M1)
+```
+
+For each random coefficient a mean value and a standard deviation. While the fit might show that some of the estimated standard deviation parameters are negative values (which clearly is not possible), you should simply take the absolute value of the estimates (this happens because the model is estimating scale parameter using unconstrained optimization). Several sd parameters are highly significant meaning there is substantial preference heterogeneity across customers for these features (such as sd.CC, sd.GN). 
+
+```{r}
+Mloglik<-round(as.numeric(M$logLik),digits=2)
+Mloglik
+AICM<- -2*Mloglik +2*20
+AICM
+
+M1loglik<-round(as.numeric(M1$logLik),digits=2)
+M1loglik
+AICM1<- -2*M1loglik +2*40
+AICM1
+```
+
+Hence we obtain log-likelihood for MNL = -7567.93, log-likelihood for Mixed logit model = -6531.3.
+Moreover AIC for MNL = 15175.86, AIC for Mixed logit model = 13142.6.
+The log-likelihood for the Mixed logit model is higher than than of the MNL model; moreover, the AIC for Mixed logit model is lower than that of the MNL model. Therefore from this perspective the Mixed logit model is preferred.
+
+Willingness to pay: AI suggested to recompare WTP for MNL and mixed logit (The following is AI generated code). We are using the mean estimates from Mixed logit for this. Broadly while rankings are consistent across two models, the features with large significant standard deviations (GN, FA, FC, RP) see their mean WTP revised upward in the mixed logit — when preferences are heterogeneous, the MNL tends to underestimate average valuations because it conflates preference variation with lower average utility.
+```{r}
+library(ggplot2)
+
+# Mixed logit WTP: use mean coefficients (exclude sd.* terms)
+mean_coefs <- M1$coefficients[!grepl("^sd\\.", names(M1$coefficients))]
+price_coef_m1 <- mean_coefs["Price"]
+wtp_m1 <- -mean_coefs[names(mean_coefs) != "Price"] / price_coef_m1
+
+# Combined comparison table
+wtp_compare <- data.frame(
+  Feature    = names(wtp),
+  WTP_MNL    = round(as.numeric(wtp), 4),
+  WTP_Mixed  = round(as.numeric(wtp_m1), 4)
+)
+wtp_compare$Diff <- round(wtp_compare$WTP_Mixed - wtp_compare$WTP_MNL, 4)
+wtp_compare[order(-wtp_compare$WTP_Mixed), ]
+# Reshape for side-by-side plot
+wtp_long <- rbind(
+  data.frame(Feature = wtp_compare$Feature, WTP = wtp_compare$WTP_MNL,   Model = "MNL"),
+  data.frame(Feature = wtp_compare$Feature, WTP = wtp_compare$WTP_Mixed,  Model = "Mixed Logit")
+)
+
+# Order features by mixed logit WTP
+feat_order <- wtp_compare$Feature[order(wtp_compare$WTP_Mixed)]
+wtp_long$Feature <- factor(wtp_long$Feature, levels = feat_order)
+
+ggplot(wtp_long, aes(x = WTP, y = Feature, fill = Model)) +
+  geom_col(position = "dodge") +
+  scale_fill_manual(values = c("MNL" = "#90A4AE", "Mixed Logit" = "#1976D2")) +
+  labs(title = "WTP comparison: MNL vs Mixed Logit",
+       x = "WTP (price-level units)", y = NULL, fill = NULL) +
+  theme_minimal(base_size = 12)
+```
+
+
+```{r}
+P1 <- predict(M1, newdata=S)
+PredictedChoice1 <- apply(P1, 1, which.max)
+ActualChoice <- subset(safety, Task<=12)[,"Choice"]
+Tabtrainmixed <- table(PredictedChoice1, ActualChoice)
+Tabtrainmixed
+```
+```{r}
+CorPredTrmix<-sum(diag(Tabtrainmixed))/sum(Tabtrainmixed)
+CorPredTrmix
+```
+
+Correct predictions (accuracy) = $\frac{530+552+537+905}{6000}= 0.420$
+
+Note that while the log-likelihood for the mixed logit model is better, in terms of predicting by simply looking at highest probability it is worse than MNL in this example. This is a coarse measure of out of sample performance especially if the probabilities are close to each other.
+
+```{r}
+Test <- dfidx(subset(safety, Task>12), shape="wide", choice="Choice", varying = c(4:83), sep="",idx = list(c("No", "Case")))
+TestPredict1 <- predict(M1, newdata=Test)
+PredictedChoice1 <- apply(TestPredict1,1,which.max)
+ActualChoice1 <- subset(safety, Task>12)[,"Choice"]
+Tabtestmixed= table(PredictedChoice1, ActualChoice1)
+
+Tabtestmixed
+```
+```{r}
+CorPredTestmixed<-sum(diag(Tabtestmixed))/sum(Tabtestmixed)
+CorPredTestmixed
+```
+
+Correct predictions (accuracy) = $\frac{331+377+316+644}{3500} = 0.4765$
+
+The mixed logit model has a lower accuracy than MNL. On the other hand it does a better job of predicting customers who are not interested in choosing any of the offered options compared to MNL. 
+

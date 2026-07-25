@@ -1,0 +1,245 @@
+---
+title: "Forecasting the Supreme Court's decisions with CARTs"
+author: "Modified by Yihan Du based on past code by Xiaotang, Bikramjit, and Karthik"
+date: "Term 5, 2026"
+output: 
+ html_document: 
+    toc: true
+    toc_depth: 2
+    toc_float: true
+    highlight: tango
+geometry: margin=1in
+fontsize: 12pt
+linkcolor: blue    
+---
+
+First, we prepare the working environment.
+```{r}
+rm(list=ls()) # Clear the environment
+# setwd("...")  # Setup the working directory
+```
+
+
+# Data Preparation
+
+## Load the data on the US Supreme Court
+
+```{r, message=FALSE}
+supreme <- read.csv("supreme.csv") # We have 623 observations and 20 variables
+str(supreme)      # Internal structure of the dataframe 
+head(supreme)     # First part of the dataframe (6 rows)
+summary(supreme)  # Summary of statistics for each variable
+```
+
+Recall the meaning of each variable:
+
+- ```docket```: case number
+- ```term```: year the case was discussed
+- ```party_1``` and ```party_2```: parties involved in the case
+- ```rehndir```, ```stevdir```, ```ocondir```, ```scaldir```, ```kendir```, ```soutdir```, ```thomdir```, ```gindir```, ```brydir```: ideological direction of the judgement of the 9 justices (i.e., Rehnquist, Stevens, O'Connor, Scalia, Kennedy, Souter, Thomas, Ginsburg, Breyer). 0 means liberal, 1 means conservative. 9 indicates that the vote is not available for the case.
+- ```petit```: petitioner type
+- ```respon```: respondant type
+- ```circuit```: the circuit court where the case originated
+- ```unconst```: binary number indicating if the petitioner claimed that the practice breaks the Constitution
+- ```lctdir```: ideological direction of the lower court (liberal or conservative)
+- ```issue```: area of the issue
+- ```result```: 0 means liberal, 1 means conservative
+
+## Data for modelling justice Stevens' decisions
+
+Let's now focus on a specific justice, say Stevens, using 6 predictors: "petit","respon","circuit","unconst","lctdir","issue". We remove data with no entry from Stevens and process the variable ```result```. This creates a new variable (```$rev```) in the dataframe that takes a value of 1 if Stevens' decision reverses the lower court decision and 0 if the justice affirms the lower court decision.
+
+```{r}
+stevens <- subset(supreme[,c("docket","term","stevdir","petit","respon","circuit","unconst","lctdir","issue","result")],supreme$stevdir!=9)
+stevens$rev <- as.integer((stevens$lctdir=="conser" & stevens$stevdir==0) | (stevens$lctdir=="liberal" & stevens$stevdir==1))
+```
+
+Finally, we split the data into training and testing datasets. To this purpose, we use the ```sample.split()``` function from ```caTools``` package.
+
+```{r, message=FALSE}
+if(!require(caTools)){                          # install or load the package
+  install.packages("caTools")
+  library(caTools)
+}
+set.seed(123)                                   # set seed for random sampling
+spl <- sample.split(stevens$rev,SplitRatio=0.7) # We use 70% of the data for training, and ensure the proportion of 'stevens$rev' outcomes is consistent across the training and testing sets
+train <- subset(stevens,spl==TRUE);             # training dataset
+test <- subset(stevens,spl==FALSE);             # testing dataset
+```
+
+
+# Warm up: Logistic regression
+
+```{r}
+m1 <- glm(rev~petit+respon+circuit+unconst+issue+lctdir,data=train,family="binomial")
+summary(m1)
+```
+
+Let's now try to make a prediction on the test data. 
+
+Notice that in the test data, the ```issue``` contains a category 'IR'  (Interstate Relations) that was never seen in the training data, and the logistic regression model is unable to estimate its effect. So we cannot directly use the command ```p1 <- predict(m1,newdata=test,type="response")```. 
+
+Instead, we need to modify the test dataset as follows:
+
+```{r}
+test <- subset(test,test$issue!="IR")
+p1 <- predict(m1,newdata=test,type="response")
+```
+
+How does the model perform?
+```{r}
+table(test$rev,p1>=0.5) # Rows represent actual labels (test$rev) and columns represent predictions (p1 >= 0.5)
+```
+
+So the accuracy (0.6576087) is ```r sum(diag(table(p1>=0.5,test$rev)))/sum(table(p1>=0.5,test$rev))```. 
+
+# CART
+
+For Classification And Regression Trees (CARTs). First, we must load the `rpart` package.
+
+```{r, message=FALSE}
+if(!require(rpart)){        # rpart is for CART
+  install.packages("rpart")
+  library(rpart)
+}
+```
+
+## Building a CART
+
+The command ```cart1 <- rpart(rev~petit+respon+circuit+lctdir+issue+unconst,data=train)``` will not work, because ```rpart``` builds a regression tree by default. So, remember to specify you are working on a classification problem by adding ```method="class"```! 
+
+```{r}
+cart1 <- rpart(rev~petit+respon+circuit+lctdir+issue+unconst,data=train,method="class")
+```
+
+There is an alternative way of building a classification tree: Use ```as.factor()``` to convert 'rev' to a factor (for categorical data) to ensure that the model performs classification.
+```
+# cart1 <- rpart(as.factor(rev)~petit+respon+circuit+lctdir+issue+unconst,data=train)
+```
+
+## What's inside a CART?
+
+The variable ```cart1``` contains all the information about the tree, with nodes, branches, and the corresponding probability associated to each class. To analyze its content, we have a couple of options. 
+
+The first is to use the function ```print()```: for each node, we know the node number, variable used for splitting, number of observations in the node, loss error in the node, predicted value, and predicted probabilities. Note that the children of node x are numbered 2x and 2x+1. Also, note that a variable might appear many times in the tree. The symbol * indicates a terminal node.
+
+```{r, message=FALSE}
+# loss: the number of observations that are misclassified in the node
+# node 2: The data is split by 'lctdir=liberal'. Since about 62.9% of the 202 observations have a 'rev' of 0, the model predicts the 'rev' as '0' for the data belonging to this node.
+print(cart1)
+```
+
+The second option we have is to use the function ```summary()```.
+
+```{r, results=FALSE}
+summary(cart1)
+```
+
+## Visualizing a CART's structure
+
+A fundamental advantage of CARTs is that it possible to visualize their structure. There is a number of packages that can be used to this purpose.
+
+We begin with the default function (available in the ```rpart package```)
+
+```{r}
+plot(cart1); text(cart1) 
+```
+
+The `rpart.plot` package has better functionalities
+
+```{r, message=FALSE}
+if(!require(rpart.plot)){   
+  install.packages("rpart.plot")
+  library(rpart.plot)
+}
+prp(cart1)        # default visualization
+prp(cart1,type=1) # labels all nodes (not just the leaves)
+prp(cart1,type=4) # draws separate labels for left and right directions for all nodes and label nodes
+prp(cart1,type=4,extra=4) # Display the class proportions within each node. The two numbers represent Proportion(class=0 | node) and Proportion(class=1 | node). 
+prp(cart1,type=4,extra=9) # Display the class proportions compared to the total number of observations in the dataset. The two numbers represent Proportion(class=0 | dataset) and Proportion(class=1 | dataset).
+```
+
+Other visualization options: see an example with the ```fancyRpartPlot()``` function, which requires ```rpart.plot```, ```rattle```, and ```RColorBrewer```.
+
+```{r, message=FALSE}
+if(!require(rattle)){
+  install.packages("rattle")
+  library(rattle)
+}
+if(!require(RColorBrewer)){
+  install.packages("RColorBrewer")
+  library(RColorBrewer)
+}
+fancyRpartPlot(cart1) # Run fancyRpartPlot. The number 'XX%' at each node represents Proportion(#observations in this node | #total observations in the dataset)
+```
+
+## Making predictions
+
+The function ```predict()``` uses ```cart1``` and the test data to carry out the predictions. For each test data point, the ```predict()``` function traverses the tree from the root to a terminal node based on the predictors, and then predicts the class with the highest probability (majority vote) in that node.
+
+```{r}
+predictcart1 <- predict(cart1,newdata=test,type="class")
+# predictcart1
+```
+
+How does the model perform?
+
+```{r}
+table(test$rev,predictcart1)
+```
+
+So the accuracy (0.6304348) is ```r sum(diag(table(test$rev,predictcart1)))/sum(table(test$rev,predictcart1))```. 
+
+Hence, we can see that the performance of the logistic regression and CART model are similar on this dataset.
+
+
+# Pruning
+
+Let's begin by printing the ```CP``` table for model ```cart1```. Note that these results are generated automatically by the `rpart` function using a 10-fold cross-validation.
+
+```{r}
+printcp(cart1)
+```
+
+Remarks:
+
+- `CP`: the Complexity Parameter ($\alpha$ in our slides)
+- `rel error`: the relative error of the model, scaled so that the root node error equals 1. Roughly, the relative error can be converted to absolute error (i.e., Proportion(#misclassified observations | #total observations in the dataset)) by multiplying the root node error and ```rel error```. 
+- `xerror`: the cross-validation error of the model. 
+- `xstd`: the standard deviation of the cross-validation error.
+- We pick the value of `CP` that minimizes cross-validation error ```xerror``` $\pm$ its standard deviation ```xstd```. In this case, we achieve the best performance for `CP=0.030769`.
+- ```CP``` is also scaled to provide a standardized, relative metric for model complexity across different datasets. ```rpart``` uses a default complexity parameter threshold `CP=0.01` to stop splitting and prevent overfitting.
+
+
+
+We can also plot the relation between ```CP``` and ```xerror```:
+
+```{r}
+plotcp(cart1)
+```
+
+Let's now prune the tree
+
+```{r}
+opt <- which.min(cart1$cptable[,"xerror"]) # get the index of CP with the lowest xerror
+cp <- cart1$cptable[opt, "CP"]            # get the CP value with the lowest xerror
+cart2 <- prune(cart1,cp)
+```
+
+As shown below, this is a much smaller tree!
+
+```{r}
+prp(cart2,type=4,extra=4)
+```
+
+And yet, its accuracy on the test dataset is higher than the one of a fully-grown tree!
+
+```{r}
+predictcart2 <- predict(cart2,newdata=test,type="class")
+table(test$rev,predictcart2)
+```
+
+The accuracy (0.6521739) is ```r sum(diag(table(test$rev,predictcart2)))/sum(table(test$rev,predictcart2))```.
+
+
+

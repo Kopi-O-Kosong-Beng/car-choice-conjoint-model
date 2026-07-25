@@ -1,0 +1,155 @@
+---
+title: "Image compression with SVD"
+author: "Modified by Yihan Du based on past code by Xiaotang, Bikramjit, and Karthik"
+date: "Term 5, 2026"
+output: 
+ html_document: 
+    toc: true
+    toc_depth: 2
+    toc_float: true
+    highlight: tango
+geometry: margin=1in
+fontsize: 12pt
+linkcolor: blue    
+---
+# Data Preparation
+
+First, we prepare the working environment.
+
+```{r}
+rm(list=ls()) # Clear the environment
+# setwd("...")  # Setup the working directory
+```
+
+### Installation
+
+Install the jpeg package which we will use for analysis.
+```{r}
+#install.packages("jpeg")
+library(jpeg)
+# ?readJPEG
+# install.packages("grid")
+library(grid)
+```
+
+This reads the original image. It reads it into an array of size `417 x 542`.
+```{r}
+Buda <- readJPEG("Buda.jpg")
+str(Buda)
+# grid.raster(Buda)
+```
+
+![](Buda.jpg)
+
+This is a grayscale image where each pixel has an intensity value between 0 and 1.
+```{r}
+min(Buda)
+max(Buda)
+```
+
+# Singular value decomposition
+
+We will now perform a SVD on this matrix. This creates three objects, namely, `d` consisting of singular values (417), `u` consisting of left singular vectors (417 * 417), and `v` consisting of right singular vectors (542 * 417). Notice that `v` is not 542*542 as R provides economy SVD for only non 0 sigular values. 
+```{r}
+?svd
+s <- svd(Buda[,])
+str(s)
+```
+Let us now develop a low rank approximation. As we see the singular values have a few high values and then it quickly drops off.
+```{r}
+plot(s$d)
+```
+
+Let us create a rank one approximation to the matrix using only the first singular value/vector
+```{r}
+s1 <- s$d[1]*s$u[,1]%*%t(s$v[,1])
+str(s1)
+?writeJPEG
+writeJPEG(s1,"Buda1.jpg")
+# Buda1 <- readJPEG("Buda1.jpg")
+# grid.raster(Buda1)
+```
+![](Buda1.jpg)
+
+Let us create a rank ten approximation to the matrix
+
+```{r}
+s10 <- s$u[,1:10]%*%diag(s$d[1:10])%*%t(s$v[,1:10])
+str(s10)
+writeJPEG(s10,"Buda10.jpg")
+Buda10 <- readJPEG("Buda10.jpg")
+# grid.raster(Buda10)
+```
+![](Buda10.jpg)
+
+```{r}
+s100 <- s$u[,1:100]%*%diag(s$d[1:100])%*%t(s$v[,1:100])
+str(s100)
+writeJPEG(s100,"Buda100.jpg")
+Buda100 <- readJPEG("Buda100.jpg")
+# grid.raster(Buda100)
+```
+![](Buda100.jpg)
+
+Let's see the proportion of information (variance) retained by the rank-$k$ approximation.
+
+```{r}
+var <- cumsum(s$d^2) # [\sigma_1^2, \sigma_1^2+\sigma_2^2, \sigma_1^2+\sigma_2^2+\sigma_3^2, ...]
+str(var)
+plot(1:length(s$d),var/max(var))
+var[1]/max(var)
+var[10]/max(var)
+var[100]/max(var)
+```
+
+The first singular value accounts for 87.37%, the first ten singular values account for 96.48%, and the first hundred singular values account for 99.79%.  
+
+# RGB Image
+
+We now repeat the analysis using an RGB image. 
+
+```{r}
+Labubu <- readJPEG("Labubu.jpg")
+str(Labubu)
+```
+![](Labubu.jpg)
+
+
+This is read into an array of size 736 x 736 x 3 
+(height × width × channels). The three channels store the RGB color intensities.
+
+# Note that in this case Labubu[,,1] is different from Labubu[,,2] and Labubu[,,3].
+
+
+Let's now perform the Singular Value Decomposition (SVD) on the different channels
+```{r}
+s1 <- svd(Labubu[,,1])
+s2 <- svd(Labubu[,,2])
+s3 <- svd(Labubu[,,3])
+```
+
+Develop low rank approximation (with rank 50). Initialize the vector for storing the approximation
+```{r}
+Labubu50 <- array(dim=c(736,736,3))
+Labubu50[,,1] <- s1$u[,1:50]%*%diag(s1$d[1:50])%*%t(s1$v[,1:50])
+Labubu50[,,2] <- s2$u[,1:50]%*%diag(s2$d[1:50])%*%t(s2$v[,1:50])
+Labubu50[,,3] <- s3$u[,1:50]%*%diag(s3$d[1:50])%*%t(s3$v[,1:50])
+```
+
+```{r}
+writeJPEG(Labubu50,"Labubu50.jpg")
+```
+![](Labubu50.jpg)
+
+Let's retry with a higher approximation using 400 singular values/vectors.
+
+```{r}
+Labubu400 <- array(dim=c(736,736,3))
+Labubu400[,,1] <- s1$u[,1:400]%*%diag(s1$d[1:400])%*%t(s1$v[,1:400])
+Labubu400[,,2] <- s2$u[,1:400]%*%diag(s2$d[1:400])%*%t(s2$v[,1:400])
+Labubu400[,,3] <- s3$u[,1:400]%*%diag(s3$d[1:400])%*%t(s3$v[,1:400])
+writeJPEG(Labubu400,"Labubu400.jpg") # --> much better!
+```
+![](Labubu400.jpg)
+
+#### End of notes

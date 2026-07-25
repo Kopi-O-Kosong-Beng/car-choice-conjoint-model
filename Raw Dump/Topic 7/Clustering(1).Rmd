@@ -1,0 +1,248 @@
+---
+title: "Recommendation systems (Part 1)"
+author: "Modified by Yihan Du based on past code by Xiaotang, Bikramjit, and Karthik"
+date: "Term 5, 2026"
+output: 
+ html_document: 
+    toc: true
+    toc_depth: 2
+    toc_float: true
+    highlight: tango
+geometry: margin=1in
+fontsize: 12pt
+linkcolor: blue    
+---
+
+First, we prepare the working environment.
+```{r}
+rm(list=ls()) # Clear the environment
+# setwd("...")  # Setup the working directory
+```
+
+
+# MovieLens dataset
+
+The data come from [grouples](https://grouplens.org), a research lab in the Department of Computer Science and Engineering at the University of Minnesota.
+
+We begin by loading the data. Because the dataset contains strings, we use the option `stringsAsFactors=FALSE` to prevent R from automatically treating text as categorical data. The dataframe consists of two variables with 8569 movies with movieID and title.
+
+```{r}
+movies <- read.csv("movies.csv",stringsAsFactors=FALSE)
+str(movies)
+```
+
+A quick look at the dataframe:
+
+```{r}
+head(movies) # First part of the dataframe
+# summary(movies) # Summary of the data
+```
+
+The movie genre is contained in a different file. To read it, we use the following commands:
+
+```{r}
+genr <- read.csv("genres.csv")
+# Count the number of fields separated by "|" in each row of genres.csv
+countfields <- count.fields("genres.csv", sep="|") 
+# The first movie, for example has 5 genres listed
+countfields[1] 
+# With this command, we can see that movies have from 1 to 7 genres listed
+min(countfields)
+max(countfields)
+# Now, we load genres.csv. The command creates a dataframe with 8569 observations and 7 variables with column names X1 ... X7.
+genres <- read.csv("genres.csv", header=FALSE, sep="|", col.names=c("X1","X2","X3","X4","X5","X6","X7"), stringsAsFactors=TRUE)
+head(genres) 
+```
+ 
+For this class, we need to work with a matrix having 8,569 rows and a number of columns equal to the number of genres. For each cell, we want to know whether a certain genre is associated with (0) or (1) to a certain movie. This requires some processing of the data contained in `genres`. We use a dedicated function to do it.
+
+```{r}
+# Run all the R code written in the file process_genre_data.R, load the functions written in it
+source('process_genre_data.R')
+M <- process_genre_data(genres)
+```
+
+Then, we create a dataframe (named `Data`) with movie title and classification.
+
+```{r}
+Data <- as.data.frame(M)
+Data$title <- movies$title
+#### copy over the movie titles from the movies dataset so we know which row is which movie.
+Data <- Data[,-19] # remove the 19th column, which is an unmeaningful category 
+```
+
+We are now ready for our clustering exercise.
+
+# Hierarchical clustering
+
+To run hierarchical clustering in R, we must follow two steps. First, we use the function `dist()` to calculate the distance between every two movies using the first 19 columns (genres of movies).
+
+```{r}
+distances <- dist(Data[,1:19], method="euclidean")
+dim(Data)
+# length(distances)
+```
+
+Note that we computed \(8569 \times (8569-1)/2 = `r 8569*(8569-1)/2`\) distances.
+
+Then, we execute hierarchical clustering. We use Ward's distance method to find compact clusters.
+
+```{r}
+clusterMovies1 <- hclust(distances, method="ward.D2")
+```
+
+Plot the dendrogram. We have several movies, so the lists at the bottom cannot be read. (Here we suppress the labels because there are thousands of movies. The dendrogram is mainly used to visualize the hierarchical merging process.)
+
+```{r}
+plot(clusterMovies1, labels = FALSE, hang = -1) 
+```
+
+Let's now cut the dendrogram into 10 clusters, and compute the average value across the clusters for the Action variable. A higher value indicates that many movies in the clusters are action movies.
+
+```{r}
+clusterGroups1 <- cutree(clusterMovies1, k=10)
+####### is used to cut the dendrogram (hierarchical tree) into k = 10 clusters
+tapply(Data[,1], clusterGroups1, mean) 
+###### mean value of Data[,1] (e.g., the first genre, the "Action" genre) within each cluster
+```
+
+Create a matrix "Cat1" where rows denote categories and columns indicate clusters
+
+```{r}
+Cat1 <- matrix(0,nrow=19,ncol=10)
+for(i in 1:19)
+{Cat1[i,] <- tapply(Data[,i], clusterGroups1, mean)}
+rownames(Cat1) <- colnames(Data)[1:19]
+Cat1
+```
+
+Typically, a threshold is set (e.g., a mean value > 0.3) to filter and identify the most representative genres that define each cluster. 
+Looking at `Cat1`, we can infer that the 10 clusters are organized as follows:
+  
+* Cluster 1: Fantasy, Comedy, Children, Adventure, Animation
+* Cluster 2: Romance, Comedy, Drama
+* Cluster 3: Comedy
+* Cluster 4: Action, Drama, Thriller, Crime
+* Cluster 5: Thriller, Horror
+* Cluster 6: Drama
+* Cluster 7: Drama, Romance
+* Cluster 8: Drama, Thriller
+* Cluster 9: Action, Sci-fi
+* Cluster 10: Documentary
+
+Let's take a look at various movies
+
+```{r}
+# subset(Data$title, clusterGroups1==6)
+subset(Data, movies$title=="Grand Budapest Hotel, The (2014)")
+clusterGroups1[8418]
+subset(Data, movies$title=="Moneyball (2011)")
+clusterGroups1[7925]
+subset(Data, movies$title=="John Wick (2014)")
+clusterGroups1[8514]
+subset(Data, movies$title=="Star Trek (2009)")
+clusterGroups1[7293]
+```
+
+
+# K-means clustering
+
+This algorithm involves randomization, so it is best practice to first set the seed.
+
+```{r}
+set.seed(1)
+```
+
+The following command performs a K-means clustering with k=10 and 20 random initializations. Here `nstart=20` refers to performing 20 random initializations, and returning the best clustering result with the lowest total within-cluster variance.
+
+```{r}
+clusterMovies2 <- kmeans(Data[,1:19],centers=10,nstart=20)
+```
+
+The total within-cluster variance (we want this number to be small) measures how tight or compact the clusters are. 
+
+```{r}
+clusterMovies2$tot.withinss 
+```
+
+Let's try again, but, this time, with just one random initialization:
+
+```{r}
+set.seed(1)
+clusterMovies3 <- kmeans(Data[,1:19],centers=10,nstart=1)
+clusterMovies3$tot.withinss 
+```
+
+We can see that performing multiple random intializations and picking the best clustering result is useful!
+
+Let's now vary the value of k and plot the error in the cluster as a function of k:
+
+```{r}
+set.seed(1)
+fit <- 0
+for(k in 1:15)
+{clusterMovies4 <- kmeans(Data[,1:19], centers=k, nstart=20)
+fit[k] <- clusterMovies4$tot.withinss}
+plot(1:15,fit)
+```
+
+Let's see the corresponding clusters:
+
+```{r}
+Cat2 <- matrix(0,nrow=19,ncol=10)
+for(i in 1:19)
+{Cat2[i,] <- tapply(Data[,i], clusterMovies2$cluster, mean)}
+rownames(Cat2) <- colnames(Data)[1:19]
+Cat2
+```
+
+
+
+# Extensions: what if we want to do clustering with only a subset of genres, say gener 2 to 6 and 9 to 17
+
+## Hierarchical clustering
+
+```{r}
+# Get distance matrix by only considering the subset of genres 
+distances_subset <- dist(Data[, c(2:6, 9:17)], method = "euclidean")
+# Apply hierarchical clustering
+clusterMovies1_subset <- hclust(distances_subset, method = "ward.D2")
+# Cut dendrogram to get 10 clusters
+clusterGroups1_sub <- cutree(clusterMovies1_subset, k = 10)
+# Define the genre columns you want to use
+genre_indices <- c(2:6, 9:17)
+# Create an empty matrix to store the average of each genre per cluster
+Cat1_sub <- matrix(0, nrow = length(genre_indices), ncol = 10)
+# Fill in the matrix using tapply
+for (i in seq_along(genre_indices)) {
+  Cat1_sub[i, ] <- tapply(Data[[genre_indices[i]]], clusterGroups1_sub, mean)
+}
+# Set row names for easier interpretation
+rownames(Cat1_sub) <- colnames(Data)[genre_indices]
+# View the result
+Cat1_sub
+```
+
+## K-means clustering
+
+```{r}
+# Apply K-means clustering using a subset of genres
+clusterMovies2_sub <- kmeans(Data[, c(2:6, 9:17)], centers = 10, nstart = 20)
+# Define the genre column indices
+genre_indices <- c(2:6, 9:17)
+# Initialize the result matrix
+Cat2_sub <- matrix(0, nrow = length(genre_indices), ncol = 10)
+# Fill the matrix with average genre values per cluster
+for (i in seq_along(genre_indices)) {
+  Cat2_sub[i, ] <- tapply(Data[[genre_indices[i]]], clusterMovies2_sub$cluster, mean)
+}
+# Set row names for readability
+rownames(Cat2_sub) <- colnames(Data)[genre_indices]
+# View the result
+Cat2_sub
+```
+
+
+
+
+

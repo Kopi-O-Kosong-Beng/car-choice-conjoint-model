@@ -1,0 +1,148 @@
+---
+title: "Survival analyses in healthcare"
+author: "Modified by Yihan Du based on past code by Xiaotang, Bikramjit, and Karthik"
+date: "Term 5, 2026"
+output: 
+ html_document: 
+    toc: true
+    toc_depth: 2
+    toc_float: true
+    highlight: tango
+geometry: margin=1in
+fontsize: 12pt
+linkcolor: blue    
+---
+
+# Data preparation
+First, we prepare the working environment, load the survival package and `heart.csv` data.
+```{r}
+rm(list=ls()) # Remove all variables from the R environment to create a fresh start
+# setwd("...")  # Setup the working directory
+```
+
+### Installation
+
+Next we install the `survival` package, which includes functions for running the Tobit model.
+
+```{r}
+if(!require(survival)){
+  install.packages("survival")}
+library(survival)
+```  
+
+In heart transplantation, a donor heart matched on blood type is sought. The data we analyze comes from the Stanford Heart Transplantation Program.
+
+In this problem, our goal is to estimate the survival of patients from the data and understand the effect that other explanatory variables may have (on whether transplantation helps). Note that in some cases the appropriate heart for transplant might not be available, and patients may need to wait for it. 
+
+This study was conducted in April 1, 1974. The survival time is censored if the patient drops out of the program (no follow up information) or the patient is alive at the time at the end of the study. 
+
+Next we read the `heart.csv` file. 
+
+```{r}
+heart <- read.csv("heart.csv")
+str(heart)
+```
+
+The dataset consists of 172 observations of 7 variables:
+
+ - `start, stop`: entry and exit times for this time interval (in days)
+ - `event`: 1 = dead, 0 = alive
+ - `age`: age at the start of the programme
+ - `surgery`: prior bypass surgery (1 = yes, 0 = no)
+ - `transplant`: received transplant (1 = yes, 0 = no)
+ -  `id`: patient ID
+
+Let's check how many unique patients are there.
+
+```{r}
+unique(heart$id) # so we have a total of 103 patients
+```
+
+Let's take a look at some specific patients:
+
+```{r}
+subset(heart,id==1)   # Patient 1 died at the age of 31 without going through a transplant.
+subset(heart,id==4)   # Patient 4 waited 36 days for a heart transplant.  
+                      # He/she then died 3 days later.
+
+subset(heart,id==25)  # Patient 25 received a transpant on day 25. 
+                      # He/she was alive at the end of the program.
+                      # The study ran roughly for 5 years.
+
+subset(heart,id==102) # Patient 102 dropped from the program after 11 days.
+```
+
+# Modeling and Analysis
+
+## 1. Kaplan-Meier estimator
+
+Let's check the "survfit" and "Surv" functions
+```{r}
+?Surv    # Create a survival object, usually used as a response variable in a model formula.
+?survfit # Create survival curves
+```
+
+Now we estimate the survival function and store it in the variable `km`.
+
+```{r}
+km <- survfit(Surv(start,stop,event)~1,data=heart)
+## Each observation is at risk starting at time start, and we follow them until stop. If an event happened at stop, it's recorded in event
+## ~ 1: estimating the overall survival curve, not stratified by any group (just one group)
+summary(km,censored=TRUE) # summary of the model, with patients' survival probability 
+```
+
+We plot the Kaplan-Meier curve along with 95% confidence interval.
+
+```{r}
+plot(km) 
+```
+
+The table gives survival probabilities at given points of time (days) with a $95\%$ confidence interval. The survival probabilities  clearly decrease over time.
+
+
+For a summary of calculations observations note the following.
+
+```{r}
+subset(heart,stop==1)
+subset(heart,stop==2)
+```
+Rough computation:
+  
+   - *Time 1:* $\mathbb{P}(\text{Survival}) = \frac{102}{103} =$ `r round(102/103,digits=3)`.
+   - *Time 2:* $\mathbb{P}(\text{Survival}) = \frac{99}{102}\cdot\frac{102}{103} =$ `r round(99/103,digits=3)`.
+   - *Time 3:* $\mathbb{P}(\text{Survival}) = \frac{96}{99}\cdot\frac{99}{102}\cdot\frac{102}{103} =$ `r round(96/103,digits=3)`.
+   - $\vdots$
+   - *Time 9:* $\mathbb{P}(\text{Survival}) = \frac{90}{91}\cdot\frac{91}{92}\cdot\frac{92}{94}\cdot\frac{94}{96}\cdot\frac{96}{99}\cdot\frac{99}{102}\cdot\frac{102}{103} =$ `r round(90/103,digits=3)`.
+   - *Time 10:* $\mathbb{P}(\text{Survival}) = \frac{90}{90}\cdot\frac{90}{91}\cdot\frac{91}{92}\cdot\frac{92}{94}\cdot\frac{94}{96}\cdot\frac{96}{99}\cdot\frac{99}{102}\cdot\frac{102}{103} =$ `r round(90/103,digits=3)`.
+   
+     Now we have a censored data without death at time 11, patient 102 dropped off from the program. So the next      computation is modified and we multiply by $\frac{88}{89}$.
+   - *Time 11:* $\mathbb{P}(\text{Survival}) = \frac{88}{89}\cdot\frac{90}{90}\cdot\frac{90}{91}\cdot\frac{91}{92}\cdot\frac{92}{94}\cdot\frac{94}{96}\cdot\frac{96}{99}\cdot\frac{99}{102}\cdot\frac{102}{103} =$ `r round((88/89)*(90/103),digits=3)`.
+
+## 2. Cox proportional hazard model
+
+ We now fit a Cox proportional hazard model, where the `age`, `surgery` and `transplant` variables are used to explain the hazard rate.
+
+First  check the `coxph` function  and then carry on with modeling.
+
+```{r}
+?coxph
+# Modelling
+cox <- coxph(Surv(start,stop,event)~age+surgery+transplant,data=heart)
+summary(cox)
+```
+
+<!-- #  coef exp(coef) se(coef)      z Pr(>|z|)   -->
+<!-- #  age         0.03026   1.03072  0.01397  2.166   0.0303 * -->
+<!-- #  surgery    -0.77139   0.46237  0.35966 -2.145   0.0320 * -->
+<!-- #  transplant  0.01970   1.01990  0.30823  0.064   0.9490  -->
+
+The signs of the coefficients indicate that the hazard rate increases with age and transplant and decreases with surgery. It is possible to build a model accounting for the joint effect of surgery and transplant.
+
+Although the Cox model is formulated in terms of hazard rates, the fitted model can also be used to estimate the corresponding survival probabilities over time. We therefore obtain and plot the estimated survival curve below.
+```{r}
+summary(survfit(cox)) # survfit(cox): estimated survival curve from fitted Cox model
+plot(survfit(cox))
+```
+
+##### End of Survival analysis in healthcare.
+

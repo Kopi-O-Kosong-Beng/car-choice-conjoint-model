@@ -1,0 +1,98 @@
+---
+title: "Challenger Notebook"
+output: html_notebook
+---
+The dataset consists of 144 observations of 5 variables: Flight (name of flight), Date (date of flight), Field (1 if an Oring fails and 0 otherwise), Temp (Temperature in degrees Fahrenheit), Pres (Leak check pressure in psi). Each flight had 6 Orings - data is from 24 flights.
+
+```{r}
+rm(list=ls())
+orings <- read.csv("Orings.csv")
+str(orings)
+summary(orings)
+```
+The number of Orings that have failed out of 6 in each of the flights launched is tabulated next. Out of 23 flights with data available on Oring failures, 16 had no failures, 5 had one failure, 1 had two failures and 1 had three failures. 
+```{r}
+tapply(orings$Field,orings$Flight,sum)
+table(tapply(orings$Field,orings$Flight,sum))
+```
+Let us next plot the failures with the temperature data. We can use the jitter function to randomly perturb points by a small amount to see the points that lie on top of each other better
+```{r}
+plot(orings$Temp[orings$Field == 1])
+plot(orings$Temp[orings$Field == 0])
+plot(orings$Temp,orings$Field)
+?jitter
+plot(jitter(orings$Temp),orings$Field)
+```
+From the plot of temperatures of the data with failures only and with both failures and non-failures, we obtain different insights. In the former, there are failures across the range with some more at the extremes. In the second case, it is much clearer that there are lesser failures at higher temperatures. It is believed that analysis of plots such as the first one led the managers to conclude that there was not a significant influence of low temperatures.
+
+Fitting a linear regression model
+```{r}
+model1 <- lm(Field~Temp,data=orings)
+summary(model1)
+plot(jitter(orings$Temp),orings$Field)
+abline(model1)
+model2 <- lm(Field~Pres,data=orings)
+summary(model2)
+model3 <- lm(Field~Temp+Pres,data=orings)
+summary(model3)
+
+```
+The plot indicates that the linear fit is not convincing with a small value of R-squared and it can violate the [0,1] bounds of a binary outcome. The model though does identify that temperature has a significant effect and is negatively correlated with Field.
+
+Fitting a logistic regression model: glm() is a generalized linear model that can be used to fit a logistic regression model by choosing family=binomial. logLik() extracts the log-likelihood.
+```{r}
+model3 <- glm(Field~Temp,data=orings,family=binomial)
+summary(model3)
+model4 <- glm(Field~Pres,data=orings,family=binomial)
+summary(model4)
+model5 <- glm(Field~Temp+Pres,data=orings,family=binomial)
+summary(model5)
+logLik(model3)
+logLik(model4)
+logLik(model5)
+```
+Model 3 has a fit given by P(Fail=1) = exp(6.75-0.1397Temp)/(1+exp(6.75-0.1397Temp)). Model 5 describes P(Fail=1) = exp(3.95-0.119$\times$Temp+0.008$\times$Pres)/(1+exp(3.95-0.119$\times$Temp+0.008$\times$Pres)). The result indicates that Temp is very significant since the p-value is very small. The log likelihood of model 5 is better than the other two models as should be expected  since you are using more variables. In terms of AIC, model 3 performs the best. Using AIC as a model selection tool, we would choose model 3  (improvement obtained over using the extra parameter is not justified) and drop the pressure variable in this example.
+
+Prediction and plots
+In the predict command, type = "response" gives the probability while by default not adding it returns the raw linear combination of $\beta_0+\beta'x$ 
+```{r}
+predict(model3,newdata=orings[144,])
+predict(model3,newdata=orings[144,],type="response")
+plot(jitter(orings$Temp),orings$Field)
+?curve
+curve(exp(6.75-0.139*x)/(1+exp(6.75-0.139*x)),add=T)
+```
+
+More fancy graphics can be obtained if you want (I used the AI assist here)
+```{r}
+library(ggplot2)
+temp_seq <- data.frame(Temp = seq(25, 85, length.out = 200))
+temp_seq$prob <- predict(model3, newdata = temp_seq, type = "response")
+ggplot(orings, aes(x = Temp, y = Field)) + geom_jitter(height = 0.02, width = 0.3, na.rm = TRUE) +   geom_line(data = temp_seq, aes(x = Temp, y = prob), color = "blue") + geom_vline(xintercept = 31, linetype = "dashed", color = "red") +   annotate("text", x = 33, y = 0.75, label = "31°F (Challenger)", hjust = 0, color = "red") +   labs(x = "Temperature (°F)", y = "P(O-ring Failure)",        title = "Logistic Regression Fit: Field ~ Temp")
+```
+
+The predicted probability of failure from the logistic regression model is 0.918 (91.8 percent failure). This temperature was well beyond what we saw in the training dataset but the model helps extrapolate into regions where we have no data.
+
+Next we will develop a predictive rule with different thresholds (classifier) and tabulate the confusion matrices. In this example, we will still use the training data (we have only one flight in the test set). In most applications, however we will use out of sample test data to check how well our model actually does. 
+At a threshold of 0.5, the model predicts no failures. If we lower the threshold, we will identify more true failures but at the cost of raising more false alarms (here since 1 is coded as the O-ring failing and 0 as the O-ring not failing, false positive corresponds a non failed O-ring being incorrectly flagged as failed and true positive is a failed O-ring being correctly flagged as failed). In this example since it is a safety critical context, missing a true failure of the O-ring given that engineers can intervene and possibly prevent a disaster is more important than raising a false alarm which leads to increased costs due to delay of launches.
+```{r}
+Pred <- predict(model3,newdata=orings,type="response")
+table(Pred[1:138]>0.5,orings$Field[1:138])
+table(Pred[1:138]>0.25,orings$Field[1:138])
+table(Pred[1:138]>0.2,orings$Field[1:138])
+```
+The ROCR package is useful for visualizing the performance of classifier. The prediction function transforms the data to a standardized format and the performance function is used to do prediction evaluations. We need to install the package ROCR one time.
+```{r}
+#install.packages("ROCR")
+library(ROCR)
+ROCRpred <- prediction(Pred[1:138],orings$Field[1:138])
+ROCRperf <- performance(ROCRpred,x.measure="fpr",measure="tpr")
+plot(ROCRperf)
+aucperf <- performance(ROCRpred,measure="auc")
+str(aucperf)
+aucperf@y.values
+# more fancy plots
+par(mar = c(4, 4, 2, 1))
+plot(ROCRperf, colorize = TRUE, print.cutoffs.at = seq(0, 1, 0.1), main = "ROC Curve")
+```
+The AUC for this example is 0.725 (better than random guessing which would have AUC of 0.5). You can also run the prediction with model5. You find that the AUC with model5 is 0.7835 which is better (recollect the log-likelihood for model 5 is better and here we are still doing predictions on the training set). Since the sample size is small, the AUC curve in this example has a more jagged looking shape. 

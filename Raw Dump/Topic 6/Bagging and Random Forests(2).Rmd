@@ -1,0 +1,302 @@
+---
+title: "Bagging and Random Forests"
+author: "Modified by Yihan Du based on past code by Xiaotang, Bikramjit, and Karthik"
+date: "Term 5, 2026"
+output: 
+ html_document: 
+    toc: true
+    toc_depth: 2
+    toc_float: true
+    highlight: tango
+geometry: margin=1in
+fontsize: 12pt
+linkcolor: blue    
+---
+
+First, we prepare the working environment.
+```{r}
+rm(list=ls()) # Clear the environment
+# setwd("...")  # Setup the working directory
+```
+
+
+# Data Preparation
+
+## The US Supreme Court dataset
+
+Recall that our goal is to predict justice Stevens' decision using six predictors. The output takes a value of 1 if Stevens' decision reverses the lower court decision and 0 if the justice affirms the lower court decision.
+
+```{r, message=FALSE}
+# Load data
+supreme <- read.csv("supreme.csv") # We have 623 observations and 20 variables
+# str(supreme)      # Internal structure of the dataframe 
+# head(supreme)     # First part of the dataframe
+
+# Prepare the output variable (justice Stevens' decision)
+stevens <- subset(supreme[,c("docket","term","stevdir","petit","respon","circuit","unconst","lctdir","issue","result")],supreme$stevdir!=9)
+stevens$rev <- as.integer((stevens$lctdir=="conser" & stevens$stevdir==0) | (stevens$lctdir=="liberal" & stevens$stevdir==1))
+```
+
+## Splitting the dataset
+
+To split the data into two groups (for training and testing), we use the package `caTools`.
+
+```{r, message=FALSE}
+if(!require(caTools)){                          # install or load the package
+  install.packages("caTools")
+  library(caTools)
+}
+set.seed(123)                                   # set seed for random sampling
+spl <- sample.split(stevens$rev,SplitRatio=0.7) # We use 70% of the data for training
+train <- subset(stevens,spl==TRUE);             # training dataset
+test <- subset(stevens,spl==FALSE);             # testing dataset
+test <- subset(test,test$issue!="IR")           # remove the only realization of the IR value (please refer to Week 8's material)
+```
+
+## Benchmark model (CART)
+
+Our benchmark model is a CART. Recall that to properly build a Classification Tree, we first grow a deep tree and then check whether it is necessary to prune it.
+
+```{r}
+library(rpart)
+cart1 <- rpart(rev~petit+respon+circuit+lctdir+issue+unconst,data=train,method="class") # build the tree
+predictcart1 <- predict(cart1,newdata=test,type="class") # prediction on the test dataset
+table(test$rev,predictcart1) # confusion matrix
+```
+The model accuracy is ```r sum(diag(table(test$rev,predictcart1)))/sum(table(test$rev,predictcart1))```.
+
+0.6304348
+
+```{r}
+opt <- which.min(cart1$cptable[,"xerror"]) # get index of CP with lowest xerror
+cp <- cart1$cptable[opt, "CP"]             # get the corresponding value
+cart2 <- prune(cart1,cp)                   # prune
+predictcart2 <- predict(cart2,newdata=test,type="class") # prediction on the test dataset on the pruned tree
+table(test$rev,predictcart2)               # confusion matrix
+```
+
+The model accuracy is ```r sum(diag(table(test$rev,predictcart2)))/sum(table(test$rev,predictcart2))```.
+
+0.6521739
+
+# Bagging
+
+## R package
+
+```{r, message=FALSE}
+if(!require(ipred)){
+  install.packages("ipred")
+  library(ipred)
+}
+```
+
+## Building bagged trees
+
+The function `bagging`  builds the bagging classification and regression trees (trains B trees on boostrapped datasets). 
+
+Note that, if we want to solve a classification problem, we need to specify that the output is a factor. 
+With `as.factor()`, we convert `rev` as factor, which is a data type for categorical variables in R programming language. If the response data type is a factor, R knows that this is a classfication problem.
+
+If `coob` is TRUE, the out-of-bag sample is used to estimate the prediction error. 
+
+Note that the default number of trees B is equal to 25.
+
+```{r}
+mt <- bagging (as.factor(rev)~petit+respon+circuit+lctdir+issue+unconst,data=train, coob=TRUE)
+```
+
+What's inside the object `mt`? To answer this question, we can use the function `summary()`, but keep in mind that this time we have 25 trees, so there's a lot of information available! The function `print()` gives us a shorter summary.
+
+```{r}
+# summary(mt) # long summary
+print(mt)     # short summary
+```
+
+## Testing bagged trees
+
+How well does this bagged model perform on the test set?
+
+```{r}
+predict_bag_model <- predict(mt,newdata=test,type="class")
+table(test$rev,predict_bag_model)
+```
+
+The accuracy is ```r sum(diag(table(test$rev,predict_bag_model)))/sum(table(test$rev,predict_bag_model))```, a slight improvement compared to the Classification Tree.
+
+0.6793478
+
+# Random Forests
+
+## Training and testing
+
+We begin by loading / installing the `randomForest` package.
+
+```{r, message=FALSE}
+if(!require(randomForest)){
+  install.packages("randomForest")
+  library(randomForest)
+}
+```
+
+By default, the function `randomForest()` uses $m = p/3$ variables for regression, and $m = \sqrt{p}$ variables for classification. The default number of trees $B$ is 500 (for both classification and regression). $m$ and $B$ can be changed through the input parameters `mtry` and `ntree`.
+
+```{r}
+forest <- randomForest(as.factor(rev)~petit+respon+circuit+unconst+lctdir+issue,data=train)
+forest
+```
+
+How well does this model perform on the test set?
+
+```{r}
+predictforest <- predict(forest,newdata=test,type="class")
+table(test$rev,predictforest)
+```
+
+The accuracy is ```r sum(diag(table(test$rev,predictforest)))/sum(table(test$rev,predictforest))```, which is very similar to the one of a Classification Tree.
+
+0.6467391
+
+## A note on Bagging and Random Forests
+
+If `mtry` is equal to the total number of predictors $p$ (6, in our example), the Random Forest boils down to a forest of bagged trees. But, in practice, there might be some difference in the performance obtained with the packages `ipred` and `randomForest`, which are due to different bootstrapping techniques. In addition, recall that bootstrapping, bagging, and random forests are randomized processes, so we can always expect some differences between two experiments. This is also why it is good practice to set the seed.
+
+## Variable importance
+
+Using the `importance()` function, we can view the importance of each predictor. The variables with the highest importance scores are the ones that give the best prediction and contribute most to the model. 
+
+What does `MeanDecreaseGini` mean? `MeanDecreaseGini` measures how much a variable helps reduce Gini impurity across all trees in the forest. Variables that have larger reductions in Gini impurity are considered more important. A higher value of `MeanDecreaseGini` indicates higher variable importance.
+
+```{r}
+importance(forest) # tabulated results
+varImpPlot(forest) # plot
+```
+
+Another option to understand the roles of predictors in a random forest is to examine how frequently they are used for splitting. If `count=TRUE` and `by.tree=FALSE`, the function `varUsed` returns an integer vector showing the frequencies that variables are used in the forest.
+
+```{r}
+varUsed(forest, by.tree=FALSE, count=TRUE)
+```
+
+Specifically, we get the frequency of the following variables: `petit`, `respon`, `circuit`, `unconst`, `lctdir`, and `issue`. 
+
+Note that the usage frequency and variable importance are related but not identical.
+
+
+
+## Setting the value of the hyperparameters
+
+Random Forests have three hyperparameters:
+
+- $m$ (`mtry`), the number of (randomly chosen) predictors used to split a node
+
+- $B$ (`ntree`), the number of trees in the forest
+
+- `nodesize`, the minimum size of the terminal leaves
+
+Because the default value may not necessarily yield the best performance, it is common practice to train and test Random Forests with different values of the hyper-parameters. Note that the task can be **computationally demanding** if we try many combinations of `mtry`, `ntree`, and `nodesize`. 
+
+Now the question is: how do we do it? Let's see a couple of options (in increasing order of complexity).
+
+### Writing our own code
+
+Here, we use a `for` loop for exploring the effect of `ntree` on the OOB error rate.
+
+```{r}
+# Values of ntree to be tested
+B <- seq(5,500,by=5)
+# Initialize a B*1 matrix with all entries being 0 to store the OOB value
+OOB <- matrix(0,nrow=length(B),1)
+# OOB <- vector(); OOB <- c(OOB, 1:length(B))
+# For loop
+for (i in 1:length(B)){
+  # train a forest with B[i] trees
+  forest_temp <- randomForest(as.factor(rev)~petit+respon+circuit+unconst+lctdir+issue,data=train,ntree=B[i])
+  # model performance. err.rate[B[i],1] refers to the OOB error of B[i] grown trees
+  OOB[i] <- forest_temp$err.rate[B[i],1]
+  # remove the temporary variable
+  rm(forest_temp)
+}
+```
+
+As shown in the plot below, the OOB error seems to get more stable for a value of `ntree` larger than 200.
+
+```{r}
+library(ggplot2)
+ggplot(data = data.frame(ntree=B, error=OOB), 
+       mapping = aes(x = ntree, y = error)) + 
+  geom_point(size=3) +
+  coord_cartesian(xlim=c(0,500), ylim=c(0.325,0.450)) +
+  labs(x="Number of Trees", y="OOB error")
+```
+
+Now, we repeat the experiment, but changing both `mtry` and `ntree` at the same time.
+
+```{r}
+# Values of ntree to be tested
+B <- seq(5,500,by=5)
+# Values of mtry to be tested
+m <- seq(1,6,by=1)
+# Initialize a B*m matrix with all entries being 0 to store the OOB value
+OOB_matrix <- matrix(0,nrow=length(B),ncol=length(m))
+# For loop
+for (i in 1:length(B)){
+  for (j in 1:length(m)){
+    # train a forest with B[i] trees
+    forest_temp <- randomForest(as.factor(rev)~petit+respon+circuit+unconst+lctdir+issue,data=train,ntree=B[i],mtry=m[j])
+    # model performance. err.rate[B[i],1] refers to the OOB error of B[i] grown trees
+    OOB_matrix[i,j] <- forest_temp$err.rate[B[i],1]
+    # remove the temporary variable
+    rm(forest_temp)
+    }
+}
+```
+
+
+
+```{r}
+if(!require(reshape2)){
+  install.packages("reshape2")
+  library(reshape2)
+}
+# library(reshape2)
+
+rownames(OOB_matrix) <- B
+colnames(OOB_matrix) <- m
+# longData <- as.data.frame(OOB_matrix)
+# row.names(longData) <- B; colnames(longData) <- m
+
+# Convert the matrix into a long-format data frame (Var1: ntree, Var2: mtry, value: OOB error)
+longData <- melt(OOB_matrix) 
+
+# Use ggplot to plot longData, map Var1 (ntree) to x-axis and Var2 (mtry) to y-axis
+ggplot(longData, aes(x = Var1, y = Var2)) + 
+  geom_raster(aes(fill=value)) + 
+  scale_fill_gradient(low="grey90", high="red") +
+  labs(x="Number of Trees", y="Number of predictors")
+```
+
+The above plot shows that the range of variability of the OOB error is fairly narrow. We can also see that when `mtry = 1`, the OOB exhibits larger variance. For `mtry = 2`, such variability is reduced, especially for large values of `ntree`.
+
+Finally, let's train and test the model with the best OOB performance (and `mtry = 2`).
+
+```{r}
+id<-which.min(OOB_matrix[,2]) # find the index of the minimum value in the second column
+optB <- B[id]
+best_forest <- randomForest(as.factor(rev)~petit+respon+circuit+unconst+lctdir+issue,data=train,mtry=2,ntree=optB)
+# best_forest
+predict_bestforest <- predict(best_forest,newdata=test,type="class")
+table(test$rev,predict_bestforest)
+```
+
+The accuracy is ```r sum(diag(table(test$rev,predict_bestforest)))/sum(table(test$rev,predict_bestforest))``` ...
+
+0.6576087
+
+
+
+
+
+
+
+
+
