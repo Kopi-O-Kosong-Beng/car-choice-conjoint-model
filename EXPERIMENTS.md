@@ -317,3 +317,59 @@ that only ever sees strangers.
 **Next version (untested):** keep part-worth price (11 parameters, the shape that works),
 put the log-normal random coefficient on a *linear* price term added alongside, or
 randomize only the none-constant. One change at a time.
+
+---
+
+## Iteration 07 — Shift-aware blend calibration ❌ HYPOTHESIS REFUTED
+
+**Program:** `experiments/iter07_shift_blend/run.R`
+
+**Hypothesis:** the test population is measurably harder than our CV (local 1.13878 →
+public 1.201). A model facing a harder population than it was calibrated on is
+systematically *overconfident*, so the blend — which chose T = 0.968 and eps = 0, i.e.
+slight sharpening and no insurance — should do better if softened. Tuning the blend
+against an income-reweighted objective should find that softening automatically.
+
+**Result: wrong on both counts.**
+
+| blend tuned on | scored plain | scored reweighted |
+|---|---|---|
+| plain OOF | **1.13893** | **1.14323** |
+| reweighted OOF | 1.13955 | 1.14524 |
+
+Tuning on the reweighted objective is worse on the plain metric *and worse on its own
+target metric*. Extra softening degrades monotonically:
+
+| temperature multiplier | plain | reweighted |
+|---|---|---|
+| ×1.00 | **1.13794** | **1.14269** |
+| ×1.05 | 1.13836 | 1.14309 |
+| ×1.10 | 1.13948 | 1.14419 |
+| ×1.20 | 1.14327 | 1.14791 |
+| ×1.30 | 1.14839 | 1.15295 |
+
+**Why the hypothesis failed.** Two distinct reasons, and separating them matters:
+
+1. **The blend is not overconfident.** The calibration table from iteration 00 already
+   showed predicted probabilities tracking observed frequencies closely, with mild
+   *under*-confidence above 0.4. Softening a well-calibrated model can only hurt. The
+   local↔public gap is therefore not a calibration failure — it is that the test
+   respondents are harder to predict *at all*, which no monotone transform of our
+   probabilities can fix. Sharpening and softening both lose.
+2. **Importance weighting is self-defeating here.** Reweighting cuts the effective
+   sample from 21,565 to 13,689 rows, so the reweighted objective is noisier than the
+   plain one. Fitting 10 parameters against a noisier target produced a worse fit even
+   when judged on that same noisy target — the variance cost exceeded the bias benefit.
+
+**Decision: no change.** The blend stays tuned on plain OOF, and **we do not spend a
+submission on a softened variant** — the idea was proposed before this evidence existed
+and is now withdrawn.
+
+**What this teaches for the remaining days.** "The test set is harder" and "our
+probabilities are miscalibrated for the test set" are different claims, and only the
+first is supported. Effort should go to models that are genuinely more accurate on
+unseen respondents, not to post-hoc recalibration of the ones we have.
+
+**Cost of being wrong: about 25 minutes of compute and no submission slots.** Cheap,
+because it was tested locally before being tested on Kaggle — which is the entire
+argument for maintaining an honest local metric.
