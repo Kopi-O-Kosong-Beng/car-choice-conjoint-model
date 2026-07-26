@@ -45,7 +45,18 @@ print(res[, .(model, plain = round(plain, 5), reweighted = round(reweighted, 5),
 
 cat("\n--- does an improvement SURVIVE reweighting? ---\n")
 pairs <- list(c("xgb_long", "xgb_de"), c("xgb_de", "xgb_lw"), c("mnl", "mnl_pw"),
-              c("mixl", "mixl2"), c("xgb_long", "xgb_lw"))
+              c("mixl", "mixl2"), c("xgb_long", "xgb_lw"),
+              # iteration 11: the latent-class step, whose 79% retention was the
+              # open risk on the 1.199 submission (validated -- the score improved)
+              c("mnl_pw", "lcmnl3"),
+              # iteration 25: task-position terms. Task is a design variable that
+              # is identically distributed in train and test (19 positions, 263
+              # respondents at each), so unlike the design-share encoding this
+              # gain has no reason to be population-specific. Retention well below
+              # 100% would mean the drift itself differs by demographic, which
+              # would be a finding in its own right.
+              c("lcmnl3", "lcmnl3_drift"), c("lcmnl3", "lcmnl3_tilt"),
+              c("lcmnl3", "lcmnl3_both"))
 for (p in pairs) {
   if (!all(p %in% res$model)) next
   a <- res[model == p[1]]; b <- res[model == p[2]]

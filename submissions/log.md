@@ -77,6 +77,31 @@ Revised offset estimate: two of our own points now sit at 1.13878 → 1.201 (+0.
 | 25 Jul 23:49 | `sub_20260725_2349.csv` | 9 members (7 at zero weight) | 1.13878 | ~1.189 | **1.201** |
 | 26 Jul 01:16 | `sub_20260726_0116.csv` | mnl_pw + xgb_lw2 | 1.13556 | ~1.186 | **1.201** |
 | 26 Jul 06:51 | `sub_20260726_0651.csv` | xgb_lw2 + xgb_mono + lcmnl3 (mnl_pw at 0) | **1.13044** | ~1.195 | **1.199** ✅ |
+| 26 Jul 16:43 | `sub_20260726_1643.csv` | `lcmnl3` → **`lcmnl3_both`** (task position) | **1.12867** | 1.198, possibly still 1.199 | (pending) |
+
+### What to expect from `sub_20260726_1643.csv`
+
+The local gain is 0.00177 (1.13044 → 1.12867). Applying the transfer rates we have
+actually observed:
+
+| assumed transfer | predicted public |
+|---|---|
+| ~33% (the recent rate) | 1.1984 → displays **1.198** |
+| ~58% (the early rate) | 1.1980 → displays **1.198** |
+| 100% (upper bound) | 1.1972 → displays **1.197** |
+
+**Honest expectation: 1.198, and 1.199 would not refute the change.** A 0.00177 local gain
+sits right at the three-decimal resolution limit — this is exactly the regime where the
+public board went 1.13878 → 1.13556 with no visible movement at all. The private board
+scores at full precision, which is the reason to submit it.
+
+Two reasons to weigh it above its size, though. It is the first gain since the leaderboard
+plateau that comes from a **structural** correction rather than tuning — the model was
+unable to express an effect the data plainly shows — and it is the first whose shift audit
+comes out **above** 100% (119%), meaning it gets *stronger* on a population reweighted
+toward the wealthier test respondents. Every previous member's gain decayed under that
+reweighting.
+
 
 ---
 
@@ -135,3 +160,4 @@ routes the wealthier test respondents toward buying classes. That is either a ge
 insight or an over-extrapolation; the blend tempers it to 0.250 versus 0.255 for the
 previous submission. Only 79% of its gain survives income reweighting, against ~100% for
 the earlier structural wins. This submission is partly a test of that behaviour.
+| 2026-07-26 16:43 | sub_20260726_1643.csv | mnl_pw+xgb_lw2+xgb_mono+lcmnl3_both | 1.12867 | expect public ~1.179 | (pending) |

@@ -1,3 +1,15 @@
 Warning messages:
 1: package 'data.table' was built under R version 4.6.1 
 2: package 'xgboost' was built under R version 4.6.1 
+  seed 1 fold 1 best_iter 1128 
+  seed 1 fold 2 best_iter 291 
+  seed 1 fold 3 best_iter 913 
+  seed 1 fold 4 best_iter 819 
+  seed 1 fold 5 best_iter 534 
+>>> seed 1 OOF: 1.14228
+seed 1 done in 29.1 min -> experiments/iter26_seedbag/seed_001.rds
+OK
+Warning messages:
+1: package 'data.table' was built under R version 4.6.1 
+2: package 'xgboost' was built under R version 4.6.1 
+  seed 2 fold 1 best_iter 106 

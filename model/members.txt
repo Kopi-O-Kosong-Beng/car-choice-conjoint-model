@@ -1,10 +1,27 @@
 # Models in the production blend. One name per line; each needs an
 # oof_<name>.rds / test_<name>.rds pair in model/artifacts/.
-# This set produced submissions/sub_20260726_0651.csv at nested 1.13044.
-mnl_pw        # part-worth conditional logit      1.15686  weight 0.000 (displaced by lcmnl3)
-xgb_lw2       # listwise xgboost, tuned           1.14152  weight 0.216
-xgb_mono      # + monotone price constraint       1.13980  weight 0.337
-lcmnl3        # latent-class MNL, 3 classes       1.14396  weight 0.447
-# xgb_resenc2 # leak-free residual encoding       1.13721  -- HELD BACK, see EXPERIMENTS.md
-#               blend with it reaches 1.12825, but its leak-freeness rests on an
-#               argument rather than a construction. Pending the nested double-OOF test.
+# This set produces nested 1.12867 (previous: 1.13044 -> public 1.199).
+mnl_pw        # part-worth conditional logit      1.15686  weight 0.000 (displaced by lcmnl3_both)
+xgb_lw2       # listwise xgboost, tuned           1.14152  weight 0.185
+xgb_mono      # + monotone price constraint       1.13980  weight 0.311
+lcmnl3_both   # latent class + task-position      1.13863  weight 0.504  <- iteration 25
+#
+# lcmnl3_both replaces lcmnl3 (1.14396). It adds two within-task terms to the
+# latent-class utility: Price x Task_c and asc4 x Task_c, where Task_c is the
+# centred, scaled task position. +0.00534 single-model, z = 6.26, gain present in
+# all five folds, and it RETAINS 119% under reweighting toward the test
+# population -- see model/shift_audit.R. Test none-rate 0.2237, unchanged from
+# lcmnl3's 0.223, so it carries no new extrapolation risk.
+#
+# NOT in the blend, and why:
+# lcmnl3      # superseded by lcmnl3_both
+# lcmnl3_tilt # 1.13881, nested 1.12869 -- statistically identical to _both with
+#               one fewer parameter. Kept as the parsimonious alternative; _both
+#               wins on plain OOF, nested blend AND shift retention, so it is
+#               production. The tilt term alone reproduces 105% of the observed
+#               none-rate drift, which is the mechanism finding of iteration 25.
+# lcmnl3_drift# 1.14231 -- retains only 64% under reweighting. Population-specific.
+# hbmnl       # hierarchical Bayes 1.23703, weight 0.000 -- iteration 17, dead
+# hbmnl_nod   # HB without demographics 1.16405, weight 0.017, nested WORSE
+# xgb_resenc2 # residual design encoding 1.13721 -- PROVEN 100% LEAKAGE by the
+#               nested double-OOF of iteration 15. Never revive.

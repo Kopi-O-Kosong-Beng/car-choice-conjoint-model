@@ -260,6 +260,7 @@ logit → latent class/HB if time allows.
 | 15 | Residual encoding with a **nested double-OOF** baseline | 1.14151 | 🚨 **the +0.0043 was 100% leak** |
 | 16 | Bundle-level encoding has better support than choice-set-level | — | ❌ **structurally impossible**, bundle→(design,pos) is a bijection |
 | 17 | Hierarchical Bayes: mixture-of-normals population + demographic channel | 1.23703 | ❌ **worst model in the repo**; ablating demographics gives 1.16405 |
+| 25 | **Task position inside the latent-class utility** | lcmnl3 1.14396 → **1.13863** | ✅ **confirmed, z = 6.26**, in production |
 
 ### Blend progression, continued
 
@@ -269,6 +270,10 @@ logit → latent class/HB if time allows.
 | + xgb_mono + lcmnl3 (`mnl_pw` falls to weight 0) | **1.13044** | `sub_20260726_0651.csv` → public **1.199** ← current best |
 | + `hbmnl` (hierarchical Bayes) | 1.13060 | rejected — weight 0.000 |
 | + `hbmnl_nod` (HB, demographic channel ablated) | 1.13055 | rejected — weight 0.017, nested *worse* |
+| **`lcmnl3` → `lcmnl3_both`** (task position) | **1.12867** | `sub_20260726_1643.csv` ← ready to upload |
+
+Weights at 1.12867: `lcmnl3_both` 0.504, `xgb_mono` 0.311, `xgb_lw2` 0.185, `mnl_pw` 0.000.
+Temperature 0.985, uniform mix 0.28%.
 
 ### Blend progression
 
@@ -764,3 +769,114 @@ independently of the original driver.
 Expensive in wall-clock, cheap in submissions, and it retires the highest-ceiling
 untested item on the list — which is worth something on its own, because it was the idea
 most likely to nag at us if left unmeasured.
+
+---
+
+## Iteration 25 — Task position inside the latent-class model ✅ IN PRODUCTION
+
+`experiments/iter25_taskpos/run.R` — nested blend **1.13044 → 1.12867**.
+
+**Hypothesis.** Respondents answer 19 tasks in sequence and their behaviour drifts.
+Measured beforehand in the iteration 18 diagnostics:
+
+| | task 1 | task 19 | slope/task |
+|---|---|---|---|
+| observed none-rate | 0.237 | 0.337 | +0.00544 (logit z = 9.51) |
+| price coefficient (fitted per position, controlling for `lvlsum`) | −0.178 | −0.331 | −0.00552 (z = −6.29) |
+
+Neither is a design confound: mean price by position runs 6.310 to 6.636 with no trend.
+
+**The gap.** The tree models have `Task` as a feature and track the drift (+0.00455,
++0.00469). The conditional-logit family does **not** — `model/02_mnl_partworth.R:45` and
+`experiments/iter11_latent_class/run.R:118` both build utilities from
+`c("asc2","asc3","asc4", pw, px)` with no `Task` term anywhere. They predict the drift as
+essentially flat (+0.00024, +0.00018), and `lcmnl3` carried blend weight 0.447.
+
+So this was not a search for new signal. It was a **known, measured, pre-quantified effect
+that one whole model family was structurally unable to express**, sitting inside the blend's
+largest member.
+
+**Implementation — two identified within-task terms.** With `Task_c = (Task − 10)/9`:
+`none_x_Task = asc4 × Task_c` and `Price_x_Task = Price × Task_c`. Both vary within a
+choice set, which is what a conditional logit requires; a bare `Task` main effect would be
+constant within a task and the rank-revealing QR would drop it, correctly. Fitted
+separately and together so each is attributable.
+
+**Result.**
+
+| variant | OOF | gain vs `lcmnl3` | z | nested blend | shift retention |
+|---|---|---|---|---|---|
+| `lcmnl3` (previous production) | 1.14396 | — | — | 1.13044 | — |
+| `lcmnl3_drift` — none term only | 1.14231 | +0.00165 | 3.47 | 1.12999 | **64%** |
+| `lcmnl3_tilt` — price term only | 1.13881 | +0.00515 | 6.28 | 1.12869 | 113% |
+| **`lcmnl3_both`** — production | **1.13863** | **+0.00534** | **6.26** | **1.12867** | **119%** |
+
+`lcmnl3_both` is the best single model in the repository, ahead of `xgb_mono` (1.13980).
+Blend weight rises from 0.447 to 0.504. Test none-rate 0.2237, unchanged from `lcmnl3`'s
+0.223, so it carries no new extrapolation risk.
+
+### The finding: the rising decline rate is not fatigue, it is price sensitivity
+
+The attribution inverts the post-hoc estimate. Correcting `lcmnl3`'s finished predictions
+after the fact, the none-drift was worth more than the price tilt (+0.00228 vs +0.00145).
+Fitted *inside* the model the order reverses hard: the price tilt is worth +0.00515 and
+adding the explicit none term on top buys a further **+0.00019**.
+
+`experiments/iter25_taskpos/mechanism.R` shows why. Fraction of the observed none-rate
+slope each model reproduces:
+
+| model | task 1 → task 19 | slope | % of observed |
+|---|---|---|---|
+| observed | 0.237 → 0.337 | +0.00544 | — |
+| `lcmnl3` | 0.299 → 0.311 | +0.00018 | 3.2% |
+| `mnl_pw` | 0.297 → 0.309 | +0.00024 | 4.4% |
+| `xgb_mono` | 0.251 → 0.338 | +0.00469 | 86.3% |
+| `lcmnl3_drift` | 0.255 → 0.358 | +0.00518 | 95.2% |
+| **`lcmnl3_tilt`** | 0.249 → 0.362 | +0.00572 | **105.3%** |
+| `lcmnl3_both` | 0.252 → 0.356 | +0.00529 | 97.3% |
+
+**`lcmnl3_tilt` was never given a none-specific task term, and it reproduces the entire
+none-rate drift** — more of it than the explicit drift term does, and more than the trees.
+
+The mechanism is structural. The none option is the all-zero bundle, so its `Price` is 0 and
+it is *always the cheapest alternative in its choice set*. When price sensitivity steepens
+through the questionnaire, the cheapest option gains relative utility automatically. The
+rising decline rate is a **consequence** of rising price sensitivity, not a separate fatigue
+process.
+
+That is why the post-hoc correction needed two knobs and the structural model needs one: a
+post-hoc patch operates on outputs and must fix each symptom separately, while a model that
+captures the cause gets the second symptom for free. It is also why `lcmnl3_drift` retains
+only **64%** under reweighting toward the test population while `lcmnl3_tilt` retains
+**113%** — the fatigue parameterisation is fitting a population-specific artefact of the
+same underlying effect, and the price parameterisation is fitting the effect.
+
+**Why `both` is in production despite `tilt` being more parsimonious.** They are
+statistically indistinguishable (nested 1.12867 vs 1.12869, a 0.00002 difference against a
+fold-to-fold SD of 0.013), but `both` wins on plain OOF, on the nested blend, *and* on shift
+retention (119% vs 113%). Parsimony does not outrank three measurements. `lcmnl3_tilt` is
+kept and documented in `members.txt` as the alternative, and it is the variant the report
+should discuss, because it is the one that carries the mechanism.
+
+### Verification
+
+`experiments/iter25_taskpos/verify.R` — the workflow's adversarial verifier agents died on a
+billing limit, so the check was done directly. All headline numbers recomputed from the
+artifacts on disk and matched to five decimals; 21,565 / 4,997 rows, no NA, rows sum to 1 to
+2.2e-16. **The gain appears in every fold** (+0.00456, +0.00830, +0.00528, +0.00592,
++0.00262) — a leak concentrates in one fold, a structural gain does not.
+
+Leakage risk is nil by construction: `Task` is a design variable recorded for every row, all
+263 test respondents have all 19 positions, and nothing target-derived enters the model.
+
+**Reflection.** This gain had been sitting in plain sight for eighteen iterations. The
+diagnostics that found it (`d3`, `d15`) had *printed* the drift as far back as the structure
+hunt, but nobody scored what it was worth, and the models that lacked the term were never
+audited against a behaviour the data plainly showed. The lesson is procedural: after
+measuring an effect in the data, check which models can actually *express* it. A feature
+list is a claim about what the model believes matters, and that claim deserves the same
+scrutiny as a hyperparameter. Sixteen of the eighteen prior iterations searched for new
+signal; this one found signal the diagnostics had already located and no model had been
+given a way to use.
+
+**Cost: about 40 minutes of compute for the largest single-model gain since iteration 11.**
