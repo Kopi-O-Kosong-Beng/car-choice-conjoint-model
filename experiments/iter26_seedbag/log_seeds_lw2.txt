@@ -106,3 +106,6 @@ Warning messages:
   seed 10 fold 4 best_iter 174 
   seed 10 fold 5 best_iter 686 
 >>> seed 10 OOF: 1.14181
+seed 10 done in 34.5 min -> experiments/iter26_seedbag/seed_lw2_010.rds
+OK
+ALL LW2 SEEDS DONE

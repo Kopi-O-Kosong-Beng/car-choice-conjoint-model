@@ -77,7 +77,39 @@ Revised offset estimate: two of our own points now sit at 1.13878 → 1.201 (+0.
 | 25 Jul 23:49 | `sub_20260725_2349.csv` | 9 members (7 at zero weight) | 1.13878 | ~1.189 | **1.201** |
 | 26 Jul 01:16 | `sub_20260726_0116.csv` | mnl_pw + xgb_lw2 | 1.13556 | ~1.186 | **1.201** |
 | 26 Jul 06:51 | `sub_20260726_0651.csv` | xgb_lw2 + xgb_mono + lcmnl3 (mnl_pw at 0) | **1.13044** | ~1.195 | **1.199** ✅ |
-| 26 Jul 16:43 | `sub_20260726_1643.csv` | `lcmnl3` → **`lcmnl3_both`** (task position) | **1.12867** | 1.198, possibly still 1.199 | (pending) |
+| 26 Jul 16:43 | `sub_20260726_1643.csv` | `lcmnl3` → **`lcmnl3_both`** (task position) | **1.12867** | 1.198, possibly still 1.199 | superseded, never uploaded |
+| 26 Jul 23:28 | **`sub_20260726_2328.csv`** | **`xgb_lw2bag` + `lcmnl3_both`** (two members) | **1.12819** | 1.198 | ← **UPLOAD THIS ONE** |
+
+### `sub_20260726_2328.csv` — the two-member blend
+
+Members dropped from four to two and the nested score moved 1.12867 → 1.12819, a
+difference of 0.00048 against a blend-level seed sd of 0.00048. **The score is a wash; the
+simplification is the point.** Both removals were justified independently, and before this
+member set was probed:
+
+- `xgb_mono` — iteration 26 retested the monotone constraint paired across ten seeds:
+  −0.00034, 95% CI [−0.00159, +0.00092], wins 5 of 10. Iteration 08's claimed +0.00172 lies
+  outside that interval. It was a duplicate of `xgb_lw2` all along.
+- `mnl_pw` — iteration 19's leave-one-out put its contribution at −0.00006 (z = −1.89).
+
+Both survivors were *improved*, not merely retained: `xgb_lw2bag` averages ten seeds
+(removing 0.00655 of Monte-Carlo variance, and involving no model selection at all), and
+`lcmnl3_both` carries task-position terms that replicate on an independent respondent
+grouping (+0.00422, z = 4.70 under `folds_b`, versus +0.00534 on the production folds).
+
+Weights 0.528 tree / 0.472 logit — a near-even split across the single axis of disagreement
+iteration 19 identified.
+
+**Expectation: 1.198.** Total local gain since the 1.199 submission is 0.00225
+(1.13044 → 1.12819); at the recent ~⅓ transfer rate that is ≈0.0008 public, so **1.199 would
+not refute it** — this remains below the three-decimal resolution limit. The reasons to
+prefer it are not the public number:
+
+1. Fewer blend parameters fitted on OOF predictions ⇒ less blend-level overfitting, which is
+   what the ~1,500-row private board at SE ±0.02 is actually exposed to.
+2. A bagged member has lower variance in its *shipped test refit*, and that is an
+   expectation improvement the OOF comparison cannot show (see iteration 26).
+3. One retracted false result (the monotone constraint) is no longer influencing the blend.
 
 ### What to expect from `sub_20260726_1643.csv`
 
@@ -161,3 +193,4 @@ insight or an over-extrapolation; the blend tempers it to 0.250 versus 0.255 for
 previous submission. Only 79% of its gain survives income reweighting, against ~100% for
 the earlier structural wins. This submission is partly a test of that behaviour.
 | 2026-07-26 16:43 | sub_20260726_1643.csv | mnl_pw+xgb_lw2+xgb_mono+lcmnl3_both | 1.12867 | expect public ~1.179 | (pending) |
+| 2026-07-26 23:28 | sub_20260726_2328.csv | xgb_lw2bag+lcmnl3_both | 1.12819 | expect public ~1.178 | (pending) |

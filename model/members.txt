@@ -1,27 +1,54 @@
 # Models in the production blend. One name per line; each needs an
 # oof_<name>.rds / test_<name>.rds pair in model/artifacts/.
-# This set produces nested 1.12867 (previous: 1.13044 -> public 1.199).
-mnl_pw        # part-worth conditional logit      1.15686  weight 0.000 (displaced by lcmnl3_both)
-xgb_lw2       # listwise xgboost, tuned           1.14152  weight 0.185
-xgb_mono      # + monotone price constraint       1.13980  weight 0.311
-lcmnl3_both   # latent class + task-position      1.13863  weight 0.504  <- iteration 25
+# This set produces nested 1.12819.
+#   history: 1.13044 -> public 1.199 | 1.12867 (iter 25) | 1.12819 (iter 26)
+xgb_lw2bag    # listwise xgboost, 10 seeds averaged   1.13682  weight 0.528
+lcmnl3_both   # latent class + task position          1.13863  weight 0.472
 #
-# lcmnl3_both replaces lcmnl3 (1.14396). It adds two within-task terms to the
-# latent-class utility: Price x Task_c and asc4 x Task_c, where Task_c is the
-# centred, scaled task position. +0.00534 single-model, z = 6.26, gain present in
-# all five folds, and it RETAINS 119% under reweighting toward the test
-# population -- see model/shift_audit.R. Test none-rate 0.2237, unchanged from
-# lcmnl3's 0.223, so it carries no new extrapolation risk.
+# TWO members, down from four, and the score did not move (1.12867 -> 1.12819,
+# a difference of 0.00048 against a blend-level seed sd of 0.00048). The
+# simplification is the point, and each removal was justified independently and
+# BEFORE this member set was probed:
+#
+#   xgb_mono  REMOVED. Iteration 26 retested the monotone price constraint paired
+#             across 10 seeds: mean(mono - lw2) = -0.00034, SE 0.00056,
+#             95% CI [-0.00159, +0.00092], constraint wins 5 of 10. Iteration 08's
+#             claimed +0.00172 lies OUTSIDE that interval. xgb_mono and xgb_lw2
+#             were the same model carried twice.
+#   mnl_pw    REMOVED. Iteration 19's leave-one-out put its contribution at
+#             -0.00006 (z = -1.89) -- removing it is very slightly beneficial. It
+#             had earned weight 0.000 since iteration 11.
+#
+# The two survivors are not merely the leftovers, they are the two ENDS of the
+# blend's only real axis of disagreement. Iteration 19 found the 4x4 error
+# correlation matrix has eigenvalues 3.726/0.202/0.056/0.016 -- 93% of the error
+# variance in one component, tree versus logit. The fitted weights, 0.528 tree and
+# 0.472 logit, are a near-even split across exactly that axis.
+#
+# Both members were also improved rather than merely retained:
+#   xgb_lw2bag   averages 10 seeds, removing 0.00655 of Monte-Carlo variance
+#                (mean single seed 1.14337 -> 1.13682). Involves NO model
+#                selection, so unlike every other gain here it cannot overfit the
+#                folds.
+#   lcmnl3_both  adds Price x Task_c and asc4 x Task_c. +0.00534 (z 6.26) on the
+#                production folds and +0.00422 (z 4.70) on an INDEPENDENT
+#                respondent grouping (folds_b, seed 43), so the gain replicates at
+#                79% off-split. Retains 119% under reweighting toward the test
+#                population.
+#
+# Fewer members also means fewer blend parameters fitted on the OOF predictions,
+# which lowers blend-level overfitting -- relevant because the private leaderboard
+# is ~1,500 rows at SE +-0.02.
 #
 # NOT in the blend, and why:
-# lcmnl3      # superseded by lcmnl3_both
-# lcmnl3_tilt # 1.13881, nested 1.12869 -- statistically identical to _both with
-#               one fewer parameter. Kept as the parsimonious alternative; _both
-#               wins on plain OOF, nested blend AND shift retention, so it is
-#               production. The tilt term alone reproduces 105% of the observed
-#               none-rate drift, which is the mechanism finding of iteration 25.
+# xgb_monobag # 1.13714 -- the bagged constrained model. Added alongside
+#               xgb_lw2bag it earns weight 0.037 and makes the blend WORSE
+#               (1.12829 vs 1.12819). Same model twice, again.
+# lcmnl3_tilt # 1.13881 -- one fewer parameter than lcmnl3_both and statistically
+#               identical. It is the variant that carries the mechanism finding:
+#               given only a price x task term and no none-specific term, it
+#               reproduces 105% of the observed none-rate drift.
 # lcmnl3_drift# 1.14231 -- retains only 64% under reweighting. Population-specific.
-# hbmnl       # hierarchical Bayes 1.23703, weight 0.000 -- iteration 17, dead
-# hbmnl_nod   # HB without demographics 1.16405, weight 0.017, nested WORSE
+# hbmnl       # hierarchical Bayes 1.23703, weight 0.000 -- iteration 17, dead.
 # xgb_resenc2 # residual design encoding 1.13721 -- PROVEN 100% LEAKAGE by the
 #               nested double-OOF of iteration 15. Never revive.

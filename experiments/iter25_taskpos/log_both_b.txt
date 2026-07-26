@@ -147,3 +147,66 @@ fold structure: model/artifacts/folds_b.rds
   [screen rand] iter  3  LL = -21333.414  shares = 0.357 0.376 0.267
   start screening LL: -19921.62 / -21333.41 -> keeping det 
   [final] iter  1  LL = -19904.389  shares = 0.320 0.365 0.315
+  [final] iter  2  LL = -19899.653  shares = 0.320 0.368 0.313
+  [final] iter  3  LL = -19898.088  shares = 0.320 0.368 0.311
+  [final] iter  4  LL = -19897.264  shares = 0.322 0.369 0.310
+  [final] iter  5  LL = -19896.579  shares = 0.323 0.368 0.309
+  [final] iter  6  LL = -19895.923  shares = 0.324 0.368 0.308
+  [final] iter  7  LL = -19895.299  shares = 0.325 0.368 0.307
+  [final] iter  8  LL = -19894.748  shares = 0.326 0.368 0.307
+  [final] iter  9  LL = -19894.290  shares = 0.326 0.368 0.306
+  [final] iter 10  LL = -19893.935  shares = 0.327 0.367 0.306
+  [final] iter 11  LL = -19893.673  shares = 0.327 0.367 0.305
+  [final] iter 12  LL = -19893.461  shares = 0.328 0.367 0.305
+  [final] iter 13  LL = -19893.306  shares = 0.328 0.367 0.305
+
+--- SEGMENTS (full-data fit, relabelled by descending share) ---
+posterior share (avg over training respondents): 0.367  0.328  0.305 
+hard assignment counts: 419  372  344 
+weighted mean none-rate by segment: 0.236  0.050  0.653 
+
+none-option constant (asc4) by segment:
+[1] -1.396 -1.378  0.104
+
+price part-worths by segment (utility relative to Price level 1):
+            [,1]   [,2]   [,3]
+Price_L2  -0.231 -0.030 -0.787
+Price_L3  -0.315  0.211 -1.237
+Price_L4  -0.452  0.491 -1.271
+Price_L5  -0.480  0.457 -1.277
+Price_L6  -0.513  0.715 -1.122
+Price_L7  -0.608  0.770 -1.048
+Price_L8  -0.780  0.680 -1.090
+Price_L9  -0.763  0.674 -0.878
+Price_L10 -1.048  0.531 -0.667
+Price_L11 -2.112  0.456 -0.817
+Price_L12 -1.852  0.433 -0.583
+
+most DISTINGUISHING tastes (largest spread across segments):
+              [,1]   [,2]   [,3]
+Price_L11   -2.112  0.456 -0.817
+Price_L12   -1.852  0.433 -0.583
+Price_L6    -0.513  0.715 -1.122
+Price_L7    -0.608  0.770 -1.048
+Price_L8    -0.780  0.680 -1.090
+Price_L4    -0.452  0.491 -1.271
+Price_L5    -0.480  0.457 -1.277
+Price_L10   -1.048  0.531 -0.667
+Price_L9    -0.763  0.674 -0.878
+asc4        -1.396 -1.378  0.104
+Price_L3    -0.315  0.211 -1.237
+Price_L2    -0.231 -0.030 -0.787
+Price_x_age -1.050 -0.423 -0.574
+none_x_Task -0.432 -0.041  0.137
+SC_L3        0.641  0.299  0.076
+
+membership model: strongest demographic drivers (vs class 1 baseline)
+ class 2 vs 1: milesa +0.44 | regionind_4 +0.43 | nighta +0.37 | pparkind_5 +0.29 | milesind -0.39 | educind_3 -0.41 | regionind_5 -0.46 | educind_5 -0.47
+ class 3 vs 1: educind_6 +0.68 | pparkind_5 +0.57 | pparkind_2 +0.45 | pparkind_3 +0.43 | regionind_3 -0.53 | educind_2 -0.61 | segmentind_5 -0.66 | segmentind_3 -0.70
+ predicted-share spread across respondents (sd of pi_rc): 0.112  0.113  0.120 
+
+LL path (training mixture log-likelihood):
+ [1] -20840.30 -19998.58 -19921.62 -19904.39 -19899.65 -19898.09 -19897.26
+ [8] -19896.58 -19895.92 -19895.30 -19894.75 -19894.29 -19893.93 -19893.67
+[15] -19893.46 -19893.31
+OK

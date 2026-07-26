@@ -1,0 +1,11 @@
+Warning message:
+package 'data.table' was built under R version 4.6.1 
+dropped as unidentified: HU_L2 
+fold 1 done
+fold 2 done
+fold 3 done
+fold 4 done
+fold 5 done
+
+>>> mnl_pw_b OOF logloss: 1.15790   (production split 42: 1.15686)
+OK

@@ -1,0 +1,15 @@
+Warning message:
+package 'data.table' was built under R version 4.6.1 
+members: xgb_lw2bag, xgb_monobag, lcmnl3_both 
+fold 1 held-out blend logloss: 1.14254 
+fold 2 held-out blend logloss: 1.10792 
+fold 3 held-out blend logloss: 1.12 
+fold 4 held-out blend logloss: 1.14228 
+fold 5 held-out blend logloss: 1.12871 
+>>> NESTED blend OOF: 1.12829 +- 0.01485 
+plain OOF: 1.12763 
+weights: xgb_lw2bag 0.493 | xgb_monobag 0.037 | lcmnl3_both 0.469 
+  single xgb_lw2bag     OOF: 1.13682
+  single xgb_monobag    OOF: 1.13714
+  single lcmnl3_both    OOF: 1.13863
+OK
