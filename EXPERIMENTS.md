@@ -10,8 +10,16 @@ should be able to read it top to bottom and continue the work.
 
 # 👉 PICK UP HERE — next ideas, ranked
 
-**State as of 26 Jul 2026, 07:00 SGT:** nested blend **1.13044**, public leaderboard
-**1.201**. `submissions/sub_20260726_0651.csv` is written and pending upload.
+**State as of 26 Jul 2026:** nested blend **1.13044**, public leaderboard **1.199**
+(rival reference 1.210, benchmark 1.38629). `sub_20260726_0651.csv` is uploaded and is
+currently our best public score, so it is what Kaggle will score privately unless beaten.
+
+**Transfer is decaying — read `submissions/log.md` before planning more modelling.** Early
+gains reached the leaderboard at ~58%; the most recent step transferred at ~24–39%, and the
+local→public offset has grown monotonically (+0.046 → +0.062 → +0.065 → +0.069) across
+eighteen experiments against one fixed fold structure. Expect roughly a third of any further
+local gain to show. Moving 1.199 → 1.196 needs ~0.009 more local, more than round 2 produced
+in total.
 
 Production blend is now **xgb_lw2 + xgb_mono + lcmnl3** (`mnl_pw` still listed but earns
 weight 0.000 — the latent-class model strictly generalises it).

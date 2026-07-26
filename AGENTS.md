@@ -9,7 +9,7 @@ Human readers want [`README.md`](README.md) instead.
 
 - SUTD Analytics Edge Kaggle competition. Predict choice among 4 car safety bundles.
   Metric: multiclass logloss. **R only** — hard rule.
-- Current: local nested CV **1.13044**, public **1.201** (benchmark 1.38629).
+- Current: local nested CV **1.13044**, public **1.199** (benchmark 1.38629).
 - Entry point: `model/run_all.R`. The submission blends three models — latent-class
   conditional logit (`experiments/iter11_latent_class/`, weight 0.447), listwise xgboost with
   a monotone price constraint (`experiments/iter08_mono_tuned/`, 0.337), and unconstrained

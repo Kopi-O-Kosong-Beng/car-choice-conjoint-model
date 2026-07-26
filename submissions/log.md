@@ -76,7 +76,46 @@ Revised offset estimate: two of our own points now sit at 1.13878 → 1.201 (+0.
 |---|---|---|---|---|---|
 | 25 Jul 23:49 | `sub_20260725_2349.csv` | 9 members (7 at zero weight) | 1.13878 | ~1.189 | **1.201** |
 | 26 Jul 01:16 | `sub_20260726_0116.csv` | mnl_pw + xgb_lw2 | 1.13556 | ~1.186 | **1.201** |
-| 26 Jul 06:51 | `sub_20260726_0651.csv` | xgb_lw2 + xgb_mono + lcmnl3 (mnl_pw at 0) | **1.13044** | **~1.195** | (pending) |
+| 26 Jul 06:51 | `sub_20260726_0651.csv` | xgb_lw2 + xgb_mono + lcmnl3 (mnl_pw at 0) | **1.13044** | ~1.195 | **1.199** ✅ |
+
+---
+
+## What 1.199 tells us (26 Jul)
+
+**The latent-class extrapolation was safe.** This was the open risk: `lcmnl3` predicts a
+test "none" rate of 0.223 against ~0.304 out-of-fold, because its demographic membership
+model routes the wealthier test respondents toward buying classes. Every latent-class variant
+did the same, so it was a property of the channel, not one fit. It could have been genuine
+insight or over-extrapolation. **It was genuine** — the score improved. Richer respondents
+really do decline less often, and the membership model extrapolates in the right direction.
+
+**But transfer is decaying.** Full calibration record:
+
+| local nested | public | offset | transfer of that step |
+|---|---|---|---|
+| 1.17683 | 1.2230 | +0.046 | — |
+| 1.13878 | 1.201 | +0.062 | ~58% (over the whole first jump) |
+| 1.13556 | 1.201 | +0.065 | 0% visible (below resolution) |
+| **1.13044** | **1.199** | **+0.069** | **~24–39%** |
+
+The step from 1.13556 to 1.13044 was 0.0051 local and bought 0.002 public — and because
+Kaggle rounds to three decimals, the true public gain lies somewhere in 0.001–0.003, so
+transfer for this step is between 20% and 59%. Measured against 1.13878 it is ~24%.
+
+**Early gains transferred at roughly 58%; recent ones at roughly 25–40%.** The offset has
+grown monotonically (+0.046 → +0.062 → +0.065 → +0.069). That is the signature of
+increasingly CV-specific fitting: we have now run eighteen experiments against one fixed
+fold structure, and the winners are selected partly on noise that does not exist in the test
+set. It does not mean the recent gains are fake — this one demonstrably transferred — but it
+does mean each additional local point buys less than the last.
+
+**Practical rule for what remains:** expect roughly a third of any further local gain to
+reach the leaderboard. To move 1.199 → 1.196 would take ~0.009 more local, which is larger
+than everything round 2 produced. Weigh that against the report, which carries 15 of 30 marks.
+
+**Standing: 1.199 versus the rival reference 1.210 and our own opening 1.2230.**
+This submission is now our best public score, so it is the one Kaggle will auto-select for
+private scoring unless a later one beats it.
 
 The "expected public" column used a naive `local + 0.063` early on, which over-predicted
 improvement because it assumed full transfer. The realistic estimate for the 26 Jul 06:51

@@ -17,7 +17,7 @@ Scores: `submissions/log.md` · How to run: `README.md`
 | Benchmark (25% each) | 1.38629 |
 | Team's first submission | 1.2230 public |
 | Rival team's best known | 1.210 public |
-| **Ours** | **1.201 public** / 1.13044 local nested CV |
+| **Ours** | **1.199 public** / 1.13044 local nested CV |
 
 ## The submitted model
 

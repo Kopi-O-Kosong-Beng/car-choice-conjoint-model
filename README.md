@@ -16,7 +16,7 @@ Predicting which of four car safety-feature bundles a respondent chooses.
 | Benchmark (25% for everything) | 1.38629 |
 | Our first submission | 1.2230 public |
 | Rival team's known best | 1.210 public |
-| **Ours now** | **1.201 public** (local CV 1.13044) |
+| **Ours now** | **1.199 public** (local CV 1.13044) |
 
 Our local cross-validation and the Kaggle score differ by about +0.06. That gap is
 expected — see [Why local ≠ Kaggle](#why-local--kaggle-matters) below, it's one of the

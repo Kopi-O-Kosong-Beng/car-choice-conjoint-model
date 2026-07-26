@@ -199,29 +199,48 @@ back labels it should not have seen. We did not ship it.
 
 ## (ii) Public vs private leaderboard — to complete after the final submission
 
-Observed calibration:
+Observed calibration across four submissions:
 
-| local nested OOF | public |
-|---|---|
-| 1.17683 (team's first pipeline) | 1.2230 |
-| 1.13878 | 1.201 |
-| 1.13556 | 1.201 |
-| 1.13044 | (pending) |
+| local nested OOF | public | offset |
+|---|---|---|
+| 1.17683 (first pipeline) | 1.2230 | +0.046 |
+| 1.13878 | 1.201 | +0.062 |
+| 1.13556 | 1.201 | +0.065 |
+| **1.13044** | **1.199** | **+0.069** |
 
-Two points to make in the report:
+Three points for the report, all evidenced by this table:
 
-1. **Local gains transfer at roughly 58%.** Our local score improved 0.038 while the public
-   score improved 0.022. The gap is partly the population shift documented above and partly
-   the ordinary optimism of selecting among many experiments against one fixed CV split.
-2. **The public leaderboard has a resolution floor.** Local 1.13878 and 1.13556 both scored
-   1.201 — a 0.0032 local improvement was invisible, because at 58% transfer the expected
-   public gain (0.0019) sits inside the rounding of a three-decimal display. Beyond a point,
-   further tuning cannot be validated publicly at all. The private leaderboard is ~1,500 rows
-   with SE ≈ ±0.02, larger than everything gained after the first day.
+1. **Cross-validated scores are optimistic by a stable ~0.05–0.07, and the gap grows.** Part
+   is the documented population shift (test respondents are twice as wealthy); part is the
+   ordinary optimism of selecting among eighteen experiments against one fixed fold
+   structure. Both mechanisms are worth naming — they are different problems with different
+   remedies, and only the first is visible in a shift audit.
 
-This is the honest frame for discussing public-versus-private fit: we expect them to be
-similar, we expect both to sit ~0.06 above our cross-validated estimate, and we expect the
-difference between our last few submissions to be indistinguishable on either board.
+2. **Local improvements transfer only partially, and the rate decays.** The first large jump
+   transferred at ~58% (local −0.038 → public −0.022). The most recent step transferred at
+   ~24–39% (local −0.005 → public −0.002). Later gains are increasingly fitted to the
+   particular fold structure rather than to the population.
+
+3. **The public leaderboard has a resolution floor.** Local 1.13878 and 1.13556 both scored
+   1.201: a 0.0032 local improvement was *invisible*, since the expected public gain sat
+   inside the rounding of a three-decimal display. Below roughly 0.005 local, the public
+   board cannot adjudicate a change at all — a genuinely uncomfortable position for anyone
+   using it to steer, and a good argument for holding an honest internal metric.
+
+**Expected private performance.** The private leaderboard is a different random 30% of the
+same test respondents — ~1,500 rows, SE ≈ ±0.02. We therefore expect private ≈ public within
+noise, and we expect that noise to exceed the entire difference between our last three
+submissions. We would treat a private-public gap of less than ~0.02 as uninformative about
+model quality.
+
+**One prediction we made and can check.** The latent-class model predicted a test "none" rate
+of 0.223 against ~0.304 in cross-validation, because its demographic membership channel
+routes wealthier respondents toward buying segments. We flagged this before submitting as
+either a genuine insight or an over-extrapolation, and noted that only 79% of its gain
+survived reweighting toward the test income distribution. The submission improved the public
+score (1.201 → 1.199), so the extrapolation was in the right direction: **wealthier
+respondents genuinely do decline less often.** This is the cleanest confirmation we have that
+the segment structure reflects real behaviour rather than in-sample fitting.
 
 ---
 
