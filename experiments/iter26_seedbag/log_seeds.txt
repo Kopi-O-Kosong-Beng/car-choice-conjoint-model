@@ -49,3 +49,66 @@ Warning messages:
   seed 5 fold 2 best_iter 365 
   seed 5 fold 3 best_iter 354 
   seed 5 fold 4 best_iter 225 
+  seed 5 fold 5 best_iter 390 
+>>> seed 5 OOF: 1.14520
+seed 5 done in 14.2 min -> experiments/iter26_seedbag/seed_005.rds
+OK
+  seed 5 fold 5 best_iter 506 
+Error: unexpected '}' in "}"
+Execution halted
+Warning messages:
+1: package 'data.table' was built under R version 4.6.1 
+2: package 'xgboost' was built under R version 4.6.1 
+  seed 6 fold 1 best_iter 310 
+  seed 6 fold 2 best_iter 470 
+  seed 6 fold 3 best_iter 703 
+  seed 6 fold 4 best_iter 614 
+  seed 6 fold 5 best_iter 454 
+>>> seed 6 OOF: 1.14443
+seed 6 done in 27.2 min -> experiments/iter26_seedbag/seed_006.rds
+OK
+Warning messages:
+1: package 'data.table' was built under R version 4.6.1 
+2: package 'xgboost' was built under R version 4.6.1 
+  seed 7 fold 1 best_iter 511 
+  seed 7 fold 2 best_iter 653 
+  seed 7 fold 3 best_iter 497 
+  seed 7 fold 4 best_iter 338 
+  seed 7 fold 5 best_iter 654 
+>>> seed 7 OOF: 1.14164
+seed 7 done in 24.5 min -> experiments/iter26_seedbag/seed_007.rds
+OK
+Warning messages:
+1: package 'data.table' was built under R version 4.6.1 
+2: package 'xgboost' was built under R version 4.6.1 
+  seed 8 fold 1 best_iter 584 
+  seed 8 fold 2 best_iter 895 
+  seed 8 fold 3 best_iter 615 
+  seed 8 fold 4 best_iter 510 
+  seed 8 fold 5 best_iter 475 
+>>> seed 8 OOF: 1.14061
+seed 8 done in 30.7 min -> experiments/iter26_seedbag/seed_008.rds
+OK
+Warning messages:
+1: package 'data.table' was built under R version 4.6.1 
+2: package 'xgboost' was built under R version 4.6.1 
+  seed 9 fold 1 best_iter 644 
+  seed 9 fold 2 best_iter 408 
+  seed 9 fold 3 best_iter 1075 
+  seed 9 fold 4 best_iter 355 
+  seed 9 fold 5 best_iter 722 
+>>> seed 9 OOF: 1.14088
+seed 9 done in 39.8 min -> experiments/iter26_seedbag/seed_009.rds
+OK
+Warning messages:
+1: package 'data.table' was built under R version 4.6.1 
+2: package 'xgboost' was built under R version 4.6.1 
+  seed 10 fold 1 best_iter 439 
+  seed 10 fold 2 best_iter 665 
+  seed 10 fold 3 best_iter 436 
+  seed 10 fold 4 best_iter 420 
+  seed 10 fold 5 best_iter 704 
+>>> seed 10 OOF: 1.14107
+seed 10 done in 43.1 min -> experiments/iter26_seedbag/seed_010.rds
+OK
+ALL SEEDS DONE

@@ -225,6 +225,60 @@ Model comparisons use a **paired test with respondent-clustered standard errors*
 fold SD is ±0.013, so a genuine +0.005 improvement is invisible in headline numbers but
 clear when paired on identical rows.
 
+### The seed is a hyperparameter nobody tunes, and it invalidated one of our results
+
+Late in the project we asked a question we should have asked at the start: **how much does
+a gradient-boosted model's score move if you change nothing but the random seed?** With
+`subsample = 0.8`, `colsample_bytree = 0.8` and a randomly drawn 10% early-stopping holdout,
+we refitted the identical configuration under ten seeds:
+
+| | |
+|---|---|
+| mean OOF | 1.14303 |
+| **sd across seeds** | **0.00283** |
+| range | 1.14061 – 1.14957 (**0.00896**) |
+
+**That sd is larger than most of the improvements in our experiment log.** In particular, we
+had accepted a *monotone price constraint* on the grounds that it improved OOF from 1.14152
+to 1.13980 — a margin of 0.00172, less than the seed noise it was measured against. It had
+carried roughly a third of the blend weight ever since.
+
+Re-testing it properly, **paired by seed** (the same seed drives the early-stopping split for
+both configurations, and the two configurations' scores correlate 0.93 across seeds, so
+pairing removes a large shared component):
+
+| | |
+|---|---|
+| mean(constrained − unconstrained) | **+0.00065** — the constraint is slightly *worse* |
+| 95% CI | [−0.00050, +0.00181] |
+| the original claim (−0.00172) | **outside the CI** |
+| seeds where the constraint wins | **1 of 6** |
+
+The constraint does nothing. The original result was a lucky draw, and we had been carrying
+two copies of the same model in the blend under different names.
+
+Two lessons we would generalise:
+
+1. **A single-seed comparison cannot resolve a difference smaller than the seed sd**, and
+   almost nobody measures the seed sd before quoting a margin. It costs one extra run to
+   find out and it recalibrates every number in the log.
+2. **Averaging over seeds is the one improvement that cannot overfit the validation set.**
+   It involves no model selection — no hyperparameter chosen by looking at a fold, no feature
+   kept because it scored well — so unlike every other gain we made it has no reason to decay
+   on the leaderboard. Bagging ten seeds moved the model from 1.14303 to 1.13714.
+
+There is a subtlety in how to value that last number, and it is the kind of thing a paired
+test will mislead you about. Our stored single-seed artifact happened to score 1.13980,
+about 1.1 sd *below* the seed mean — a lucky draw. Comparing the bagged model against it
+gives only +0.00266 at z = 1.77, "not significant". But a model's cross-validation artifact
+and its **test** artifact come from *independent* random draws: the OOF predictions come from
+five fold-fits under one seed, the test predictions from a separate refit on all the data.
+Getting a lucky OOF tells you nothing about whether the shipped test refit is lucky. So the
+expected quality of a single-seed submission corresponds to the seed **mean**, not to its
+observed OOF, and the honest value of bagging is the ~0.006 it buys against that mean. The
+significance test answered a question about two artifacts; the decision needed a question
+about two *procedures*.
+
 ### A leakage postmortem worth including
 
 One experiment scored **1.09962** — nine times the project's entire accumulated gain — from a
