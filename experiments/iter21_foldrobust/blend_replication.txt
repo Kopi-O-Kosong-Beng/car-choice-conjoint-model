@@ -7,3 +7,8 @@ weights: xgb_lw2 0.468 | lcmnl3_both 0.532
 ### split b: xgb_lw2_b + lcmnl3_none_b
 ### split b: xgb_lw2_b + lcmnl3_both_b
 ### split b: xgb_lw2_b + lcmnl3_none_b
+>>> NESTED blend OOF: 1.13398 +- 0.01502 
+full-data weights: xgb_lw2_b 0.54 | lcmnl3_none_b 0.46 
+### split b: xgb_lw2_b + lcmnl3_both_b
+>>> NESTED blend OOF: 1.13248 +- 0.0146 
+full-data weights: xgb_lw2_b 0.496 | lcmnl3_both_b 0.504 

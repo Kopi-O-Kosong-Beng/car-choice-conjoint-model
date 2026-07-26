@@ -10,6 +10,13 @@ should be able to read it top to bottom and continue the work.
 
 # 👉 PICK UP HERE — next ideas, ranked
 
+**Read [`STRATEGY_REVIEW.md`](STRATEGY_REVIEW.md) first (27 Jul).** It is the expert-panel
+review of the whole approach: two corrections to this file's own doctrine (private-board
+*ranking* noise is paired and ~2–3× smaller than the ±0.02 absolute wobble; predict public
+from the income-reweighted OOF), the measured ~0.8 shrinkage factor for all wins, the one
+remaining allowed experiment (EM-start variance of `lcmnl3_both`), the model freeze rule,
+and the dated report plan through 10 Aug.
+
 **State as of 26 Jul 2026 (evening):** nested blend **1.12867**, public leaderboard **1.199**
 from the previous blend (1.13044). Rival reference 1.210, benchmark 1.38629.
 `submissions/sub_20260726_1643.csv` is built and **not yet uploaded**.
