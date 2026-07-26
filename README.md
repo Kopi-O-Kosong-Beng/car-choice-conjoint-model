@@ -16,7 +16,7 @@ Predicting which of four car safety-feature bundles a respondent chooses.
 | Benchmark (25% for everything) | 1.38629 |
 | Our first submission | 1.2230 public |
 | Rival team's known best | 1.210 public |
-| **Ours now** | **1.199 public** (local CV 1.13044) |
+| **Ours now** | **1.199 public** (local CV 1.12819, awaiting upload) |
 
 Our local cross-validation and the Kaggle score differ by about +0.06. That gap is
 expected — see [Why local ≠ Kaggle](#why-local--kaggle-matters) below, it's one of the
@@ -63,15 +63,23 @@ superseded work kept for the record.
 
 | script | model | OOF | weight |
 |---|---|---|---|
-| [`experiments/iter11_latent_class/run.R`](experiments/iter11_latent_class/run.R) | **latent-class conditional logit**, 3 segments | 1.14396 | **0.447** |
-| [`experiments/iter08_mono_tuned/run.R`](experiments/iter08_mono_tuned/run.R) | listwise xgboost + **monotone price constraint** | 1.13980 | 0.337 |
-| [`model/03_xgb_listwise.R`](model/03_xgb_listwise.R) | listwise xgboost, unconstrained | 1.14152 | 0.216 |
-| [`model/02_mnl_partworth.R`](model/02_mnl_partworth.R) | part-worth conditional logit | 1.15686 | 0.000 |
-| [`model/06_blend.R`](model/06_blend.R) | pools them in log-space + temperature | **1.13044** | — |
+| [`experiments/iter26_seedbag/run.R`](experiments/iter26_seedbag/run.R) | listwise xgboost, **10 seeds averaged** | 1.13682 | **0.528** |
+| [`experiments/iter25_taskpos/run.R`](experiments/iter25_taskpos/run.R) | **latent-class conditional logit + task position** | 1.13863 | **0.472** |
+| [`model/06_blend.R`](model/06_blend.R) | pools them in log-space + temperature | **1.12819** | — |
 
-Note `mnl_pw` earns **zero** weight: the latent-class model with one class reproduces it to
-four decimals (1.15695 vs 1.15686), so it is a strict generalisation with nothing left to add.
-It stays listed because dropping it changes nothing and keeping it documents the relationship.
+**The blend used to have four members and now has two, at an unchanged score.** Two of them
+turned out not to be models at all:
+
+- `xgb_mono` (monotone price constraint) was **retracted** — retested paired across ten seeds
+  it is worth −0.00034, CI [−0.00159, +0.00092], winning 5 of 10. Its original +0.00172 was
+  smaller than the seed noise it was measured against. It was a duplicate of the
+  unconstrained tree for eighteen iterations.
+- `mnl_pw` contributed **−0.00006** (z = −1.89) on leave-one-out. The latent-class model with
+  one class reproduces it to four decimals, so it is a strict generalisation.
+
+The two survivors are the opposite ends of the blend's only genuine axis of disagreement —
+tree versus logit, which carries 93% of the error variance — and the weights split near-evenly
+across it.
 
 The two highest-weighted models currently live under `experiments/` rather than `model/`.
 That is deliberate while the research round is open — `model/members.txt` is the single
@@ -197,16 +205,22 @@ Start at `Vault/00 Hub.md`. The competition notes are:
 
 ## Want to continue the work?
 
-Open [`EXPERIMENTS.md`](EXPERIMENTS.md) and read the **"👉 PICK UP HERE"** section at the
-top. It holds the current state, five ranked ideas with expected payoffs, and a table of
-things already tried so nobody repeats them.
+**The modelling is frozen.** Twenty-six iterations are done, the search space is
+measured-exhausted, and the remaining marks are in the report. Start with
+[`STRATEGY_REVIEW.md`](STRATEGY_REVIEW.md) — it explains why, and holds the plan through
+10 August.
 
-The top-ranked idea has its script written and ready:
+If you want to understand *what* was tried, open [`EXPERIMENTS.md`](EXPERIMENTS.md) and read
+the **"👉 PICK UP HERE"** section, especially the ⛔ table of settled ideas — each one has the
+number that killed it, so nobody repeats them.
 
-```powershell
-& "C:\Program Files\R\R-4.6.0\bin\Rscript.exe" experiments/iter08_mono_tuned/run.R
-& "C:\Program Files\R\R-4.6.0\bin\Rscript.exe" model/compare.R xgb_lw2 xgb_mono
-```
+Two things to know before you trust any number in here:
+
+- **There is no single noise floor.** Comparing two single models needs the seed sd
+  (**0.00283**); comparing two blends needs the blend-level sd (**0.00048**). Confusing them
+  is how one accepted result survived eighteen iterations before being retracted.
+- **Shrink every win**: ×0.8 for measured replication on an independent fold structure, then
+  ×~⅓ for what reaches the leaderboard.
 
 ## Reading order for someone new
 

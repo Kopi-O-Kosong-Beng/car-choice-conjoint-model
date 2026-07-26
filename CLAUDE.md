@@ -1,109 +1,163 @@
 # Guide for AI assistants working in this repository
 
-*(Claude Code reads `CLAUDE.md` automatically; `AGENTS.md` is a symlink-equivalent copy
-for other tools. If you are a human, read `README.md` instead — it covers the same ground
-in a friendlier order.)*
+*(Claude Code reads `CLAUDE.md` automatically; `AGENTS.md` is a copy for other tools.
+Humans want `README.md`. The full strategic reasoning behind everything below is in
+[`STRATEGY_REVIEW.md`](STRATEGY_REVIEW.md) — read it before proposing any plan.)*
 
 ## What this project is
 
-Kaggle competition for SUTD's *The Analytics Edge* (2026), graded coursework. Predict
-which of 4 car safety-feature bundles a respondent picks. Metric: mean multiclass logloss.
-**R only** — this is a hard competition rule, never propose Python.
+Kaggle competition for SUTD's *The Analytics Edge* (2026), graded coursework. Predict which
+of 4 car safety-feature bundles a respondent picks. Metric: mean multiclass logloss.
+**R only** — hard competition rule, never propose Python.
 
-Current state: local nested CV **1.13044**, public leaderboard **1.199**
-(benchmark 1.38629, rival team 1.210).
+**State (27 Jul 2026):** nested blend **1.12819**, public **1.199** (best; auto-selected for
+private scoring). Benchmark 1.38629, rival reference 1.210. Production blend is **two
+members**: `xgb_lw2bag` 0.528 + `lcmnl3_both` 0.472. Kaggle closes **1 Aug**, report due
+**10 Aug**.
+
+---
+
+## ⛔ READ THIS FIRST: the project is FROZEN for modelling
+
+**The default correct action is to work on the report, not to improve the model.** Twenty-six
+iterations have been run and the search space is measured-exhausted. If you arrive wanting to
+propose a new model, feature, encoding, or blend architecture — **that is almost certainly the
+wrong move**, and `EXPERIMENTS.md`'s ⛔ table probably already has your idea with the number
+that killed it.
+
+**Allowed without asking:** report writing, documentation, analysis of existing artifacts,
+diagnostics that emit no artifacts, reproducibility fixes.
+
+**Requires the user to explicitly re-open the freeze:** any new model, feature, member, or
+retune. Say plainly that the project is frozen and why, then ask.
+
+**Why the freeze is not laziness:** every additional selection event spends part of a measured
+replication budget. Wins here replicate on an independent fold structure at only **~80%**
+(measured, iteration 21), and reach the public board at roughly **⅓**. Searching more does not
+just fail to help — it degrades what already works.
+
+**Also true, and it cuts the other way:** the private board is decided by *ranking*, and the
+`±0.02` figure quoted in older notes is the **absolute**-score wobble, not the ranking noise.
+All teams are scored on the same ~1,500 rows, so differences are *paired* and the relevant SE
+is ~0.006–0.012. Our lead over the known rival is ~1–2 SE — probable, not safe. So genuine
+gains do matter; it is *search* that is exhausted, not the value of accuracy.
+See `STRATEGY_REVIEW.md` Part II.1.
+
+---
 
 ## Environment
 
-- R 4.6.0. On the original machine it is **not on PATH**: call
-  `& "C:\Program Files\R\R-4.6.0\bin\Rscript.exe"`. On other machines `Rscript` may work.
-- Always run from the repository root — all paths in the scripts are relative to it.
-- Packages: `data.table`, `xgboost` (≥3.0), `mlogit`, `dfidx`, `glmnet`, `Matrix`.
-- Long runs (10–60 min) are normal. Run them in the background rather than blocking.
+- R 4.6.0, **not on PATH** on the original machine: `& "C:\Program Files\R\R-4.6.0\bin\Rscript.exe"`.
+  In Bash tool: `"/c/Program Files/R/R-4.6.0/bin/Rscript.exe"`.
+- Always run from the repository root; all script paths are relative to it.
+- Packages: `data.table`, `xgboost` (≥3.0), `mlogit`, `dfidx`, `glmnet`, `Matrix`, `bayesm`.
+- Long runs (10–60 min) are normal — background them, do not block.
+- R quirk that has bitten twice: a top-level `else` on its own line is a parse error.
+  Wrap in braces: `x <- if (c) { a } else { b }`.
 
 ## Rules that must not be broken
 
-1. **Folds are grouped by respondent (`Case`)** and fixed in
-   `model/artifacts/folds.rds` (seed 42). Never regenerate them, never split by row.
-   Test respondents are entirely new people; row-wise splitting silently inflates every
-   score by letting a model learn individuals it will then be graded on.
-2. **The decision number is the nested blend OOF** from `model/06_blend.R`. Not a plain
-   OOF, not a training score, not a single fold.
-3. **Judge changes with `model/compare.R`**, which does a paired test with
-   respondent-clustered SEs. Fold-to-fold SD is ±0.013, so a real +0.005 improvement is
-   invisible in headline numbers but clear when paired. Example:
-   `Rscript model/compare.R xgb_de xgb_lw`
-4. **One change per experiment.** Violating this already cost us an unattributable result
-   (see Iteration 05 in `EXPERIMENTS.md`).
+1. **Folds are grouped by respondent (`Case`)**, fixed in `model/artifacts/folds.rds`
+   (seed 42). **Never regenerate, never split by row.** Test respondents are entirely new
+   people; row-wise splitting silently inflates every score. Independent splits for
+   *validation* exist as `folds_b.rds` / `folds_c.rds` — new fold structures go to new
+   filenames, never over `folds.rds`.
+2. **The decision number is the nested blend OOF** from `model/06_blend.R`. Never a plain
+   OOF, a training score, or a single fold.
+3. **Judge with `model/compare.R`** — paired, respondent-clustered SEs.
+   `Rscript model/compare.R <baseline> <challenger>`.
+4. **One change per experiment.** Iteration 05 lost an unattributable result to this.
 5. **Blend membership is explicit** in `model/members.txt`. Auto-discovery once pulled an
-   unvetted artifact into a real submission.
+   unvetted artifact into a real submission; `blend.rds` has since disagreed with
+   `members.txt` once more. One artifact name, one producing script.
 6. **Two Kaggle submissions per day, one team account.** Never suggest a second account.
+7. **Nest everything that is fitted** — weights, temperatures, encodings, *and the baselines
+   those encodings are built on*. Both leakage incidents were un-nested quantities riding on
+   honest-looking reference sets.
 
-## How to add a model
+## How to judge a number (this is where results die)
 
-1. Write it in `experiments/iterNN_<name>/run.R`, stating the hypothesis in the header
-   *before* running.
-2. Consume `model/artifacts/long.rds` (or `wide.rds`) and `folds.rds`.
-3. Emit exactly two artifacts, both `data.table`s ordered by `No` with columns
-   `No, p1, p2, p3, p4`:
-   - `model/artifacts/oof_<name>.rds` — 21,565 rows, out-of-fold predictions
-   - `model/artifacts/test_<name>.rds` — 4,997 rows, from a refit on all training data
-4. Verify with `model/compare.R` against the incumbent.
-5. If it wins, add the name to `model/members.txt` and rerun `06_blend.R`.
-6. Record hypothesis, result, and an honest reflection in `EXPERIMENTS.md` — **including
-   for failures**, which are the most useful entries.
+**There is no single noise floor. Pick the one matching your decision.**
+
+| comparing | use | measured |
+|---|---|---|
+| two single models | **model-level seed sd** | **0.00283** |
+| two blends | **blend-level seed sd** | **0.00048** |
+| fold-to-fold spread within one model | fold SD | 0.013 |
+
+Conflating the first two is exactly how iteration 08's monotone price constraint passed and
+survived eighteen iterations before being retracted. **Anything quoted below 0.003 on a
+single model, from any iteration before 26, is unresolved.**
+
+Then apply, in order:
+
+- **× 0.8** — measured replication on an independent fold structure (iteration 21: member
+  79%, blend 81%). Any accepted change should be re-run under `folds_b` before production.
+- **× ~⅓** — measured transfer to the public leaderboard, and only ≈0.001 is even *visible*
+  at three decimals.
+- **Shift audit** (`model/shift_audit.R`): does the gain survive reweighting toward the
+  wealthier test population? ~100%+ is structural; 77% was the design encoding; 64% was a
+  fatigue term we rejected for exactly this reason. **Predict public from the
+  income-reweighted OOF, not the plain one** — but never *optimise* on it (iteration 07).
+- **Artifact vs procedure.** A lucky single seed is not a good procedure. Ask which question
+  your test answers before running it — `compare.R` compares two artifacts, and the decision
+  usually needs two procedures. See iteration 26 and `experiments/iter26_seedbag/expected_blend.R`.
 
 ## Data shape
 
-- `long.rds`: one row per (choice task × alternative), 4 rows per task, sorted by
-  `(No, alt)`. Several models rely on that contiguity — do not reorder without care.
-- **Alternative 4 is the all-zero "none of these" option** and is chosen 30.2% of the
-  time, more than any single bundle.
+- `long.rds`: one row per (task × alternative), 4 rows per task, sorted by `(No, alt)`.
+  Several models rely on that contiguity — do not reorder without care.
+- **Alternative 4 is the all-zero "none of these" option**, chosen 30.2% of the time. Its
+  `Price` is 0, so it is always the cheapest alternative present — this is *why* rising price
+  sensitivity produces a rising decline rate (iteration 25).
 - Train: 1,135 respondents × 19 tasks. Test: 263 *different* respondents × 19 tasks.
-- Attributes are ordinal tiers with 3–7 levels (Price has 12). **Code them as part-worths,
-  not as numbers** — that was worth 0.020 logloss.
+- Attributes are ordinal tiers, 3–7 levels (Price has 12). **Code as part-worths, not
+  numbers** — worth 0.020.
 
 ## Known traps
 
-- **xgboost ≥3.0** returns a *matrix* from `predict` for `multi:softprob`. The old
-  flat-vector reshape scrambles predictions silently and produced a 1.54 score with no
-  error raised.
-- **Conditional logit identification:** anything constant within a choice set is
-  unidentified. `Price` is 0 only on the none-option, so using 0 as the part-worth
-  reference makes price dummies collinear with the none-constant (singular Hessian).
-  Reference must be the lowest level occurring on a *real* bundle. Use a rank-revealing
-  QR on the **task-demeaned** design matrix to catch the rest — it found `HU_L2`, which
+- **xgboost ≥3.0** returns a *matrix* from `predict` for `multi:softprob`. The old flat-vector
+  reshape scrambles predictions silently and scored 1.54 with no error raised.
+- **Conditional-logit identification:** anything constant within a choice set is unidentified.
+  `Price` is 0 only on the none-option, so 0 as reference makes price dummies collinear with
+  the none-constant (singular Hessian). Reference must be the lowest level on a *real* bundle.
+  Use a rank-revealing QR on the **task-demeaned** design — it caught `HU_L2`, which
   hand-reasoning missed.
-- **Artifact collisions:** two different scripts once wrote to the same `oof_mixl2.rds`,
-  making provenance unrecoverable. One artifact name, one producing script.
-- **Local gains transfer at roughly 58%** to the leaderboard. Discount accordingly, and
-  prefer structurally justified changes. `model/shift_audit.R` tells you whether a gain
-  survives reweighting toward the test population.
+- **Long jobs must write their own assembled artifacts as their last act.** Two experiments
+  looked like failures for hours when they had in fact finished, because the caller died
+  before assembling them.
+- **Leak signature:** a real gain appears in *every* fold; a leak concentrates in one. Check
+  per-fold before believing anything.
+
+## If the user re-opens the freeze
+
+1. Write it in `experiments/iterNN_<name>/run.R`, hypothesis **and decision rule** in the
+   header *before* running.
+2. Consume `model/artifacts/long.rds` (or `wide.rds`) and `folds.rds`.
+3. Emit exactly two `data.table`s ordered by `No`, columns `No, p1, p2, p3, p4`:
+   `oof_<name>.rds` (21,565 rows) and `test_<name>.rds` (4,997 rows).
+4. Verify with `compare.R`, then `shift_audit.R`, then **replicate under `folds_b`**.
+5. Only then add to `members.txt` and rerun `06_blend.R`.
+6. Record hypothesis, result, and an honest reflection in `EXPERIMENTS.md` — **including for
+   failures**, which are the most useful entries.
 
 ## Where things are
 
 | question | file |
 |---|---|
+| **What should I be doing right now?** | **`STRATEGY_REVIEW.md`** — plan, freeze rule, report skeleton |
 | How do I run it? | `README.md`, `model/run_all.R` |
-| What's been tried? | `EXPERIMENTS.md` (hypothesis → result → reflection) |
-| What are the findings? | `report_notes.md` |
+| What's been tried, and what is already dead? | `EXPERIMENTS.md` — the ⛔ table especially |
+| What are the findings? | `report_notes.md` (the 15-mark deliverable) |
 | What scored what on Kaggle? | `submissions/log.md` |
-| Course theory | `Vault/` (Obsidian; `Vault/Topics/Topic 3 - Discrete Choice.md` is the relevant one) |
+| Course theory | `Vault/` (Obsidian; `Vault/Topics/Topic 3 - Discrete Choice.md`) |
 
-## Open ideas
+## Corrections to older notes still quoted in this repo
 
-**Read the "👉 PICK UP HERE" section at the top of `EXPERIMENTS.md`.** It is the single
-source of truth: current state, five ranked ideas with expected payoffs and failure modes,
-and a ⛔ table of things already tested so you do not repeat them.
-
-The top-ranked idea already has a runnable script at
-`experiments/iter08_mono_tuned/run.R` — combine the monotone price constraint with the
-tuned hyperparameters, which beat the old settings separately (1.14298 and 1.14152 versus
-1.14477) but have never been run together.
-
-Do not re-run: listwise hyperparameter tuning (iteration 06, done), blend softening or
-income-reweighted blend tuning (iteration 07, both refuted).
-
-Diminishing returns warning: the private leaderboard is ~1,500 rows with SE ≈ ±0.02,
-which is larger than everything gained so far. The report carries 15 of 30 marks; past a
-point, effort there beats another 0.002 of logloss.
+- ~~"the monotone price constraint is worth +0.00172"~~ — **retracted**, iteration 26.
+  Paired across 10 seeds: −0.00034, 95% CI [−0.00159, +0.00092], wins 5 of 10.
+- ~~"local gains transfer at ~58%"~~ — that was the early rate; it is now ~⅓ and decaying.
+- ~~"private SE ±0.02 swamps everything"~~ — that is *absolute* noise; ranking noise is
+  paired and ~0.006–0.012.
+- ~~"bundle-level encoding is the next idea"~~ — structurally impossible (bijection),
+  iteration 16.

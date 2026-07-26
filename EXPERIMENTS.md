@@ -8,33 +8,43 @@ should be able to read it top to bottom and continue the work.
 
 ---
 
-# 👉 PICK UP HERE — next ideas, ranked
+# 👉 PICK UP HERE — current state, and why the search is over
 
-**Read [`STRATEGY_REVIEW.md`](STRATEGY_REVIEW.md) first (27 Jul).** It is the expert-panel
-review of the whole approach: two corrections to this file's own doctrine (private-board
-*ranking* noise is paired and ~2–3× smaller than the ±0.02 absolute wobble; predict public
-from the income-reweighted OOF), the measured ~0.8 shrinkage factor for all wins, the one
-remaining allowed experiment (EM-start variance of `lcmnl3_both`), the model freeze rule,
-and the dated report plan through 10 Aug.
+> **⛔ The project is FROZEN for modelling.** The default correct action is report work.
+> This section is a record of what is settled, **not** a menu of things to try. Twenty-six
+> iterations are done and the ⛔ table below almost certainly already contains your idea
+> together with the number that killed it. Re-opening the freeze requires the user to say so.
+>
+> **Read [`STRATEGY_REVIEW.md`](STRATEGY_REVIEW.md) before proposing any plan.** It carries
+> two corrections to this file's own doctrine — private-board *ranking* noise is paired and
+> ~2–3× smaller than the ±0.02 absolute wobble, and public should be predicted from the
+> income-reweighted OOF — plus the measured ~0.8 replication shrinkage, the one remaining
+> allowed experiment (EM-start variance of `lcmnl3_both`), the freeze rule, and the dated
+> report plan through 10 Aug.
 
-**State as of 26 Jul 2026 (evening):** nested blend **1.12867**, public leaderboard **1.199**
-from the previous blend (1.13044). Rival reference 1.210, benchmark 1.38629.
-`submissions/sub_20260726_1643.csv` is built and **not yet uploaded**.
+**State as of 27 Jul 2026:** nested blend **1.12819** (income-reweighted 1.13273), public
+leaderboard **1.199** from the older 1.13044 blend. Rival reference 1.210, benchmark 1.38629.
+`submissions/sub_20260726_2328.csv` is built and **not yet uploaded** — read
+`STRATEGY_REVIEW.md` Phase 0 for the pre-registered interpretation of each possible result.
 
-Production blend is **xgb_lw2 + xgb_mono + lcmnl3_both** (`mnl_pw` listed at weight 0.000).
-See `model/members.txt`, which is the source of truth.
+Production blend is **two members**: `xgb_lw2bag` 0.528 + `lcmnl3_both` 0.472.
+`model/members.txt` is the source of truth and documents why each dropped member was dropped.
 
-**Two results from the evening of 26 Jul that change how to read everything above them:**
+**Three results from 26–27 Jul that change how to read everything above them:**
 
 1. **Iteration 25 — the conditional-logit family had no `Task` term.** Adding two within-task
-   position terms to the latent-class utility took it 1.14396 → **1.13863** (z = 6.26), making
-   it the best single model in the repo, and the blend 1.13044 → **1.12867**. The rising
-   decline rate turns out not to be fatigue: it is a *consequence* of rising price
-   sensitivity, because the none option is always the cheapest alternative present.
+   position terms to the latent-class utility took it 1.14396 → **1.13863** (z = 6.26), the
+   best single model in the repo. The rising decline rate turns out not to be fatigue: it is a
+   *consequence* of rising price sensitivity, because the none option is always the cheapest
+   alternative present. Replicates on an independent respondent grouping at ~80%.
 2. **Iteration 26 — the seed sd is 0.00283, and it invalidates iteration 08.** The monotone
    price constraint's claimed +0.00172 is smaller than the noise it was measured against;
-   paired by seed the constraint is if anything slightly *worse*, and iteration 08's claim
-   falls outside the 95% CI. `xgb_mono` and `xgb_lw2` are the same model carried twice.
+   paired across ten seeds it is −0.00034, CI [−0.00159, +0.00092], winning 5 of 10.
+   `xgb_mono` and `xgb_lw2` were the same model carried twice for eighteen iterations.
+3. **The blend collapsed from four members to two** at an unchanged score (1.12867 → 1.12819,
+   a difference equal to the blend-level seed sd). `xgb_mono` was a duplicate and `mnl_pw`
+   contributed −0.00006. The survivors are the two ends of the blend's only real axis of
+   disagreement — tree versus logit, 93% of the error variance in one component.
 
 ### ⚠️ Read this before optimising anything else
 
