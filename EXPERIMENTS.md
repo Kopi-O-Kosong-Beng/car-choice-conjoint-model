@@ -24,47 +24,78 @@ board. Incremental tuning can no longer be confirmed or refuted publicly. The pr
 leaderboard still scores at full precision, so genuine gains remain worth having — but
 prefer structurally justified changes, and remember the report is 15 of 30 marks.
 
-### 1. Leak-free residual design encoding ⭐ highest measured value
+### ❌ SETTLED: the residual design encoding is dead. Do not revive it.
 
-`experiments/iter12_residual_encoding/control_leakfree_full.R` — measured **1.13721**
-versus 1.14152 for the incumbent, i.e. +0.0043 as a single model.
+Iteration 15 built the properly nested double-OOF baseline (20 fits: for every ordered pair
+(k, j), fit on folds ∉ {k, j} and predict fold j) and rebuilt the encoding on top of it,
+changing nothing else. Result:
 
-Read the header of `experiments/iter12_residual_encoding/run.R` first — it is the most
-instructive document in this repo. The original version scored 1.09962 (z = 9.52) and was
-**pure leakage**, diagnosed and dissected by the agent that built it.
+| model | OOF |
+|---|---|
+| `xgb_lw2` — no residual encoding at all | 1.14152 |
+| `xgb_resenc3` — nested (honest) baseline | **1.14151** |
+| `xgb_resenc2` — single-OOF `mnl_pw` baseline | 1.13721 |
 
-**The mechanism, because it will bite again:** the fold rule was honoured — the encoding
-for a fold-k row used only folds ≠ k. But each reference respondent's residual is
-`chosen − p_model`, and `p_model` came from `xgb_lw2`'s OOF, produced by a model trained on
-folds that *include* fold k. A depth-8 tree carrying design-share features can partially
-memorise a choice set, so the baseline already embedded fold-k choices; subtracting it
-handed the target's own label back, sign-flipped. **Fold-honest reference sets are not
-enough — the reference respondents' predictions must also be honest with respect to the
-scored fold.** That requires a nested (double) out-of-fold baseline.
+**The entire +0.0043 was leakage.** `resenc2` vs `resenc3` share every feature,
+hyperparameter and seed and differ only in baseline honesty: −0.00430, SE 0.00095,
+**z = −4.54**. That difference *is* the leak, measured directly. And the null is not a
+degraded-baseline artefact — sd(residual) is 0.39723 nested vs 0.39698 single-OOF, and the
+nested encoding correlates *more* strongly with each row's own held-out residual.
 
-The control closes the leak by using `mnl_pw` as the baseline (~150 global coefficients,
-no design-level features, structurally unable to memorise a set). It is leak-free by
-*argument*, not by construction. **Next step: build the properly nested double-OOF version**
-and see whether it retains the +0.0043.
+Even ~150 global coefficients with no design-level features absorb enough fold-k choice
+information to be worth 0.0043 when subtracted. "Structurally unable to memorise a choice
+set" was too strong a claim.
 
-### 2. Bundle-level rather than choice-set-level encoding
+**The methodological lesson, which is sharper than the original one and belongs in the
+report.** Both leak detectors *passed* on the nested encoding — and passed **harder** than
+on the leaky one:
+
+| | cor with own held-out residual (α=50) | best direct correction |
+|---|---|---|
+| iter12, tree baseline (leaky) | **−0.071** | 1.14515 — *worse* than doing nothing |
+| `resenc2`, single-OOF baseline | +0.0248 | 1.15608 (+0.00078) |
+| `resenc3`, nested baseline | **+0.0282** | 1.15587 (+0.00099) |
+
+Yet `resenc3`'s tree gain is exactly zero. **The detectors were right about the sign and
+useless about the size.** There is genuine design signal here — worth about +0.001, and
+redundant with the share encoding the model already carries. Everything above that was
+fold-k label information.
+
+*Correction to the record:* on 26 Jul I ran the direct-signal test, saw it pass, and wrote
+that "the +0.0043 tree result is credible." That was wrong. Passing a signal test
+establishes that a feature contains real information; it says nothing about whether a
+flexible learner's gain comes from that information or from a leak riding alongside it.
+Only the nested baseline could separate them. Holding the model back from the submission
+was right, but the reasoning I gave for keeping it as a candidate was not.
+
+### 1. Bundle-level rather than choice-set-level encoding ⭐ next up
 
 17,043 unique bundles across 79,686 slots, so a bundle recurs in *different* choice sets.
 Its win rate across contexts is better supported than the set-level share (~4.7
 observations) and carries different information. Same leakage rules — and now you know the
 subtle version of them.
 
-### 3. Latent-class refinements (the round's winner — push it further)
+### ❌ SETTLED: latent class is already at its best configuration
 
-`lcmnl3` (3 classes) is now the highest-weighted blend member at 0.447. Untried:
-4–5 classes; richer membership models (interactions among demographics); class-specific
-price *part-worths* rather than shared shapes; and combining latent classes with the
-design encoding.
-**Caution:** 93% of its gain runs through the demographic membership channel, and the test
-population is twice as wealthy. It retains only 79% under income reweighting, versus ~100%
-for the earlier structural wins. It also predicts a much lower test "none" rate (0.223 vs
-~0.275 for the tree models). The 26 Jul 06:51 submission is partly a test of whether that
-extrapolation helps or hurts.
+Iteration 14 tested every obvious extension. All measured on the fixed folds:
+
+| variant | OOF |
+|---|---|
+| `lcmnl3p` class-specific price part-worths | 1.14379 (z = 1.57 vs lcmnl3 — noise; blend 1.13037 vs 1.13044) |
+| **`lcmnl3` — production, 3 classes** | **1.14396** |
+| `lcmnl3b` richer membership (demographic interactions, log-income) | 1.14506 |
+| `lcmnl5` 5 classes | 1.14612 |
+| `lcmnl4` 4 classes | 1.14617 |
+
+**Three classes is the optimum**; more classes and a richer membership model both overfit.
+Do not spend time here again.
+
+One systematic observation worth carrying: *every* latent-class variant predicts a test
+"none" rate near 0.223–0.228 against an OOF rate of ~0.304, while the tree models predict
+~0.275. That ~0.08 gap is a property of the demographic membership channel, not a quirk of
+one fit — the wealthier test respondents are consistently routed toward buying classes.
+Either richer people genuinely buy more, or the membership model over-extrapolates. The
+26 Jul 06:51 submission is partly a test of which.
 
 ### 4. Hierarchical Bayes (`bayesm::rhierMnlRwMixture`)
 
@@ -201,7 +232,9 @@ logit → latent class/HB if time allows.
 | 09 | Two-stage none-vs-buy decomposition | 1.17169 | ❌ decisively worse, z = −11.04 |
 | 10 | Nested logit, real bundles vs outside option | 1.15681 | ❌ indistinguishable from MNL, zero weight |
 | 11 | **Latent-class MNL (3 classes)** | mnl_pw 1.15686 → **1.14396** | ✅ **confirmed, z = 3.77** |
-| 12 | Residual-based design encoding | 1.09962 | 🚨 **leakage** — honest value ≈ +0.004 |
+| 12 | Residual-based design encoding | 1.09962 | 🚨 **leakage** |
+| 14 | Latent class: 4 and 5 classes, richer membership, class-specific price | all ≥ 1.14379 | ❌ 3 classes is optimal |
+| 15 | Residual encoding with a **nested double-OOF** baseline | 1.14151 | 🚨 **the +0.0043 was 100% leak** |
 
 ### Blend progression, continued
 

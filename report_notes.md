@@ -165,15 +165,35 @@ holding design-level features can partially memorise an individual choice set, s
 baseline already embedded fold-*k* choices; subtracting it handed the target its own label
 back, sign-flipped.
 
-Three signals exposed it before any control was run: adding the feature directly to the
-baseline made predictions *worse*; its correlation with each row's own held-out residual was
-*negative* (genuine signal correlates positively); and the least-shrunk version was the
-model's second most important feature.
+Three signals exposed it: adding the feature directly to the baseline made predictions
+*worse*; its correlation with each row's own held-out residual was *negative* (genuine
+signal correlates positively); and the least-shrunk version was the model's second most
+important feature.
 
-**The general lesson: fold-honest reference *sets* are not sufficient. Any model-derived
-quantity attached to a reference observation must also be honest with respect to the fold
-being scored.** Rebuilt with a baseline structurally incapable of memorising a design, the
-same idea is worth ~+0.004 — the same order as the plain share encoding it partly duplicates.
+**First lesson: fold-honest reference *sets* are not sufficient. Any model-derived quantity
+attached to a reference observation must also be honest with respect to the fold being
+scored.**
+
+**Second lesson, and the more useful one.** We rebuilt the feature on a baseline we argued
+was "structurally unable to memorise a choice set" — a conditional logit with ~150 global
+coefficients and no design-level features. It scored 1.13721, a plausible +0.0043, and it
+*passed* both leak detectors. We then built the fully nested version (20 fits: for every
+ordered pair of folds, fit excluding both) and the gain vanished entirely — 1.14151 against
+1.14152 for having no such feature at all. The two versions differ only in baseline honesty,
+and their paired difference is −0.00430 at **z = −4.54**.
+
+Both detectors passed on the *clean* version, and passed **harder** than on the leaky one
+(correlation +0.028 vs +0.025; direct correction +0.00099 vs +0.00078). Yet its gain was
+zero.
+
+> **A signal test can establish that a feature contains real information. It cannot
+> establish that a flexible learner's gain comes from that information rather than from a
+> leak riding alongside it.** Only a construction that makes the leak impossible settles
+> the question.
+
+The genuine design signal here is worth about +0.001 and is largely redundant with the
+simpler share encoding already in the model. Everything above that was the model reading
+back labels it should not have seen. We did not ship it.
 
 ---
 

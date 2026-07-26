@@ -35,3 +35,9 @@ NESTED     (= xgb_resenc3)
 fold 1 best_iter 132 
 fold 2 best_iter 109 
 fold 3 best_iter 612 
+fold 4 best_iter 955 
+fold 5 best_iter 667 
+
+>>> xgb_resenc3 (NESTED baseline) OOF logloss: 1.14151
+    xgb_resenc2 (single-OOF baseline)         1.13721
+    xgb_lw2     (no residual encoding)        1.14152

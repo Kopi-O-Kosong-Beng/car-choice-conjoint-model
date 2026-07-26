@@ -35,6 +35,47 @@
 #
 # Run: & "C:\Program Files\R\R-4.6.0\bin\Rscript.exe" experiments/iter15_nested_resenc/run.R
 # Runtime: ~25 min with the cache present, ~65 min without.
+#
+# -----------------------------------------------------------------------------
+# RESULT (written after running) — THE GAIN DOES NOT SURVIVE.
+# DO NOT SHIP xgb_resenc2.  It was still leaking.
+#
+#   xgb_lw2      (no residual encoding)        1.14152
+#   xgb_resenc3  (NESTED baseline, this file)  1.14151   +0.00001, z =  0.00
+#   xgb_resenc2  (single-OOF baseline)         1.13721   resenc3 vs it: z = -4.54
+#
+# Making the baseline airtight erased 100% of the +0.0043. The nested version is
+# statistically indistinguishable from the plain incumbent (95% CI
+# [-0.00414, +0.00416], challenger wins on 49.3% of respondents — a coin flip).
+# The contrast against xgb_resenc2 is not noise: the two models share every
+# feature, hyperparameter and seed and differ only in baseline honesty, so their
+# paired SE is tiny (0.00095) and the -0.00430 lands at z = -4.54.
+#
+# THE METHODOLOGICAL LESSON — bigger than the number.
+# Both leak detectors PASSED on the single-OOF encoding, and both passed harder on
+# the nested one:
+#                              cor(enc, own resid)   best direct correction
+#   single-OOF (resenc2)            +0.0248             1.15608  (+0.00078)
+#   NESTED     (resenc3)            +0.0282             1.15587  (+0.00099)
+#   (iter12 leaky tree baseline)    -0.0710             1.14515  (WORSE, i.e. fails)
+#
+# So the detectors were right about the SIGN — there is genuine design signal —
+# and right that the nested encoding contains MORE of it. They were simply never
+# capable of licensing the magnitude claimed. A direct correction worth +0.001 off
+# a 1.15686 baseline cannot justify a +0.0043 tree gain; that 5x mismatch was the
+# tell iteration 13 missed. **Run the detectors for sign, then check that the
+# model's gain is the same ORDER OF MAGNITUDE as the signal they measure.**
+#
+# WHY THERE IS NO HEADROOM. The ~+0.001 of real design signal is measured against
+# mnl_pw (1.15686). xgb_lw2 already sits at 1.14152 because it already carries the
+# iteration-01 share encoding over the same (design, alt) cells. The residual
+# encoding is a lower-variance restatement of information the model has already
+# absorbed, so on top of ENC_COLS it adds exactly nothing (+0.00001).
+#
+# VERDICT: the residual design encoding is settled. It is not leakage-free value;
+# it is leakage. xgb_resenc3 is kept as the honest measurement and should NOT go
+# into model/members.txt (zero information beyond xgb_lw2, correlated with it).
+# -----------------------------------------------------------------------------
 # =============================================================================
 suppressMessages({ library(data.table); library(xgboost) })
 source("model/99_utils.R")

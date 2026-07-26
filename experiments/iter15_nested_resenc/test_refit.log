@@ -1,0 +1,32 @@
+﻿Rscript.exe : Warning messages:
+At line:1 char:302
++ ... tch {} } }; & "C:\Program Files\R\R-4.6.0\bin\Rscript.exe" "experimen ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Warning messages::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+1: package 'data.table' was built under R version 4.6.1 
+2: package 'xgboost' was built under R version 4.6.1 
+full-fit best_iter 1324 
+      Feature       Gain
+1     Price_c 0.12446905
+2    share_a1 0.05265316
+3    resid_a1 0.04566084
+4  price_rank 0.04422529
+5        agea 0.04361097
+6     incomea 0.03926945
+7      milesa 0.03182120
+8   share_a20 0.03037983
+9   resid_a20 0.02934397
+10   share_a5 0.02660545
+11   resid_a5 0.02376515
+12       Task 0.02331992
+
+residual-feature gains:
+     Feature        Gain
+3   resid_a1 0.045660844
+9  resid_a20 0.029343969
+11  resid_a5 0.023765146
+64   resid_n 0.002931635
+rank of each residual feature: resid_a1 3  resid_a5 11  resid_a20 9  resid_n 64 
+TEST_REFIT_DONE

@@ -1,0 +1,18 @@
+suppressMessages(library(data.table))
+o <- readRDS("model/artifacts/oof_xgb_resenc3.rds")
+t <- readRDS("model/artifacts/test_xgb_resenc3.rds")
+long <- readRDS("model/artifacts/long.rds")
+cat("oof  class", class(o)[1], "nrow", nrow(o), "cols", paste(names(o), collapse = ","), "\n")
+cat("test class", class(t)[1], "nrow", nrow(t), "cols", paste(names(t), collapse = ","), "\n")
+cat("ordered by No -- oof:", !is.unsorted(o$No), " test:", !is.unsorted(t$No), "\n")
+cat("rowsum max deviation -- oof:", max(abs(rowSums(as.matrix(o[, -1])) - 1)),
+    " test:", max(abs(rowSums(as.matrix(t[, -1])) - 1)), "\n")
+cat("No matches train set:", identical(o$No, sort(unique(long[is_test == FALSE]$No))), "\n")
+cat("No matches test  set:", identical(t$No, sort(unique(long[is_test == TRUE]$No))), "\n")
+cat("any NA:", anyNA(o), anyNA(t), "  any p <= 0:",
+    any(as.matrix(o[, -1]) <= 0), any(as.matrix(t[, -1]) <= 0), "\n")
+cat("test mean p4 (predicted 'none' rate):", round(mean(t$p4), 4), "\n")
+tl <- readRDS("model/artifacts/test_xgb_lw2.rds")
+cat("xgb_lw2 test mean p4 for reference   :", round(mean(tl$p4), 4), "\n")
+cat("corr of test p4, resenc3 vs xgb_lw2  :", round(cor(t$p4, tl$p4), 4), "\n")
+cat("VERIFY_OK\n")

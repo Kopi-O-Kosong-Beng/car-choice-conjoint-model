@@ -1,0 +1,267 @@
+Warning message:
+package 'data.table' was built under R version 4.6.1 
+=== iteration 14 | mode 3b | artifact lcmnl3b ===
+    C = 3  membership = rich  price roughness lambda = 0 
+
+dropped as unidentified: HU_L2 
+taste parameters per class: 85 
+log-transformed membership covariates: incomea, milesa, nighta   (so 'use log income' is ALREADY the base spec)
+RICH membership: added linc_x_age, linc_sq, age_sq, linc_x_seg*
+membership covariates: 37 
+
+AXIS (c) CHECK -- price part-worths in the taste vector: 11 free parameters per class
+   levels: 2 3 4 5 6 7 8 9 10 11 12 
+   every class carries its OWN independent copy of these, so the price SHAPE 
+   is already unconstrained across classes. Nothing to free. 
+   Mode 3p instead tests whether the free shape is partly noise.
+
+--- fold 1 ---
+  [screen det] iter  1  LL = -16810.727  shares = 0.345 0.313 0.342
+  [screen det] iter  2  LL = -16154.337  shares = 0.320 0.354 0.326
+  [screen det] iter  3  LL = -16077.786  shares = 0.312 0.367 0.320
+  [screen rand] iter  1  LL = -19625.685  shares = 0.329 0.323 0.348
+  [screen rand] iter  2  LL = -18351.830  shares = 0.350 0.287 0.363
+  [screen rand] iter  3  LL = -17279.826  shares = 0.370 0.275 0.354
+  start screening LL: -16077.79 / -17279.83 -> keeping det 
+  [final] iter  1  LL = -16061.686  shares = 0.310 0.372 0.318
+  [final] iter  2  LL = -16056.684  shares = 0.310 0.373 0.317
+  [final] iter  3  LL = -16053.984  shares = 0.310 0.373 0.317
+  [final] iter  4  LL = -16051.805  shares = 0.311 0.372 0.317
+  [final] iter  5  LL = -16049.886  shares = 0.312 0.372 0.316
+  [final] iter  6  LL = -16048.346  shares = 0.313 0.371 0.316
+  [final] iter  7  LL = -16047.158  shares = 0.313 0.371 0.316
+  [final] iter  8  LL = -16046.309  shares = 0.314 0.370 0.316
+  [final] iter  9  LL = -16045.737  shares = 0.314 0.370 0.316
+  [final] iter 10  LL = -16045.344  shares = 0.314 0.370 0.316
+  [final] iter 11  LL = -16045.068  shares = 0.314 0.370 0.316
+  [final] iter 12  LL = -16044.877  shares = 0.314 0.370 0.317
+  [final] iter 13  LL = -16044.749  shares = 0.314 0.370 0.317
+  LEAK CHECK A: held-out choices randomly permuted, fold re-predicted.
+                predictions bit-identical: TRUE   <- must be TRUE
+  LEAK CHECK B: if we HAD used held-out respondents' own choices to
+                infer their class, fold 1 would read 0.87508 vs the honest
+                1.16543 (a fake gain of 0.29034). Not saved, not used.
+  fold 1 logloss: 1.16543  min class share 0.314  elapsed 6.1 min
+--- fold 2 ---
+  [screen det] iter  1  LL = -16851.464  shares = 0.357 0.299 0.344
+  [screen det] iter  2  LL = -16233.692  shares = 0.337 0.333 0.330
+  [screen det] iter  3  LL = -16179.275  shares = 0.330 0.347 0.324
+  [screen rand] iter  1  LL = -19776.347  shares = 0.343 0.322 0.334
+  [screen rand] iter  2  LL = -18365.502  shares = 0.381 0.265 0.355
+  [screen rand] iter  3  LL = -17166.550  shares = 0.377 0.261 0.362
+  start screening LL: -16179.27 / -17166.55 -> keeping det 
+  [final] iter  1  LL = -16161.818  shares = 0.328 0.351 0.321
+  [final] iter  2  LL = -16153.106  shares = 0.328 0.352 0.320
+  [final] iter  3  LL = -16147.717  shares = 0.329 0.352 0.319
+  [final] iter  4  LL = -16143.256  shares = 0.330 0.352 0.318
+  [final] iter  5  LL = -16138.523  shares = 0.332 0.351 0.317
+  [final] iter  6  LL = -16132.869  shares = 0.334 0.351 0.316
+  [final] iter  7  LL = -16129.548  shares = 0.335 0.351 0.314
+  [final] iter  8  LL = -16126.951  shares = 0.338 0.350 0.312
+  [final] iter  9  LL = -16123.260  shares = 0.340 0.350 0.310
+  [final] iter 10  LL = -16119.186  shares = 0.342 0.350 0.307
+  [final] iter 11  LL = -16115.866  shares = 0.345 0.351 0.305
+  [final] iter 12  LL = -16113.331  shares = 0.347 0.351 0.303
+  [final] iter 13  LL = -16111.686  shares = 0.349 0.350 0.301
+  [final] iter 14  LL = -16110.684  shares = 0.350 0.350 0.300
+  [final] iter 15  LL = -16110.013  shares = 0.351 0.350 0.300
+  [final] iter 16  LL = -16109.488  shares = 0.352 0.349 0.299
+  [final] iter 17  LL = -16109.022  shares = 0.352 0.349 0.299
+  [final] iter 18  LL = -16108.585  shares = 0.353 0.349 0.298
+  [final] iter 19  LL = -16108.204  shares = 0.353 0.349 0.298
+  [final] iter 20  LL = -16107.914  shares = 0.353 0.349 0.298
+  [final] iter 21  LL = -16107.711  shares = 0.353 0.349 0.298
+  [final] iter 22  LL = -16107.578  shares = 0.353 0.349 0.298
+  fold 2 logloss: 1.12554  min class share 0.298  elapsed 13.3 min
+--- fold 3 ---
+  [screen det] iter  1  LL = -16708.493  shares = 0.352 0.304 0.344
+  [screen det] iter  2  LL = -16069.800  shares = 0.333 0.344 0.323
+  [screen det] iter  3  LL = -16009.646  shares = 0.326 0.358 0.315
+  [screen rand] iter  1  LL = -19696.694  shares = 0.340 0.340 0.320
+  [screen rand] iter  2  LL = -18018.593  shares = 0.391 0.309 0.301
+  [screen rand] iter  3  LL = -16908.812  shares = 0.388 0.278 0.333
+  start screening LL: -16009.65 / -16908.81 -> keeping det 
+  [final] iter  1  LL = -15986.482  shares = 0.324 0.364 0.312
+  [final] iter  2  LL = -15977.911  shares = 0.323 0.366 0.311
+  [final] iter  3  LL = -15973.420  shares = 0.322 0.367 0.311
+  [final] iter  4  LL = -15970.461  shares = 0.322 0.368 0.311
+  [final] iter  5  LL = -15968.549  shares = 0.322 0.368 0.311
+  [final] iter  6  LL = -15967.361  shares = 0.322 0.368 0.310
+  [final] iter  7  LL = -15966.849  shares = 0.322 0.368 0.310
+  [final] iter  8  LL = -15966.583  shares = 0.322 0.368 0.310
+  [final] iter  9  LL = -15966.420  shares = 0.322 0.368 0.310
+  [final] iter 10  LL = -15966.308  shares = 0.322 0.368 0.310
+  fold 3 logloss: 1.12866  min class share 0.31  elapsed 18.1 min
+--- fold 4 ---
+  [screen det] iter  1  LL = -16617.766  shares = 0.354 0.299 0.347
+  [screen det] iter  2  LL = -15965.611  shares = 0.334 0.338 0.328
+  [screen det] iter  3  LL = -15905.873  shares = 0.325 0.355 0.319
+  [screen rand] iter  1  LL = -19516.461  shares = 0.342 0.324 0.334
+  [screen rand] iter  2  LL = -17835.827  shares = 0.314 0.325 0.362
+  [screen rand] iter  3  LL = -16949.278  shares = 0.290 0.344 0.367
+  start screening LL: -15905.87 / -16949.28 -> keeping det 
+  [final] iter  1  LL = -15889.410  shares = 0.323 0.362 0.316
+  [final] iter  2  LL = -15884.438  shares = 0.322 0.364 0.314
+  [final] iter  3  LL = -15882.998  shares = 0.322 0.364 0.314
+  [final] iter  4  LL = -15882.273  shares = 0.323 0.364 0.314
+  [final] iter  5  LL = -15881.584  shares = 0.323 0.363 0.314
+  [final] iter  6  LL = -15880.674  shares = 0.324 0.362 0.314
+  [final] iter  7  LL = -15879.233  shares = 0.325 0.361 0.314
+  [final] iter  8  LL = -15877.048  shares = 0.327 0.360 0.314
+  [final] iter  9  LL = -15874.845  shares = 0.328 0.359 0.314
+  [final] iter 10  LL = -15873.452  shares = 0.328 0.358 0.314
+  [final] iter 11  LL = -15872.761  shares = 0.329 0.358 0.314
+  [final] iter 12  LL = -15872.426  shares = 0.329 0.358 0.314
+  [final] iter 13  LL = -15872.248  shares = 0.329 0.357 0.314
+  [final] iter 14  LL = -15872.137  shares = 0.329 0.357 0.314
+  fold 4 logloss: 1.16072  min class share 0.314  elapsed 24.6 min
+--- fold 5 ---
+  [screen det] iter  1  LL = -16774.124  shares = 0.353 0.304 0.343
+  [screen det] iter  2  LL = -16127.651  shares = 0.330 0.348 0.322
+  [screen det] iter  3  LL = -16049.749  shares = 0.321 0.365 0.314
+  [screen rand] iter  1  LL = -19722.896  shares = 0.334 0.341 0.325
+  [screen rand] iter  2  LL = -18355.509  shares = 0.366 0.345 0.289
+  [screen rand] iter  3  LL = -17370.098  shares = 0.377 0.348 0.274
+  start screening LL: -16049.75 / -17370.10 -> keeping det 
+  [final] iter  1  LL = -16033.409  shares = 0.318 0.371 0.311
+  [final] iter  2  LL = -16025.189  shares = 0.318 0.373 0.309
+  [final] iter  3  LL = -16018.568  shares = 0.319 0.373 0.308
+  [final] iter  4  LL = -16014.056  shares = 0.320 0.373 0.307
+  [final] iter  5  LL = -16011.101  shares = 0.321 0.372 0.307
+  [final] iter  6  LL = -16008.870  shares = 0.322 0.371 0.307
+  [final] iter  7  LL = -16007.266  shares = 0.323 0.370 0.307
+  [final] iter  8  LL = -16006.098  shares = 0.324 0.368 0.307
+  [final] iter  9  LL = -16005.026  shares = 0.325 0.367 0.308
+  [final] iter 10  LL = -16004.417  shares = 0.326 0.366 0.308
+  [final] iter 11  LL = -16004.113  shares = 0.327 0.365 0.308
+  [final] iter 12  LL = -16003.933  shares = 0.328 0.365 0.308
+  [final] iter 13  LL = -16003.813  shares = 0.328 0.364 0.308
+  fold 5 logloss: 1.14495  min class share 0.308  elapsed 29.7 min
+
+>>> lcmnl3b honest OOF logloss: 1.14506   (lcmnl3 1.14396, mnl_pw 1.15686)
+    per-fold: 1.16543 1.12554 1.12866 1.16072 1.14495 
+    ablation, constant mixing weights for everyone: 1.15610
+    => demographic membership channel is worth +0.01104
+    smallest class share across folds: 0.298 
+--- full refit ---
+  [screen det] iter  1  LL = -20971.827  shares = 0.354 0.303 0.344
+  [screen det] iter  2  LL = -20178.756  shares = 0.331 0.343 0.326
+  [screen det] iter  3  LL = -20103.844  shares = 0.323 0.358 0.319
+  [screen rand] iter  1  LL = -24664.640  shares = 0.332 0.333 0.335
+  [screen rand] iter  2  LL = -22979.464  shares = 0.335 0.358 0.307
+  [screen rand] iter  3  LL = -21480.022  shares = 0.360 0.371 0.269
+  start screening LL: -20103.84 / -21480.02 -> keeping det 
+  [final] iter  1  LL = -20084.637  shares = 0.321 0.363 0.317
+  [final] iter  2  LL = -20079.037  shares = 0.320 0.365 0.315
+  [final] iter  3  LL = -20077.305  shares = 0.319 0.366 0.315
+  [final] iter  4  LL = -20076.320  shares = 0.320 0.366 0.314
+  [final] iter  5  LL = -20075.149  shares = 0.321 0.365 0.314
+  [final] iter  6  LL = -20072.270  shares = 0.322 0.365 0.313
+  [final] iter  7  LL = -20069.689  shares = 0.323 0.364 0.313
+  [final] iter  8  LL = -20067.692  shares = 0.325 0.363 0.313
+  [final] iter  9  LL = -20066.082  shares = 0.326 0.362 0.312
+  [final] iter 10  LL = -20064.968  shares = 0.327 0.361 0.312
+  [final] iter 11  LL = -20064.211  shares = 0.328 0.360 0.312
+  [final] iter 12  LL = -20063.633  shares = 0.328 0.360 0.312
+  [final] iter 13  LL = -20063.077  shares = 0.329 0.360 0.312
+  [final] iter 14  LL = -20062.454  shares = 0.329 0.359 0.312
+  [final] iter 15  LL = -20061.667  shares = 0.330 0.359 0.312
+  [final] iter 16  LL = -20060.801  shares = 0.330 0.358 0.312
+  [final] iter 17  LL = -20060.179  shares = 0.330 0.358 0.312
+  [final] iter 18  LL = -20059.776  shares = 0.331 0.358 0.312
+  [final] iter 19  LL = -20059.550  shares = 0.331 0.358 0.312
+  [final] iter 20  LL = -20059.419  shares = 0.331 0.358 0.312
+
+--- SEGMENTS (full-data fit, relabelled by descending share) ---
+posterior share: 0.358  0.331  0.312 
+hard assignment counts: 410  374  351 
+posterior-weighted mean none-rate by segment: 0.229  0.054  0.649 
+
+posterior-weighted demographic profile by segment:
+              [,1]    [,2]    [,3]
+age           40.5    38.6    40.6
+income     68793.1 96364.9 60965.3
+log_income    11.0    11.0    10.8
+miles        191.8   211.4   198.8
+night_pct     30.6    31.5    29.3
+pct_urban     32.3    32.5    27.1
+pct_female    54.2    52.5    38.5
+
+none-option constant (asc4) by segment:
+[1] -1.402 -1.166  0.146
+
+price part-worths by segment (utility relative to Price level 1):
+            [,1]   [,2]   [,3]
+Price_L2  -0.262 -0.020 -0.757
+Price_L3  -0.308  0.212 -1.219
+Price_L4  -0.366  0.456 -1.320
+Price_L5  -0.376  0.416 -1.318
+Price_L6  -0.374  0.664 -1.160
+Price_L7  -0.365  0.706 -1.082
+Price_L8  -0.465  0.606 -1.148
+Price_L9  -0.447  0.583 -0.871
+Price_L10 -0.664  0.424 -0.706
+Price_L11 -1.748  0.328 -0.847
+Price_L12 -1.283  0.340 -0.747
+
+price-curve diagnostics per segment:
+                      [,1]  [,2]   [,3]
+total_drop_L1_L12   -1.283 0.340 -0.747
+monotone_violations  4.000 5.000  6.000
+mean_abs_2nd_diff    0.318 0.157  0.214
+
+most DISTINGUISHING tastes (largest spread across segments):
+            [,1]   [,2]   [,3]
+Price_L11 -1.748  0.328 -0.847
+Price_L6  -0.374  0.664 -1.160
+Price_L7  -0.365  0.706 -1.082
+Price_L4  -0.366  0.456 -1.320
+Price_L8  -0.465  0.606 -1.148
+Price_L5  -0.376  0.416 -1.318
+Price_L12 -1.283  0.340 -0.747
+asc4      -1.402 -1.166  0.146
+Price_L9  -0.447  0.583 -0.871
+Price_L3  -0.308  0.212 -1.219
+Price_L10 -0.664  0.424 -0.706
+Price_L2  -0.262 -0.020 -0.757
+LB_L2      0.333 -0.047 -0.276
+CC_L3      0.657  0.477  0.079
+FP_L3      0.462  0.225 -0.088
+SC_L3      0.609  0.308  0.095
+CC_L2      0.581  0.350  0.071
+FP_L2      0.456  0.230 -0.054
+LB_L3      0.351  0.123 -0.123
+LB_L1      0.309 -0.027 -0.162
+
+most distinguishing NON-price tastes:
+        [,1]   [,2]   [,3]
+asc4  -1.402 -1.166  0.146
+LB_L2  0.333 -0.047 -0.276
+CC_L3  0.657  0.477  0.079
+FP_L3  0.462  0.225 -0.088
+SC_L3  0.609  0.308  0.095
+CC_L2  0.581  0.350  0.071
+FP_L2  0.456  0.230 -0.054
+LB_L3  0.351  0.123 -0.123
+LB_L1  0.309 -0.027 -0.162
+LD_L3 -0.018 -0.220  0.218
+LD_L2  0.290  0.038 -0.130
+NV_L2  0.656  0.760  0.362
+
+membership model: strongest demographic drivers (vs class 1 baseline)
+ class 2 vs 1: regionind_4 +0.42 | nighta +0.42 | segmentind_2 +0.38 | milesa +0.29 | Intercept +0.28 | linc_sq -0.40 | educind_3 -0.45 | pparkind_4 -0.50 | educind_5 -0.56 | regionind_5 -0.56
+ class 3 vs 1: educind_6 +0.61 | pparkind_5 +0.47 | pparkind_3 +0.43 | Intercept +0.41 | pparkind_2 +0.40 | pparkind_4 -0.38 | genderind_2 -0.44 | regionind_3 -0.59 | educind_2 -0.65 | segmentind_3 -0.89
+ predicted-share spread across respondents (sd of pi_rc): 0.136  0.125  0.130 
+ predicted-share range (min-max of pi_rc):
+      [,1]  [,2]  [,3]
+[1,] 0.090 0.002 0.002
+[2,] 0.993 0.748 0.709
+
+LL path (training mixture log-likelihood, full refit):
+ [1] -20971.83 -20178.76 -20103.84 -20084.64 -20079.04 -20077.31 -20076.32
+ [8] -20075.15 -20072.27 -20069.69 -20067.69 -20066.08 -20064.97 -20064.21
+[15] -20063.63 -20063.08 -20062.45 -20061.67 -20060.80 -20060.18 -20059.78
+[22] -20059.55 -20059.42
+converged flag: last relative LL change = 6.5e-06  (tol 1e-05 )
+
+OK

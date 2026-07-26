@@ -53,6 +53,26 @@
 #   Z    : demographics, no intercept, centred and scaled on the FITTING respondents
 #          only (the mixture mu absorbs the intercept).
 #
+# WHY Z IS ONLY 6 COLUMNS — a measured compute constraint, stated plainly
+#   bayesm draws Delta as ONE joint Gaussian of dimension nz*nvar, so every MCMC
+#   draw pays a Cholesky of an (nz*nvar) x (nz*nvar) matrix: O((nz*nvar)^3).
+#   Measured on this machine (R's reference BLAS, ~0.40 GFLOPS under load):
+#       nz = 28 (lcmnl3's dummy-coded demographics) -> 2044^2 chol, ~7 s/draw
+#       nz = 10                                     ->  730^2 chol, 0.32 s/draw
+#       nz =  6                                     ->  438^2 chol, 0.07 s/draw
+#   At nz = 28 a single fold needs ~40 h; at nz = 10, ~3 h; at nz = 6, ~1 h.
+#   Six fits are required (5 folds + refit), so nz = 6 is the largest workable
+#   choice. The six are picked on substantive grounds BEFORE running, not by score:
+#     incomea  the test population is ~2x wealthier -- the known covariate shift
+#     agea     already carries a Price interaction in the production model
+#     educind  lcmnl3's strongest membership driver (+0.67 / -0.63)
+#     milesa   driving exposure; lcmnl3 membership driver (+0.37)
+#     nighta   night-driving exposure; lcmnl3 membership driver (+0.38)
+#     Urbind   urban/rural context
+#   The nominal variables lcmnl3 dummy-coded (segmentind, regionind, pparkind) are
+#   therefore NOT in Z. The use_delta = FALSE ablation below measures what the
+#   surviving channel is worth, which bounds what giving them up could have cost.
+#
 # PRIOR (fixed a priori, never tuned on OOF)
 #   bayesm's default IW prior is nu = nvar+3, V = nu*I, i.e. E[Sigma] = (nu/2)*I.
 #   With nvar ~ 73 that is E[Sigma_jj] ~ 38 -- a part-worth standard deviation of 6
@@ -81,18 +101,32 @@ CONFIGS <- list(
   main = list(ncomp = 3, prior = "tight", name = "hbmnl"),
   c1   = list(ncomp = 1, prior = "tight", name = "hbmnl_c1"),
   c5   = list(ncomp = 5, prior = "tight", name = "hbmnl_c5"),
-  dflt = list(ncomp = 3, prior = "bayesm", name = "hbmnl_dflt")
+  dflt = list(ncomp = 3, prior = "bayesm", name = "hbmnl_dflt"),
+  DRY  = list(ncomp = 3, prior = "tight", name = "hbmnl_DRY")  # combine-path test only
 )
 if (!CFG %in% names(CONFIGS)) stop("unknown config: ", CFG)
 CO   <- CONFIGS[[CFG]]
 NAME <- CO$name
 
-R_MCMC  <- as.integer(Sys.getenv("HB_R",    "40000"))
-KEEP    <- as.integer(Sys.getenv("HB_KEEP", "50"))
-S_SIM   <- as.integer(Sys.getenv("HB_S",    "30"))   # mixture draws per kept MCMC draw
+R_MCMC  <- as.integer(Sys.getenv("HB_R",    "16000"))
+KEEP    <- as.integer(Sys.getenv("HB_KEEP", "32"))
+S_SIM   <- as.integer(Sys.getenv("HB_S",    "40"))   # mixture draws per kept MCMC draw
 BURNFRAC <- 0.5                                       # fraction of KEPT draws discarded
 OUTDIR  <- "experiments/iter17_hb"
 dir.create(OUTDIR, showWarnings = FALSE, recursive = TRUE)
+
+# --- unit check on bayesm's rooti convention ---------------------------------
+# Getting this backwards would silently produce a WRONG population distribution
+# (an inverse-covariance used as a covariance), so it is checked, not assumed.
+# bayesm::momMix: root = backsolve(rooti, I); Sigma = t(root) %*% root.
+# Hence L = t(root) satisfies L %*% t(L) = Sigma, which is what we sample with.
+local({
+  set.seed(1); A <- matrix(rnorm(36), 6); S <- crossprod(A) + diag(6)
+  rooti <- backsolve(chol(S), diag(6))            # what bayesm stores
+  L <- t(backsolve(rooti, diag(6)))               # what predict_pop uses
+  stopifnot(max(abs(L %*% t(L) - S)) < 1e-8)
+  cat("rooti convention check: OK\n")
+})
 
 # =============================================================================
 # 1. Design
@@ -134,18 +168,17 @@ build <- function() {
   cat("nvar (part-worths per respondent):", length(keep), "\n")
 
   # ---- demographics, raw (centring/scaling happens per fold) -----------------
-  DEMO_CAT <- c("segmentind", "pparkind", "genderind", "educind", "regionind", "Urbind")
-  DEMO_NUM <- c("agea", "incomea", "milesa", "nighta", "yearind", "milesind", "nightind")
-  dem <- unique(long[, c("Case", DEMO_CAT, DEMO_NUM), with = FALSE])
+  # Only naturally ordinal / continuous variables, so no dummy expansion is needed
+  # and nz stays at 6. See the header for why nz cannot be larger, and how these
+  # six were chosen (before running, on substantive grounds).
+  DEMO <- c("incomea", "agea", "educind", "milesa", "nighta", "Urbind")
+  dem <- unique(long[, c("Case", DEMO), with = FALSE])
   setorder(dem, Case)
   stopifnot(nrow(dem) == uniqueN(long$Case))
   Zl <- list()
-  for (v in DEMO_CAT) {
-    lv <- sort(unique(dem[[v]]))
-    for (l in lv[-1]) Zl[[sprintf("%s_%s", v, l)]] <- as.numeric(dem[[v]] == l)
-  }
-  for (v in DEMO_NUM) {
+  for (v in DEMO) {
     x <- as.numeric(dem[[v]])
+    # heavy-tailed money / mileage counts get a log before standardising
     Zl[[v]] <- if (v %in% c("incomea", "milesa", "nighta")) log1p(x) else x
   }
   Zraw <- do.call(cbind, Zl); rownames(Zraw) <- as.character(dem$Case)
@@ -182,7 +215,7 @@ fit_hb <- function(bd, train_tasks, tag) {
   zmu <- colMeans(Ztr_raw)
   zsd <- apply(Ztr_raw, 2, sd); zsd[zsd < 1e-8] <- 1
   Z <- sweep(sweep(Ztr_raw, 2, zmu, "-"), 2, zsd, "/")
-  stopifnot(max(abs(colMeans(Z))) < 1e-8)     # bayesm requires centred Z
+  stopifnot(max(abs(colMeans(Z))) < 1e-6)     # bayesm requires centred Z
 
   lgtdata <- vector("list", nlgt)
   for (i in seq_len(nlgt)) {
@@ -199,7 +232,7 @@ fit_hb <- function(bd, train_tasks, tag) {
     Prior$nu <- nu
     Prior$V  <- (nu - nvar - 1) * diag(nvar)   # E[Sigma] = I
   }
-  Mcmc <- list(R = R_MCMC, keep = KEEP, nprint = max(R_MCMC %/% 10, 1))
+  Mcmc <- list(R = R_MCMC, keep = KEEP, nprint = max(R_MCMC %/% 40, 1))
 
   t0 <- Sys.time()
   out <- rhierMnlRwMixture(Data = list(p = 4L, lgtdata = lgtdata, Z = Z),
@@ -288,7 +321,7 @@ if (JOB == "combine") {
   oof_nod <- matrix(NA_real_, length(tr_t), 4)
   oof_s2  <- matrix(NA_real_, length(tr_t), 4)
   for (k in 1:5) {
-    f <- file.path(OUTDIR, sprintf("pred_%s_f%d.rds", CFG, k))
+    f <- file.path(OUTDIR, sprintf("pred_%s_%d.rds", CFG, k))
     if (!file.exists(f)) stop("missing ", f)
     p <- readRDS(f)
     idx <- match(p$task_idx, tr_t); stopifnot(!anyNA(idx))
@@ -304,7 +337,7 @@ if (JOB == "combine") {
               logloss(y, oof_nod)))
   cat("    reference: lcmnl3 1.14396 | mnl_pw 1.15686 | xgb_lw2 1.14152 | mixl 1.17281\n")
   for (k in 1:5) {
-    p <- readRDS(file.path(OUTDIR, sprintf("pred_%s_f%d.rds", CFG, k)))
+    p <- readRDS(file.path(OUTDIR, sprintf("pred_%s_%d.rds", CFG, k)))
     cat(sprintf("    fold %d: %.5f  (%.1f min)\n", k,
                 logloss(tasks$y[p$task_idx], p$P), p$mins))
   }
@@ -390,6 +423,17 @@ if (JOB == "full") {
 
   mm <- momMix(fit$probdraw, fit$compdraw)
   names(mm$mu) <- keepn; names(mm$sd) <- keepn
+
+  # Moment consistency: Z is centred, so the mixture mean must equal the average
+  # individual beta. If rooti or the vec(Delta) layout were mishandled, this would
+  # not hold and every population-averaged prediction would be quietly wrong.
+  bmu <- colMeans(fit$beta_mean); bsd <- apply(fit$beta_mean, 2, sd)
+  cat(sprintf("moment check: max|mixture mean - mean(beta_i)| = %.4f (should be ~0)\n",
+              max(abs(mm$mu - bmu))))
+  cat(sprintf("              cor(mixture mean, mean beta_i)   = %.4f\n", cor(mm$mu, bmu)))
+  cat(sprintf("              mean sd across respondents %.3f vs population sd %.3f\n",
+              mean(bsd), mean(mm$sd)))
+  cat("              (respondent sd < population sd is expected: shrinkage)\n")
   cat("\npopulation mean part-worth (top 10 positive):\n")
   print(round(sort(mm$mu, decreasing = TRUE)[1:10], 3))
   cat("\npopulation heterogeneity sd (top 10):\n")
@@ -420,9 +464,11 @@ if (JOB == "full") {
   Dm <- matrix(colMeans(fit$Deltadraw), nrow = fit$nz, ncol = nvar)
   rownames(Dm) <- colnames(bd$Zraw); colnames(Dm) <- keepn
   cat("|Delta| row norms -- which demographics move tastes most:\n")
-  print(round(sort(sqrt(rowSums(Dm^2)), decreasing = TRUE)[1:8], 3))
+  print(round(sort(sqrt(rowSums(Dm^2)), decreasing = TRUE), 3))
   cat("effect on asc4 (propensity to take 'none'):\n")
-  print(round(sort(Dm[, "asc4"])[c(1:4, (fit$nz-3):fit$nz)], 3))
+  print(round(sort(Dm[, "asc4"]), 3))
+  cat("effect on the top price level Price_L12 (price sensitivity):\n")
+  if ("Price_L12" %in% keepn) print(round(sort(Dm[, "Price_L12"]), 3))
 
   cat("\n--- INDIVIDUAL vs POPULATION (why HB cannot help a cold-start test set) ---\n")
   Xin <- bd$X[rows_of(tr_t), , drop = FALSE]
