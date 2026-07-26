@@ -1,6 +1,6 @@
-# Model artifacts — regenerable with `Rscript model/run_all.R`, ~12 MB, and they
-# would churn on every run. Kept out so diffs stay readable.
-model/artifacts/
+# Model artifacts were previously ignored (regenerable with `Rscript model/run_all.R`)
+# but are now tracked so teammates can replicate exact logloss without rerunning
+# the full pipeline (folds.rds especially must match bit-for-bit).
 
 # Local Claude Code settings (machine-specific paths). Shared settings would
 # go in .claude/settings.json, which is NOT ignored.
