@@ -10,21 +10,39 @@ should be able to read it top to bottom and continue the work.
 
 # 👉 PICK UP HERE — next ideas, ranked
 
-**State as of 26 Jul 2026:** nested blend **1.13044**, public leaderboard **1.199**
-(rival reference 1.210, benchmark 1.38629). `sub_20260726_0651.csv` is uploaded and is
-currently our best public score, so it is what Kaggle will score privately unless beaten.
+**State as of 26 Jul 2026 (evening):** nested blend **1.12867**, public leaderboard **1.199**
+from the previous blend (1.13044). Rival reference 1.210, benchmark 1.38629.
+`submissions/sub_20260726_1643.csv` is built and **not yet uploaded**.
 
-**Transfer is decaying — read `submissions/log.md` before planning more modelling.** Early
-gains reached the leaderboard at ~58%; the most recent step transferred at ~24–39%, and the
-local→public offset has grown monotonically (+0.046 → +0.062 → +0.065 → +0.069) across
-eighteen experiments against one fixed fold structure. Expect roughly a third of any further
-local gain to show. Moving 1.199 → 1.196 needs ~0.009 more local, more than round 2 produced
-in total.
+Production blend is **xgb_lw2 + xgb_mono + lcmnl3_both** (`mnl_pw` listed at weight 0.000).
+See `model/members.txt`, which is the source of truth.
 
-Production blend is now **xgb_lw2 + xgb_mono + lcmnl3** (`mnl_pw` still listed but earns
-weight 0.000 — the latent-class model strictly generalises it).
+**Two results from the evening of 26 Jul that change how to read everything above them:**
+
+1. **Iteration 25 — the conditional-logit family had no `Task` term.** Adding two within-task
+   position terms to the latent-class utility took it 1.14396 → **1.13863** (z = 6.26), making
+   it the best single model in the repo, and the blend 1.13044 → **1.12867**. The rising
+   decline rate turns out not to be fatigue: it is a *consequence* of rising price
+   sensitivity, because the none option is always the cheapest alternative present.
+2. **Iteration 26 — the seed sd is 0.00283, and it invalidates iteration 08.** The monotone
+   price constraint's claimed +0.00172 is smaller than the noise it was measured against;
+   paired by seed the constraint is if anything slightly *worse*, and iteration 08's claim
+   falls outside the 95% CI. `xgb_mono` and `xgb_lw2` are the same model carried twice.
 
 ### ⚠️ Read this before optimising anything else
+
+**Know your noise floor before quoting a margin.** Measured in iteration 26:
+
+| level | sd | range across 10 seeds |
+|---|---|---|
+| single xgboost model | 0.00283 | 0.00896 |
+| **nested blend (the decision number)** | **0.00048** | **0.00137** |
+| fold-to-fold (within one model) | 0.013 | — |
+
+These are different instruments and they answer different questions. A **member swap** must
+clear the model-level sd; a **blend change** need only clear the blend-level sd. Conflating
+them is exactly how iteration 08 passed. Anything quoted below 0.003 on a single model, from
+any iteration before 26, should be treated as unresolved.
 
 Two submissions with local 1.13878 and 1.13556 **both scored 1.201**. At a ~58% transfer
 rate and a three-decimal display, gains under ~0.005 local are *invisible* on the public
@@ -261,6 +279,7 @@ logit → latent class/HB if time allows.
 | 16 | Bundle-level encoding has better support than choice-set-level | — | ❌ **structurally impossible**, bundle→(design,pos) is a bijection |
 | 17 | Hierarchical Bayes: mixture-of-normals population + demographic channel | 1.23703 | ❌ **worst model in the repo**; ablating demographics gives 1.16405 |
 | 25 | **Task position inside the latent-class utility** | lcmnl3 1.14396 → **1.13863** | ✅ **confirmed, z = 6.26**, in production |
+| 26 | Seed-bagging; and is the seed sd bigger than our margins? | mean 1.14303, **sd 0.00283**, bagged 1.13714 | ⚠️ **invalidates iteration 08**; blend gain only +0.00029 |
 
 ### Blend progression, continued
 
@@ -880,3 +899,112 @@ signal; this one found signal the diagnostics had already located and no model h
 given a way to use.
 
 **Cost: about 40 minutes of compute for the largest single-model gain since iteration 11.**
+
+---
+
+## Iteration 26 — The seed is a hyperparameter ⚠️ INVALIDATES ITERATION 08
+
+`experiments/iter26_seedbag/` — ten refits of an identical configuration, changing only the
+random seed.
+
+**Hypothesis.** Every xgboost artifact in this repository is a single seed. With
+`subsample = 0.8`, `colsample_bytree = 0.8` and a randomly drawn 10% early-stopping holdout,
+the fitted predictor carries Monte-Carlo variance that has nothing to do with the data.
+Averaging over seeds removes it, and — uniquely among everything in this log — involves **no
+model selection**, so it cannot overfit the fold structure and should transfer at ~100%.
+
+**The seed distribution, which this repository had never measured.**
+
+| | |
+|---|---|
+| mean OOF | 1.14303 |
+| **sd across seeds** | **0.00283** |
+| range | 1.14061 – 1.14957 (**0.00896**) |
+| stored `xgb_mono` (seed 123) | **1.13980** — better than all ten, ≈1.1 sd below the mean |
+
+### Finding 1 — iteration 08 is invalidated
+
+Iteration 08 accepted the monotone price constraint on the grounds that it improved OOF from
+1.14152 to 1.13980: a margin of **0.00172, smaller than the seed sd of 0.00283**. It has
+carried roughly a third of the blend weight ever since. Its paired z was only 1.35, which
+the entry noted, but the conclusion was kept because the model earned blend weight.
+
+Retested by running the **same seeds through both configurations**. The pairing matters:
+the seed drives the early-stopping respondent split for both, and their scores correlate
+**0.931** across seeds, so pairing removes a large shared component.
+
+| seed | constrained | unconstrained | diff |
+|---|---|---|---|
+| 1 | 1.14228 | 1.14132 | +0.00096 |
+| 2 | 1.14957 | 1.14899 | +0.00058 |
+| 3 | 1.14384 | 1.14214 | +0.00170 |
+| 4 | 1.14076 | 1.14201 | −0.00125 |
+| 5 | 1.14520 | 1.14498 | +0.00022 |
+| 6 | 1.14443 | 1.14275 | +0.00168 |
+
+mean(constrained − unconstrained) = **+0.00065**, SE 0.00045, t = +1.45 on 5 df,
+95% CI **[−0.00050, +0.00181]**. Iteration 08's claimed −0.00172 falls **outside** that
+interval. The constraint wins on **1 of 6** seeds.
+
+**The monotone price constraint does nothing.** `xgb_mono` and `xgb_lw2` have been the same
+model carried twice under different names, and the blend has been paying two weights for one
+model. The economic argument for the constraint (utility must not increase with price) is
+still correct — the model simply already satisfies it without being told, which is itself
+worth reporting.
+
+### Finding 2 — bagging works on the model and barely on the blend
+
+| | |
+|---|---|
+| mean single seed | 1.14303 |
+| **bagged, probability space** | **1.13714** |
+| bagged, log space (geometric mean) | 1.13721 |
+
+*Pre-registration check:* the header predicted log-space averaging would win, because
+logloss is a function of log p. **It did not** — probability space won by 0.00007. Recorded
+as stated rather than quietly dropped; the difference is negligible but the prediction was
+wrong.
+
+`compare.R` puts `xgb_monobag` +0.00266 ahead of the stored `xgb_mono` at z = 1.77, "not
+distinguishable from noise". **That is the wrong estimand**, and `expected_blend.R` exists
+to say so. The stored artifact is a lucky draw, and a model's OOF artifact and its *test*
+artifact are independent random draws — five fold-fits under one seed versus a separate
+refit on all the data. A lucky OOF does not imply a lucky shipped refit, so the expected
+quality of a single-seed submission corresponds to the seed **mean**.
+
+Asking the procedure question properly:
+
+| | nested blend |
+|---|---|
+| E[nested \| member is one random seed], over 10 seeds | 1.12884 (sd 0.00048) |
+| stored `xgb_mono` (lucky) | 1.12867 |
+| **bagged `xgb_monobag`** | **1.12854** |
+| **honest expected gain from bagging** | **+0.00029** |
+
+**The ~0.006 that bagging is worth to the single model is worth ~0.0003 to the blend.** A
+blend is *itself* a variance-reduction device, and its other members already absorb most of
+the seed noise. Bagging and blending are substitutes, not complements — we had been buying
+the benefit without knowing it.
+
+### Finding 3 — the decision number is far more stable than its parts
+
+Seed luck moves the individual model by **0.00896** and the nested blend by only
+**0.00137** (sd 0.00048). This is the most useful number the iteration produced, because it
+retrospectively licenses other results: iteration 25's +0.00177 blend gain is ≈3.7 blend-level
+seed-sd, comfortably real, even though a difference that size would be well inside noise at
+the single-model level.
+
+**The precision of an ensemble's score is not the precision of its parts**, and which one
+you need depends on which decision you are making. Judging a *member swap* needs the model-level
+sd; judging a *blend change* needs the blend-level sd. Conflating them is how iteration 08
+happened.
+
+**Reflection.** This should have been the first experiment in the project, not the
+twenty-sixth. It costs one extra run to learn that the measurement instrument has a sd of
+0.00283, and that single number reprices every margin in the log above it. Instead we ran
+eighteen experiments quoting differences of 0.002–0.005 against an unmeasured noise floor,
+and one of them was wrong. The general rule: **before quoting a margin, measure the
+reproducibility of the thing you are measuring it with.**
+
+The honest accounting of what this bought: +0.00029 on the decision number, one retracted
+result, one recalibrated log, and the methodology section of the report.

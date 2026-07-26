@@ -275,9 +275,31 @@ and its **test** artifact come from *independent* random draws: the OOF predicti
 five fold-fits under one seed, the test predictions from a separate refit on all the data.
 Getting a lucky OOF tells you nothing about whether the shipped test refit is lucky. So the
 expected quality of a single-seed submission corresponds to the seed **mean**, not to its
-observed OOF, and the honest value of bagging is the ~0.006 it buys against that mean. The
-significance test answered a question about two artifacts; the decision needed a question
-about two *procedures*.
+observed OOF. The significance test answered a question about two artifacts; the decision
+needed a question about two *procedures*.
+
+**And when we asked the procedure question properly, the answer deflated.** We reran the
+whole nested blend ten times, once per seed, to get the quantity that actually governs the
+submission:
+
+| | |
+|---|---|
+| E[nested blend \| member is one random seed] | 1.12884 (sd 0.00048) |
+| nested blend with the bagged member | **1.12854** |
+| **expected gain from bagging, at the blend level** | **+0.00029** |
+
+The ~0.006 that bagging is worth to the *single model* is worth only ~0.0003 to the
+*blend* — because **a blend is itself a variance-reduction device**, and its other members
+already absorb most of the seed noise. Bagging and blending are substitutes, not
+complements, and we had unknowingly been buying the benefit already.
+
+This is the most useful thing the exercise produced, and it cuts both ways. It says the
+decision number is far more stable than the single-model numbers feeding it: the blend moves
+only 0.00137 across seeds that move the individual model by 0.00896. That in turn is what
+licenses us to believe a 0.00177 blend-level improvement elsewhere in the project — it is
+roughly 3.7 seed-sd at the blend level, even though it would be well inside noise at the
+model level. **The precision of an ensemble's score is not the precision of its parts**, and
+which one you need depends on which decision you are making.
 
 ### A leakage postmortem worth including
 
