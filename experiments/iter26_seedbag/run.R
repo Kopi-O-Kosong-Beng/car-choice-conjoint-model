@@ -52,9 +52,23 @@ source("model/99_utils.R")
 source("model/encode_design.R")
 
 args <- commandArgs(trailingOnly = TRUE)
-if (length(args) != 1) stop("usage: run.R <seed|combine>")
+if (!length(args) || length(args) > 2) stop("usage: run.R <seed|combine> [mono|lw2]")
 JOB <- args[1]
+# CFG was added after the first four mono seeds had been drawn. It defaults to
+# mono so those artifacts keep their filenames and stay valid.
+#
+# WHY THE SECOND CONFIG EXISTS. The first four seeds averaged 1.14411 against a
+# stored xgb_mono of 1.13980 and an xgb_lw2 of 1.14152 -- i.e. the monotone
+# constraint's entire +0.00172 margin (iteration 08, z = 1.35) sits inside a seed
+# spread of 0.0088. But four of MY seeds against ONE stored seed is not a fair
+# test: the stored artifacts were fitted with nthread = 4 and these with 3, which
+# changes float summation order. To say anything about the constraint we need the
+# seed DISTRIBUTION of both configurations under identical conditions.
+CFG <- if (length(args) == 2) args[2] else "mono"
+if (!CFG %in% c("mono", "lw2")) stop("config must be mono or lw2")
 OUTDIR <- "experiments/iter26_seedbag"
+seedfile <- function(s) file.path(OUTDIR,
+  if (CFG == "mono") sprintf("seed_%03d.rds", s) else sprintf("seed_lw2_%03d.rds", s))
 dir.create(OUTDIR, showWarnings = FALSE, recursive = TRUE)
 
 long  <- readRDS("model/artifacts/long.rds")
@@ -90,8 +104,10 @@ eval_tasklogloss <- function(preds, dtrain) {
 }
 
 mono <- rep(0, length(feat))
-mono[match("Price",   feat)] <- -1
-mono[match("Price_c", feat)] <- -1
+if (CFG == "mono") {
+  mono[match("Price",   feat)] <- -1
+  mono[match("Price_c", feat)] <- -1
+}   # CFG == "lw2" leaves every entry 0, i.e. the unconstrained production config
 
 new_api <- packageVersion("xgboost") >= "2.1.0"
 get_best_iter <- function(fit) {
@@ -123,8 +139,9 @@ ytr <- unique(long[is_test == FALSE, .(No, y)])[order(No), y]
 # combine: average whatever seeds are on disk
 # =============================================================================
 if (JOB == "combine") {
-  fs <- sort(Sys.glob(file.path(OUTDIR, "seed_*.rds")))
-  if (!length(fs)) stop("no seed artifacts found")
+  fs <- sort(Sys.glob(file.path(OUTDIR,
+         if (CFG == "mono") "seed_[0-9][0-9][0-9].rds" else "seed_lw2_*.rds")))
+  if (!length(fs)) stop("no seed artifacts found for config ", CFG)
   ps <- lapply(fs, readRDS)
   cat("averaging", length(ps), "seeds:", paste(sapply(ps, `[[`, "seed"), collapse = ", "), "\n\n")
 
@@ -161,14 +178,16 @@ if (JOB == "combine") {
   stopifnot(length(No_tr) == 21565, length(No_te) == 4997)
   stopifnot(!anyNA(best), !anyNA(tbest),
             all(abs(rowSums(best) - 1) < 1e-9), all(abs(rowSums(tbest) - 1) < 1e-9))
+  NM <- if (CFG == "mono") "xgb_monobag" else "xgb_lw2bag"
   saveRDS(data.table(No = No_tr, p1 = best[,1], p2 = best[,2], p3 = best[,3], p4 = best[,4]),
-          "model/artifacts/oof_xgb_monobag.rds")
+          sprintf("model/artifacts/oof_%s.rds", NM))
   saveRDS(data.table(No = No_te, p1 = tbest[,1], p2 = tbest[,2], p3 = tbest[,3], p4 = tbest[,4]),
-          "model/artifacts/test_xgb_monobag.rds")
-  cat(sprintf("wrote xgb_monobag  (predicted test none-rate %.3f vs train %.3f)\n",
-              mean(tbest[, 4]), mean(ytr == 4)))
-  cat("next: Rscript model/compare.R xgb_mono xgb_monobag\n")
-  cat("      Rscript experiments/iter17_hb/blend_probe.R mnl_pw,xgb_lw2,xgb_monobag,lcmnl3\n")
+          sprintf("model/artifacts/test_%s.rds", NM))
+  cat(sprintf("wrote %s  (predicted test none-rate %.3f vs train %.3f)\n",
+              NM, mean(tbest[, 4]), mean(ytr == 4)))
+  cat("next: Rscript model/compare.R xgb_mono ", NM, "\n")
+  cat("      Rscript experiments/iter17_hb/blend_probe.R mnl_pw,xgb_lw2,",
+      NM, ",lcmnl3_both\n", sep = "")
   cat("OK\n"); quit(save = "no")
 }
 
@@ -176,8 +195,8 @@ if (JOB == "combine") {
 # one seed
 # =============================================================================
 S <- as.integer(JOB)
-outf <- file.path(OUTDIR, sprintf("seed_%03d.rds", S))
-if (file.exists(outf)) { cat("seed", S, "already done, skipping\n"); quit(save = "no") }
+outf <- seedfile(S)
+if (file.exists(outf)) { cat(CFG, "seed", S, "already done, skipping\n"); quit(save = "no") }
 
 # xgboost keeps its OWN RNG for subsample/colsample -- varying only R's seed would
 # change the early-stopping split but leave every tree identical. Both are varied.

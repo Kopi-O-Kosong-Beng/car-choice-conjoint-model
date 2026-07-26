@@ -13,3 +13,39 @@ Warning messages:
 1: package 'data.table' was built under R version 4.6.1 
 2: package 'xgboost' was built under R version 4.6.1 
   seed 2 fold 1 best_iter 106 
+  seed 2 fold 2 best_iter 407 
+  seed 2 fold 3 best_iter 430 
+  seed 2 fold 4 best_iter 629 
+  seed 2 fold 5 best_iter 495 
+>>> seed 2 OOF: 1.14957
+seed 2 done in 16.8 min -> experiments/iter26_seedbag/seed_002.rds
+OK
+Warning messages:
+1: package 'data.table' was built under R version 4.6.1 
+2: package 'xgboost' was built under R version 4.6.1 
+  seed 3 fold 1 best_iter 331 
+  seed 3 fold 2 best_iter 718 
+  seed 3 fold 3 best_iter 345 
+  seed 3 fold 4 best_iter 469 
+  seed 3 fold 5 best_iter 631 
+>>> seed 3 OOF: 1.14384
+seed 3 done in 22.9 min -> experiments/iter26_seedbag/seed_003.rds
+OK
+Warning messages:
+1: package 'data.table' was built under R version 4.6.1 
+2: package 'xgboost' was built under R version 4.6.1 
+  seed 4 fold 1 best_iter 913 
+  seed 4 fold 2 best_iter 465 
+  seed 4 fold 3 best_iter 486 
+  seed 4 fold 4 best_iter 723 
+  seed 4 fold 5 best_iter 1011 
+>>> seed 4 OOF: 1.14076
+seed 4 done in 44.5 min -> experiments/iter26_seedbag/seed_004.rds
+OK
+Warning messages:
+1: package 'data.table' was built under R version 4.6.1 
+2: package 'xgboost' was built under R version 4.6.1 
+  seed 5 fold 1 best_iter 755 
+  seed 5 fold 2 best_iter 365 
+  seed 5 fold 3 best_iter 354 
+  seed 5 fold 4 best_iter 225 
