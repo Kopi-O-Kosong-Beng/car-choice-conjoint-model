@@ -17,7 +17,7 @@ tags: [hub, competition, analytics-edge]
 
 ## 🏁 Competition — live status
 
-**Public leaderboard: 1.201** · local nested CV 1.13883 · benchmark 1.38629 · rival 1.210
+**Public leaderboard: 1.201** · local nested CV 1.13044 · benchmark 1.38629 · rival 1.210
 Kaggle closes **1 Aug 2026 12:00 SGT**; report due **10 Aug 2026 12:00 SGT**.
 
 - [[Brief & Rules|Brief & Rules]] — metric, leaderboard mechanics, grading

@@ -32,7 +32,35 @@ shaving one level off — the perceived difference has flattened out.
 
 ---
 
-## 2. Taste heterogeneity is large, but not usable for prediction
+## 1b. Three buyer segments — and they may explain the concave curve above
+
+A latent-class conditional logit (3 segments, membership predicted from demographics) splits
+respondents into three near-equal groups:
+
+| segment | share | price effect across the range | outside-option constant |
+|---|---|---|---|
+| **Value-conscious buyers** | 36.6% | **−1.65** steadily declining | −1.40 (buys readily) |
+| **Price-indifferent buyers** | 32.1% | **+0.50** flat to slightly positive | −1.30 (buys readily) |
+| **Reluctant non-buyers** | 31.4% | −0.60 mild | **+0.17 — inclined to decline** |
+
+This **reframes finding 1**. The aggregate concave price curve may be substantially a
+*mixing artefact*: average a steep response (37%), a flat one (32%) and a mild one (31%) and
+the average bends, even though no segment's own curve looks like it.
+
+⚠️ A positive price coefficient (segment 2) is not behaviourally standard. Candidate
+explanations, none tested: price as a quality signal; residual price/richness confounding in
+the design; or the segment absorbing respondents driven by something unobserved. Present it
+as an estimated pattern with caveats, not as established consumer psychology.
+
+**Commercially:** a third of respondents decline regardless of price — no discount reaches
+them. The leverage is in segments 1 and 2.
+
+Worth **+0.013 (z = 3.8)**; it takes the largest blend weight (0.447) and drives the plain
+part-worth logit to zero weight, being a strict generalisation of it.
+
+---
+
+## 2. Taste heterogeneity is large, but only usable in *discrete* form
 
 Mixed logit with a log-normal price coefficient estimates σ = 1.31: price sensitivity
 differs roughly **six-fold** between the 25th and 75th percentile respondent. The
@@ -42,10 +70,15 @@ almost any price, others are easy sells.
 And yet the mixed logit *lost* to the simpler fixed-coefficient model (1.173 vs 1.157) and
 earned zero blend weight.
 
-**Why:** every test respondent is someone we've never seen, so we can only predict the
-population-*averaged* probability. Integrating over a taste distribution buys calibration
-but costs sharpness. **Heterogeneity is real but not conditionable** — a limitation of the
-prediction task, not of the estimator. This is the strongest "limitations" material we have.
+**Why the continuous version fails but the discrete one wins:** every test respondent is a
+stranger, so a continuous mixture can only be *integrated out* — you predict the population
+average, flatter than any individual. A finite mixture instead routes each respondent to a
+segment **using observable demographics**, which survives into the test set.
+
+**Heterogeneity is usable exactly to the extent it correlates with something measurable about
+a new person.** That is the sharpest methodological point we have for the report — and it is
+why [[Key Findings#1b. Three buyer segments — and they may explain the concave curve above|the latent-class model]]
+succeeded where mixed logit did not.
 
 ---
 
@@ -96,5 +129,29 @@ alternative** at 30.2%, versus 22.0 / 25.0 / 22.7% for the three real bundles. A
 treating it as just a fourth product misses that opting out is the modal behaviour, driven
 by different considerations (price level, total bundle richness) than choosing *between*
 bundles.
+
+---
+
+## 6. A leakage postmortem (methodology material, worth its own paragraph)
+
+One experiment scored **1.09962** — nine times the project's entire accumulated gain — from a
+single derived feature. It was pure leakage.
+
+The feature encoded, per choice-set design, the average *residual* (observed − predicted) of
+the respondents who saw it. The fold rule was honoured: the encoding for a fold-*k* row used
+only respondents from other folds. **But each reference respondent carried a baseline
+prediction from a model trained on folds that included fold *k*.** A deep tree holding
+design-level features can partially memorise a choice set, so the baseline already embedded
+fold-*k* choices; subtracting it handed the target its own label back, sign-flipped.
+
+Three signals exposed it before any control was run: adding the feature directly to the
+baseline made predictions *worse*; its correlation with each row's own held-out residual was
+*negative* (genuine signal correlates positively); and the least-shrunk variant was the
+model's second most important feature.
+
+**General lesson: fold-honest reference *sets* are not sufficient — any model-derived
+quantity attached to a reference observation must also be honest with respect to the fold
+being scored.** Rebuilt with a baseline structurally incapable of memorising a design, the
+same idea is worth ~+0.004.
 
 Related: [[Topic 3 - Discrete Choice]] · [[Modeling Strategy & Results]]

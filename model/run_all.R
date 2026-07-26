@@ -18,17 +18,24 @@
 t_start <- Sys.time()
 args <- commandArgs(trailingOnly = TRUE)
 
+# The two highest-weighted members currently live under experiments/ while the research
+# round is open. model/members.txt is the source of truth for blend membership; these
+# stages produce exactly the artifacts it names.
 STAGES <- list(
-  tests  = list(file = "model/tests.R",            label = "Unit tests (utils + data integrity)"),
-  data   = list(file = "model/00_load.R",          label = "Load data, reshape to long, build features"),
-  folds  = list(file = "model/01_folds.R",         label = "Create respondent-grouped CV folds"),
-  mnl_pw = list(file = "model/02_mnl_partworth.R", label = "Model 1/2: part-worth conditional logit"),
-  xgb_lw = list(file = "model/03_xgb_listwise.R",  label = "Model 2/2: listwise-objective xgboost"),
-  blend  = list(file = "model/06_blend.R",         label = "Blend members, nested evaluation"),
-  submit = list(file = "model/07_submit.R",        label = "Write Kaggle submission CSV"),
-  audit  = list(file = "model/shift_audit.R",      label = "Train->test shift robustness audit")
+  tests    = list(file = "model/tests.R",            label = "Unit tests (utils + data integrity)"),
+  data     = list(file = "model/00_load.R",          label = "Load data, reshape to long, build features"),
+  folds    = list(file = "model/01_folds.R",         label = "Create respondent-grouped CV folds"),
+  mnl_pw   = list(file = "model/02_mnl_partworth.R", label = "part-worth conditional logit (weight 0.000)"),
+  xgb_lw   = list(file = "model/03_xgb_listwise.R",  label = "listwise xgboost (weight 0.216)"),
+  xgb_mono = list(file = "experiments/iter08_mono_tuned/run.R",
+                  label = "listwise xgboost + monotone price (weight 0.337)"),
+  lcmnl    = list(file = "experiments/iter11_latent_class/run.R",
+                  label = "latent-class conditional logit, 3 segments (weight 0.447)"),
+  blend    = list(file = "model/06_blend.R",         label = "Blend members, nested evaluation"),
+  submit   = list(file = "model/07_submit.R",        label = "Write Kaggle submission CSV"),
+  audit    = list(file = "model/shift_audit.R",      label = "Train->test shift robustness audit")
 )
-DEFAULT <- c("data", "folds", "mnl_pw", "xgb_lw", "blend", "submit")
+DEFAULT <- c("data", "folds", "mnl_pw", "xgb_lw", "xgb_mono", "lcmnl", "blend", "submit")
 stages <- if (length(args)) args else DEFAULT
 
 unknown <- setdiff(stages, names(STAGES))

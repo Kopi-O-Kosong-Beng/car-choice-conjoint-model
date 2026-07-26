@@ -10,7 +10,7 @@ Kaggle competition for SUTD's *The Analytics Edge* (2026), graded coursework. Pr
 which of 4 car safety-feature bundles a respondent picks. Metric: mean multiclass logloss.
 **R only** — this is a hard competition rule, never propose Python.
 
-Current state: local nested CV **1.13556**, public leaderboard **1.201**
+Current state: local nested CV **1.13044**, public leaderboard **1.201**
 (benchmark 1.38629, rival team 1.210).
 
 ## Environment

@@ -17,7 +17,7 @@ Scores: `submissions/log.md` · How to run: `README.md`
 | Benchmark (25% each) | 1.38629 |
 | Team's first submission | 1.2230 public |
 | Rival team's best known | 1.210 public |
-| **Ours** | **1.201 public** / 1.13883 local nested CV |
+| **Ours** | **1.201 public** / 1.13044 local nested CV |
 
 ## The submitted model
 
@@ -56,7 +56,7 @@ genuinely different errors while models within a family do not.
 |---|---|
 | first pipeline (mnl + mixl + xgb_long + xgb_wide) | 1.15294 |
 | + part-worth logit, + design encoding | 1.14211 |
-| + listwise objective | **1.13883** |
+| + listwise objective | **1.13044** |
 
 ## What's queued
 

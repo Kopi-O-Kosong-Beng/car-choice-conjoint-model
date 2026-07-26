@@ -9,9 +9,14 @@ Human readers want [`README.md`](README.md) instead.
 
 - SUTD Analytics Edge Kaggle competition. Predict choice among 4 car safety bundles.
   Metric: multiclass logloss. **R only** — hard rule.
-- Current: local nested CV **1.13556**, public **1.201** (benchmark 1.38629).
-- Entry point: `model/run_all.R`. The submission is a blend of two models:
-  `model/03_xgb_listwise.R` (weight 0.64) and `model/02_mnl_partworth.R` (weight 0.36).
+- Current: local nested CV **1.13044**, public **1.201** (benchmark 1.38629).
+- Entry point: `model/run_all.R`. The submission blends three models — latent-class
+  conditional logit (`experiments/iter11_latent_class/`, weight 0.447), listwise xgboost with
+  a monotone price constraint (`experiments/iter08_mono_tuned/`, 0.337), and unconstrained
+  listwise xgboost (`model/03_xgb_listwise.R`, 0.216). `model/members.txt` is the source of truth.
+- **Leakage lesson that cost us a fake 1.09962:** fold-honest reference *sets* are not
+  enough — any model-derived quantity attached to a reference observation must also be honest
+  w.r.t. the fold being scored. See `experiments/iter12_residual_encoding/run.R`.
 - **Never** regenerate `model/artifacts/folds.rds`, and never split CV by row — folds are
   grouped by respondent because the test set is 263 entirely new people.
 - Judge every change with `model/compare.R` (paired test, respondent-clustered SEs), not

@@ -1,0 +1,37 @@
+﻿Rscript.exe : Warning messages:
+At line:1 char:302
++ ... tch {} } }; & "C:\Program Files\R\R-4.6.0\bin\Rscript.exe" "experimen ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Warning messages::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+1: package 'data.table' was built under R version 4.6.1 
+2: package 'xgboost' was built under R version 4.6.1 
+baseline mnl_pw OOF                 : 1.15686
+sd(residual)  single-OOF baseline   : 0.39698
+sd(residual)  nested baseline       : 0.39723  (per k: 0.3965 0.3984 0.3974 0.3964 0.3975)
+nested baseline logloss (per k)     : 1.15521 1.16424 1.1594 1.15452 1.15925
+
+resid_a1   within-task sum max|.| = 1.73e-16   sd of feature = 0.1742
+resid_a5   within-task sum max|.| = 1.35e-16   sd of feature = 0.0827
+resid_a20  within-task sum max|.| = 6.42e-17   sd of feature = 0.0294
+mean support n per (design,alt): train 2.88  test 3.94 
+
+LEAK DETECTORS  (baseline mnl_pw OOF = 1.15686 )
+  detector (a): cor(encoding, own held-out residual) -- positive = genuine
+  detector (b): p_mnl_pw + w*encoding, renormalised  -- '*' beats the baseline
+
+single-OOF (= xgb_resenc2 construction) 
+   alpha=1   cor=+0.0143  w=0.25:1.16901  w=0.50:1.23977  w=0.75:1.41992  w=1.00:1.81146   
+   alpha=5   cor=+0.0207  w=0.25:1.15784  w=0.50:1.16678  w=0.75:1.19221  w=1.00:1.23668   
+   alpha=20  cor=+0.0239  w=0.25:1.15612* w=0.50:1.15648* w=0.75:1.15787  w=1.00:1.16023   
+   alpha=50  cor=+0.0248  w=0.25:1.15637* w=0.50:1.15612* w=0.75:1.15608* w=1.00:1.15625*  
+NESTED     (= xgb_resenc3) 
+   alpha=1   cor=+0.0176  w=0.25:1.16859  w=0.50:1.23424  w=0.75:1.41427  w=1.00:1.79648   
+   alpha=5   cor=+0.0241  w=0.25:1.15740  w=0.50:1.16645  w=0.75:1.18937  w=1.00:1.23371   
+   alpha=20  cor=+0.0273  w=0.25:1.15596* w=0.50:1.15617* w=0.75:1.15740  w=1.00:1.15960   
+   alpha=50  cor=+0.0282  w=0.25:1.15630* w=0.50:1.15598* w=0.75:1.15587* w=1.00:1.15598*  
+
+fold 1 best_iter 132 
+fold 2 best_iter 109 
+fold 3 best_iter 612 

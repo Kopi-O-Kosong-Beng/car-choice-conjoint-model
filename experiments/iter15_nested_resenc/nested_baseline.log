@@ -1,0 +1,31 @@
+﻿Rscript.exe : Warning message:
+At line:1 char:320
++ ... _LOG = "1"; & "C:\Program Files\R\R-4.6.0\bin\Rscript.exe" "experimen ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Warning message::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+package 'data.table' was built under R version 4.6.1 
+dropped as unidentified: HU_L2 
+part-worth parameters: 70 
+k=1 j=2  fold-2 logloss 1.13597   elapsed 0.1 min
+k=1 j=3  fold-3 logloss 1.15346   elapsed 0.2 min
+k=1 j=4  fold-4 logloss 1.17786   elapsed 0.3 min
+k=1 j=5  fold-5 logloss 1.15353   elapsed 0.4 min
+k=2 j=1  fold-1 logloss 1.17348   elapsed 0.6 min
+k=2 j=3  fold-3 logloss 1.15389   elapsed 0.8 min
+k=2 j=4  fold-4 logloss 1.17648   elapsed 0.9 min
+k=2 j=5  fold-5 logloss 1.15312   elapsed 1.0 min
+k=3 j=1  fold-1 logloss 1.17166   elapsed 1.1 min
+k=3 j=2  fold-2 logloss 1.13417   elapsed 1.2 min
+k=3 j=4  fold-4 logloss 1.17633   elapsed 1.3 min
+k=3 j=5  fold-5 logloss 1.15544   elapsed 1.4 min
+k=4 j=1  fold-1 logloss 1.17475   elapsed 1.7 min
+k=4 j=2  fold-2 logloss 1.13621   elapsed 1.8 min
+k=4 j=3  fold-3 logloss 1.15530   elapsed 1.9 min
+k=4 j=5  fold-5 logloss 1.15181   elapsed 2.1 min
+k=5 j=1  fold-1 logloss 1.17246   elapsed 2.2 min
+k=5 j=2  fold-2 logloss 1.13549   elapsed 2.4 min
+k=5 j=3  fold-3 logloss 1.15565   elapsed 2.7 min
+k=5 j=4  fold-4 logloss 1.17342   elapsed 2.9 min
+NESTED_BASELINE_DONE
