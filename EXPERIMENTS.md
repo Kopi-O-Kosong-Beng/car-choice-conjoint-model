@@ -76,12 +76,16 @@ flexible learner's gain comes from that information or from a leak riding alongs
 Only the nested baseline could separate them. Holding the model back from the submission
 was right, but the reasoning I gave for keeping it as a candidate was not.
 
-### 1. Bundle-level rather than choice-set-level encoding ⭐ next up
+### ❌ SETTLED: bundle-level encoding is structurally impossible
 
-17,043 unique bundles across 79,686 slots, so a bundle recurs in *different* choice sets.
-Its win rate across contexts is better supported than the set-level share (~4.7
-observations) and carries different information. Same leakage rules — and now you know the
-subtle version of them.
+Iteration 16. The briefed idea assumed a bundle recurs in *different* choice sets. It does
+not: there are 5,681 designs and exactly 5,681 × 3 = 17,043 real bundles, and
+bundle → (design, position) is a **bijection**. A bundle-keyed win rate is the same
+partition as the design-keyed one — differencing them gives max absolute difference
+**0.000e+00**. The presence-pattern fallback is constant within a task in
+**26,562 of 26,562 tasks**, so its within-task contrast is identically zero and it cannot
+move a softmax. There is no bundle-level statistic between the attribute level and the
+choice-set level. Do not revisit.
 
 ### ❌ SETTLED: latent class is already at its best configuration
 
@@ -105,12 +109,20 @@ one fit — the wealthier test respondents are consistently routed toward buying
 Either richer people genuinely buy more, or the membership model over-extrapolates. The
 26 Jul 06:51 submission is partly a test of which.
 
-### 4. Hierarchical Bayes (`bayesm::rhierMnlRwMixture`)
+### ❌ SETTLED: hierarchical Bayes is the worst model in the repo
 
-Highest theoretical ceiling, slowest to fit — an overnight run. Temper expectations:
-mixed logit underperformed for structural reasons (every test respondent is unseen, so only
-population-averaged predictions are possible), and latent class already captures much of
-the available heterogeneity through a demographic channel.
+Iteration 17, ~15 hours of compute. `hbmnl` OOF **1.23703**, blend weight **0.000**.
+Ablating the demographic channel *improves* it to 1.16405 — the opposite sign to
+`lcmnl3`, where demographics carry 93% of the gain. The difference is dimensionality:
+`lcmnl3` routes demographics through a 3-way membership softmax (56 parameters), HB
+shifts all 73 part-worths per demographic (438). **Heterogeneity helps when it is
+discrete and low-dimensional and hurts when it is continuous and high-dimensional.**
+
+The cold-start gap is now quantified, and it is the best single number in the report:
+predicting with each respondent's own posterior-mean β gives logloss **0.35246**;
+population-averaging the same rows — which is all a new respondent can get — gives
+**1.22914**. That 0.877 is structurally unavailable at test time. It explains the mixed
+logit's failure too.
 
 ### ⛔ Do not repeat — already tested and settled
 
@@ -125,6 +137,9 @@ the available heterogeneity through a demographic channel.
 | Mixed logit, continuous heterogeneity | iteration 05 — loses to the part-worth MNL, zero weight |
 | Part-worth glmnet with demographic interactions | iteration 04 — weight 0.001, kept for its coefficients |
 | Wide 4-class xgboost, elastic net, linear-coded MNL | all zero weight, in `model/legacy/` |
+| Latent class with 4/5 classes or richer membership | iteration 14 — all worse than 3 classes |
+| Bundle-level encoding | iteration 16 — **structurally impossible**, bundle→(design,pos) is a bijection |
+| Hierarchical Bayes | iteration 17 — 1.23703, blend weight 0.000, dead |
 
 ### Method note earned the hard way
 
@@ -243,13 +258,17 @@ logit → latent class/HB if time allows.
 | 12 | Residual-based design encoding | 1.09962 | 🚨 **leakage** |
 | 14 | Latent class: 4 and 5 classes, richer membership, class-specific price | all ≥ 1.14379 | ❌ 3 classes is optimal |
 | 15 | Residual encoding with a **nested double-OOF** baseline | 1.14151 | 🚨 **the +0.0043 was 100% leak** |
+| 16 | Bundle-level encoding has better support than choice-set-level | — | ❌ **structurally impossible**, bundle→(design,pos) is a bijection |
+| 17 | Hierarchical Bayes: mixture-of-normals population + demographic channel | 1.23703 | ❌ **worst model in the repo**; ablating demographics gives 1.16405 |
 
 ### Blend progression, continued
 
 | members | nested OOF | submission |
 |---|---|---|
 | mnl_pw + xgb_lw2 | 1.13556 | `sub_20260726_0116.csv` → public **1.201** |
-| + xgb_mono + lcmnl3 (`mnl_pw` falls to weight 0) | **1.13044** | `sub_20260726_0651.csv` ← pending |
+| + xgb_mono + lcmnl3 (`mnl_pw` falls to weight 0) | **1.13044** | `sub_20260726_0651.csv` → public **1.199** ← current best |
+| + `hbmnl` (hierarchical Bayes) | 1.13060 | rejected — weight 0.000 |
+| + `hbmnl_nod` (HB, demographic channel ablated) | 1.13055 | rejected — weight 0.017, nested *worse* |
 
 ### Blend progression
 
@@ -608,3 +627,140 @@ unseen respondents, not to post-hoc recalibration of the ones we have.
 **Cost of being wrong: about 25 minutes of compute and no submission slots.** Cheap,
 because it was tested locally before being tested on Kaggle — which is the entire
 argument for maintaining an honest local metric.
+
+---
+
+## Iteration 16 — Bundle-level encoding ❌ STRUCTURALLY IMPOSSIBLE
+
+**Hypothesis as briefed.** Iteration 01 encodes the empirical choice share per
+*(design, alternative)*, where a design is a whole 3-bundle choice set: 5,681 designs
+with ~3.8 observations each. Thin support is why almost all of the signal had to be
+shrunk away for only +0.0046. But 17,043 distinct *bundles* appear across 79,686 slots,
+so a bundle should recur in *different* choice sets. Its win rate across varying contexts
+would then be a different statistic with better support — "this bundle is attractive"
+rather than "this bundle beat those particular rivals."
+
+**The hypothesis is false, and the diagnostics killed it before a model was fitted.**
+
+1. **A bundle never recurs in a different choice set.** There are 5,681 designs and
+   exactly 5,681 × 3 = 17,043 distinct real bundles, and the map
+   bundle → (design, position) is a **bijection**. Zero bundles appear in more than one
+   design; zero appear at more than one position. So a bundle-keyed win rate is not a
+   new statistic — it is *the same partition*. Built literally and differenced against
+   the existing (design, alt) encoding: **max absolute difference 0.000e+00**, at every
+   shrinkage strength. Support per bundle is 4.68 observations, identical to the design
+   key's 4.68, because they are the same thing.
+2. **The natural repair fails on a softmax.** Backing off to the bundle's *presence
+   pattern* (which of the 19 non-price features it carries, ignoring tier) is a property
+   of the choice *set*, not the bundle: in **26,562 of 26,562 tasks (100.00%)** all three
+   real bundles share one presence pattern — a choice set offers the same 9 features at
+   three different tier/price configurations. Constant within a task ⇒ its within-task
+   contrast is identically zero ⇒ under a softmax over the four alternatives it **cannot
+   move a single prediction**. Confirmed: logloss unchanged to five decimals at every
+   weight, for both baselines.
+3. **It does not even pool across designs.** 5,511 patterns for 5,681 designs; only 167
+   span more than one design; 94.07% of designs own their pattern outright. Tasks per
+   pattern 9.64 versus tasks per design 9.35 — a **3% support gain**.
+
+**The conjoint design nests bundles inside choice sets bijectively. There is no
+bundle-level statistic between the attribute level and the choice-set level.**
+
+**Reflection.** This is the cheapest experiment in the log: it cost three diagnostic
+scripts and zero model fits, because the hypothesis made a *countable* claim ("bundles
+recur across choice sets") that could be checked directly. The lesson is to look for the
+countable claim inside a modelling idea and check it first. Had this been implemented
+before being verified, it would have produced an encoding numerically identical to one
+already in the model, and the null result would have been read as "the encoding is
+saturated" rather than "I built the same feature twice."
+
+---
+
+## Iteration 17 — Hierarchical Bayes ❌ THE WORST MODEL IN THE REPO
+
+`experiments/iter17_hb/run.R` — `bayesm::rhierMnlRwMixture`, 16,000 MCMC draws,
+3-component mixture-of-normals population, demographic channel beta_i = Delta'z_i + u_i.
+**~15 hours of compute** (≈180 min × 5 folds + 179 min full refit).
+
+**Hypothesis.** HB is the textbook tool for exactly this data-generating process: panel
+conjoint, 19 tasks per respondent, a genuine outside option. Iteration 05's mixed logit
+lost (1.17281) but with a *single* normal population distribution, and iteration 11 found
+three sharply distinct segments (none-rates 0.049 / 0.228 / 0.648), so the true population
+is strongly multimodal and one normal cannot represent it. HB fixes that (mixture) and
+adds a demographic channel (the continuous analogue of the membership model carrying 93%
+of `lcmnl3`'s gain), with Bayesian shrinkage better behaved than simulated ML at 19
+observations per person.
+
+**Result — decisive and in the wrong direction.**
+
+| model | honest OOF |
+|---|---|
+| `xgb_mono` | 1.13980 |
+| `lcmnl3` | 1.14396 |
+| `mnl_pw` | 1.15686 |
+| **`hbmnl_nod`** — HB, demographic channel ablated (z := 0) | **1.16405** |
+| `mixl` | 1.17281 |
+| **`hbmnl`** — HB as specified | **1.23703** |
+
+Per fold: 1.25030 / 1.20138 / 1.24167 / 1.24147 / 1.25034. Monte-Carlo noise in the
+mixture simulation is 0.00023 (second RNG seed gives 1.23680), so none of this is
+simulation error. Blend: `hbmnl` earns weight **0.000** (nested 1.13060), `hbmnl_nod`
+earns 0.017 and makes the nested number **worse** (1.13055 vs 1.13044). Rejected.
+
+### Finding 1 — the demographic channel *costs* 0.073, and that is the interesting part
+
+Ablating demographics improves HB from 1.23703 to 1.16405. In `lcmnl3` the demographic
+channel is worth 93% of the model's entire gain. **Same information, opposite sign.** The
+difference is dimensionality, and the numbers are stark:
+
+| model | how demographics reach tastes | parameters |
+|---|---|---|
+| `lcmnl3` | → 3-way segment membership softmax → segment part-worths | (3−1) × 28 = **56** |
+| `hbmnl` | → shifts all 73 part-worths directly, per demographic | 6 × 73 = **438** |
+
+HB was given *fewer* demographics than `lcmnl3` (6 versus 28 — a measured compute
+constraint, since bayesm draws Delta as one joint Gaussian and pays an (nz·nvar)³
+Cholesky per draw) and still ended up with 8× the parameters, because it interacts each
+demographic with every part-worth instead of with a 3-way membership.
+
+**The segment is a bottleneck, and the bottleneck is the point.** Latent class compresses
+"who you are" into three numbers before letting it touch tastes. HB lets demographics move
+all 73 part-worths freely. With 1,135 respondents the compressed channel generalises and
+the free one memorises. This is a cleaner statement of iteration 14's result (richer
+membership, `lcmnl3b`, was also worse) and it belongs in the report: *heterogeneity helps
+when it is discrete and low-dimensional; the same heterogeneity hurts when it is
+continuous and high-dimensional.*
+
+### Finding 2 — the cold-start gap, quantified
+
+The full refit reports, on identical rows:
+
+| prediction | logloss |
+|---|---|
+| each respondent's **own** posterior-mean beta_i | **0.35246** |
+| the same rows, **population-averaged** (what a new respondent gets) | **1.22914** |
+
+That gap — 0.877 — is the part of HB's fit that is **structurally unavailable at test
+time**, because all 263 test respondents are new people. It is the single most compelling
+number we have for why panel methods cannot help here, and it explains iteration 05's
+mixed-logit failure too. Anyone reading a conjoint textbook will expect HB to win; this
+table is the answer.
+
+**Reflection.** The hypothesis header pre-registered "modest at best" and predicted the
+mechanism correctly — integrating a smooth F blurs the population-averaged prediction —
+but underestimated the size, expecting a small loss rather than a catastrophic one, and
+did not anticipate that the demographic channel would flip sign. The pre-registration is
+what makes that admission possible: the expectation is on the record, timestamped before
+the fit.
+
+**Process failure worth recording.** All six jobs completed and wrote `pred_main_*.rds`,
+but the session driving them was interrupted before running the `combine` step, so for
+several hours the result looked like a *failure* when it was actually a finished
+experiment sitting on disk unassembled. The fix is structural: **a long job should write
+its own assembled artifact as its last act**, never leave assembly to a caller that may
+not survive. `experiments/iter17_hb/assemble_nod.R` now reconstructs the ablated variant
+independently of the original driver.
+
+**Cost of being wrong: ~15 hours of compute for two report findings and a closed idea.**
+Expensive in wall-clock, cheap in submissions, and it retires the highest-ceiling
+untested item on the list — which is worth something on its own, because it was the idea
+most likely to nag at us if left unmeasured.
