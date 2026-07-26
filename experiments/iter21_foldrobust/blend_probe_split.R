@@ -12,8 +12,11 @@ args <- commandArgs(trailingOnly = TRUE)
 if (length(args) != 2) stop("usage: blend_probe_split.R <42|b|c> name1,name2,...")
 SPLIT <- args[1]
 memb  <- trimws(strsplit(args[2], ",")[[1]])
-FOLDFILE <- if (SPLIT == "42") "model/artifacts/folds.rds"
-            else sprintf("model/artifacts/folds_%s.rds", SPLIT)
+FOLDFILE <- if (SPLIT == "42") {
+  "model/artifacts/folds.rds"
+} else {
+  sprintf("model/artifacts/folds_%s.rds", SPLIT)
+}
 cat("split:", SPLIT, " fold file:", FOLDFILE, "\nmembers:", paste(memb, collapse = ", "), "\n")
 
 long  <- readRDS("model/artifacts/long.rds")

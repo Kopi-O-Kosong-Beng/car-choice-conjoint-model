@@ -1,0 +1,9 @@
+### split 42: xgb_lw2 + lcmnl3 (no task terms)
+>>> NESTED blend OOF: 1.13098 +- 0.01429 
+weights: xgb_lw2 0.524 | lcmnl3 0.476 
+### split 42: xgb_lw2 + lcmnl3_both
+>>> NESTED blend OOF: 1.12912 +- 0.0148 
+weights: xgb_lw2 0.468 | lcmnl3_both 0.532 
+### split b: xgb_lw2_b + lcmnl3_none_b
+### split b: xgb_lw2_b + lcmnl3_both_b
+### split b: xgb_lw2_b + lcmnl3_none_b

@@ -4,3 +4,9 @@ Warning messages:
 === variantlw2 splitb -> oof_xgb_lw2_b.rds ===
 fold 1 best_iter 487  fold logloss 1.13827  elapsed 6.6 min
 fold 2 best_iter 638  fold logloss 1.16254  elapsed 14.2 min
+fold 3 best_iter 367  fold logloss 1.13972  elapsed 17.7 min
+fold 4 best_iter 715  fold logloss 1.1462  elapsed 25.8 min
+fold 5 best_iter 548  fold logloss 1.13187  elapsed 30.2 min
+
+>>> xgb_lw2_b OOF logloss: 1.14372
+OK -- wrote oof_xgb_lw2_b.rds and test_xgb_lw2_b.rds

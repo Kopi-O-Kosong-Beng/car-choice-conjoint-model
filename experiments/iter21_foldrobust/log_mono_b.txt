@@ -4,3 +4,9 @@ Warning messages:
 === variantmono splitb -> oof_xgb_mono_b.rds ===
 constrained features: Price, Price_c 
 fold 1 best_iter 814  fold logloss 1.13616  elapsed 13.2 min
+fold 2 best_iter 868  fold logloss 1.16046  elapsed 23.7 min
+fold 3 best_iter 479  fold logloss 1.13408  elapsed 27.7 min
+fold 4 best_iter 917  fold logloss 1.14505  elapsed 38.4 min
+fold 5 best_iter 632  fold logloss 1.13255  elapsed 42.4 min
+
+>>> xgb_mono_b OOF logloss: 1.14166
