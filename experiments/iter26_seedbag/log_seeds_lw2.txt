@@ -102,3 +102,7 @@ Warning messages:
 2: package 'xgboost' was built under R version 4.6.1 
   seed 10 fold 1 best_iter 445 
   seed 10 fold 2 best_iter 811 
+  seed 10 fold 3 best_iter 622 
+  seed 10 fold 4 best_iter 174 
+  seed 10 fold 5 best_iter 686 
+>>> seed 10 OOF: 1.14181
