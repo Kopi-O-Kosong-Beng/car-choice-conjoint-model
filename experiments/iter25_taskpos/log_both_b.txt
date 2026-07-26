@@ -1,0 +1,13 @@
+Warning message:
+package 'data.table' was built under R version 4.6.1 
+=== latent-class conditional logit, C = 3 | task-position mode: both | split: b ===
+task-position terms added: none_x_Task, Price_x_Task 
+dropped as unidentified: HU_L2 
+taste parameters per class: 87 
+membership covariates: 29 
+fold structure: model/artifacts/folds_b.rds 
+--- fold 1 ---
+  [screen det] iter  1  LL = -16801.248  shares = 0.353 0.304 0.343
+  [screen det] iter  2  LL = -16144.428  shares = 0.330 0.345 0.324
+  [screen det] iter  3  LL = -16086.865  shares = 0.322 0.363 0.315
+  [screen rand] iter  1  LL = -19691.003  shares = 0.340 0.337 0.324

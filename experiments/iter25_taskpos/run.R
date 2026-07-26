@@ -112,11 +112,28 @@ suppressMessages({ library(data.table) })
 source("model/99_utils.R")
 
 args <- commandArgs(trailingOnly = TRUE)
-if (length(args) != 2) stop("usage: run.R <1|2|3> <drift|tilt|both>")
+if (!length(args) %in% 2:3) stop("usage: run.R <1|2|3> <drift|tilt|both> [b|c]")
 MODE <- args[1]
 TASKMODE <- args[2]
-if (!TASKMODE %in% c("drift", "tilt", "both"))
-  stop("TASKMODE must be drift, tilt or both")
+if (!TASKMODE %in% c("none", "drift", "tilt", "both"))
+  stop("TASKMODE must be none, drift, tilt or both")
+# "none" adds no task terms at all, reproducing iteration 11's lcmnl3 exactly.
+# It exists so that the iteration 25 contrast can be re-run under an independent
+# fold structure with BOTH arms fitted by the same code path.
+
+# Optional third argument: refit against an INDEPENDENT respondent grouping
+# (iteration 21). model/artifacts/folds.rds is never read when this is set and is
+# never written under any circumstances. Artifacts get a _<split> suffix, and an
+# OOF computed under a different split is NOT comparable row-for-row to a
+# production one -- it is only ever scored within its own split.
+SPLIT <- if (length(args) == 3) args[3] else ""
+if (!SPLIT %in% c("", "b", "c")) stop("split must be b or c")
+FOLDFILE <- if (SPLIT == "") {
+  "model/artifacts/folds.rds"
+} else {
+  sprintf("model/artifacts/folds_%s.rds", SPLIT)
+}
+SUF <- if (SPLIT == "") "" else paste0("_", SPLIT)
 
 LAMBDA_B <- 2.0     # ridge on class-specific taste parameters
 LAMBDA_G <- 2.0     # ridge on membership-model coefficients
@@ -436,15 +453,17 @@ if (MODE == "finalize") {
 
 C <- as.integer(MODE)
 if (!C %in% 1:4) stop("C must be 1..4 or 'finalize'")
-NAME <- sprintf("lcmnl%d_%s", C, TASKMODE)
+NAME <- sprintf("lcmnl%d_%s%s", C, TASKMODE, SUF)
 cat("=== latent-class conditional logit, C =", C,
-    "| task-position mode:", TASKMODE, "===\n")
+    "| task-position mode:", TASKMODE,
+    if (SPLIT == "") "" else paste("| split:", SPLIT), "===\n")
 
 bd   <- build_data()
 long <- bd$long; keep <- bd$keep; Z <- bd$Z
 
 tasks <- unique(long[, .(No, Case, y, is_test)]); setorder(tasks, No)
-folds <- readRDS("model/artifacts/folds.rds")
+folds <- readRDS(FOLDFILE)
+cat("fold structure:", FOLDFILE, "\n")
 tasks <- merge(tasks, folds[, .(No, fold)], by = "No", all.x = TRUE)
 setorder(tasks, No)
 # task i in `tasks` == long rows 4i-3 .. 4i.  Everything downstream assumes this.
