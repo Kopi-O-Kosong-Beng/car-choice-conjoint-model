@@ -278,6 +278,11 @@ logit → latent class/HB if time allows.
 | 15 | Residual encoding with a **nested double-OOF** baseline | 1.14151 | 🚨 **the +0.0043 was 100% leak** |
 | 16 | Bundle-level encoding has better support than choice-set-level | — | ❌ **structurally impossible**, bundle→(design,pos) is a bijection |
 | 17 | Hierarchical Bayes: mixture-of-normals population + demographic channel | 1.23703 | ❌ **worst model in the repo**; ablating demographics gives 1.16405 |
+| 18 | Structure hunt: 17 diagnostics for untapped signal | — | ✅ one lead found (→ 25), eleven killed |
+| 19 | Blend diversity: is a richer combiner worth building? | — | ❌ no — one axis of disagreement, alt-4 weights z = 1.49 |
+| 21 | Do results survive an independent fold structure? | in progress | ⏳ running |
+| 22 | Per-alternative blend weights | not run | ❌ closed by iteration 19's evidence |
+| 24 | Within-task dominance features | not run | ❌ closed by `d10`, R² 0.000415 vs residual |
 | 25 | **Task position inside the latent-class utility** | lcmnl3 1.14396 → **1.13863** | ✅ **confirmed, z = 6.26**, in production |
 | 26 | Seed-bagging; and is the seed sd bigger than our margins? | mean 1.14303, **sd 0.00283**, bagged 1.13714 | ⚠️ **invalidates iteration 08**; blend gain only +0.00029 |
 
@@ -1008,3 +1013,145 @@ reproducibility of the thing you are measuring it with.**
 
 The honest accounting of what this bought: +0.00029 on the decision number, one retracted
 result, one recalibrated log, and the methodology section of the report.
+
+---
+
+## Iteration 18 — Structure hunt ✅ COMPLETE (one lead found, eleven killed)
+
+`experiments/iter18_structure_hunt/` — 15 diagnostics (`d1`–`d15`) plus two written later
+(`d16_liveleads.R`, `d17_disambiguate.R`) to convert effects that had been *printed* into
+honest, nested numbers. No model was shipped from this iteration; its output is a decision
+about where not to spend time.
+
+**The one live lead**, which became iteration 25: task-position drift, and the fact that the
+conditional-logit family had no `Task` term. Observed none-rate 0.237 → 0.337 across
+positions (logit slope z = 9.51); price coefficient −0.178 → −0.331 per position
+(−0.00552/task, z = −6.29) controlling for `lvlsum`, with mean price by position flat
+(6.310–6.636) so it is not a design confound.
+
+**Killed, each with the number that killed it.**
+
+| lead | measured | verdict |
+|---|---|---|
+| Attribute interactions | +190 pairwise terms → +0.00036 (every pair co-occurs in ≥5,501 tasks, so support is not the issue) | dead |
+| Within-task rank / dominance features | R² **0.000415** against the incumbent residual, while the same features explain R² 0.125 of the *outcome* — the model already has the signal. Only 3.29% of real alternatives are dominated | dead |
+| Per-task-position temperature | 1.14152 → 1.14080 **in-sample**, so ~0 honest | dead |
+| Dispersion-conditional temperature | honest 4-quartile T vs honest global T: **−0.00041**. Conditioning makes it worse; the global temperature is already right | dead |
+| Respondent-specific fatigue slopes | slope sd 0.02841 vs 0.02762 expected under pure noise | no real heterogeneity |
+| Sequential anchoring / contrast | +0.000029 on xgb_lw2 — and the **placebo (next task, unseen) scores +0.000031**. On the blend the placebo *beats* the real thing | definitively spurious |
+| Demographic over-dispersion of the none rate | nested-honest correction +0.00009 (z 0.09) and +0.00020 (z 0.23) | dead |
+| Respondent-level shrinkage | +0.00095 on xgb_lw2 but **−0.00068 on the blend** | loses where it counts |
+| Transductive edge from design assignment | 19 task-wise ANOVAs are one partition repeated; effective 11 tests, min p = 0.1228, Bonferroni 1.351 | assignment is random w.r.t. demographics |
+| Design-share / version-mate encoding | design shares alone score **1.30660** vs the blend's 1.12969 | nothing left to extract |
+| Partial-profile / shown-attribute-set structure | already absorbed | dead |
+
+**Headroom, which is the most quotable output of the iteration.** Oracle respondent rates
+take the blend from 1.12969 to **0.98565** — a gap of **0.1440** where all remaining loss
+lives. Variance decomposition: alternative 4 is **33% between-respondent**, alternatives 1–3
+only 5–7%. And demographics reach just **11.2%** of the true none-propensity heterogeneity
+(observed var 0.0804, binomial component 0.0111, true 0.0693, R² 0.0968) — **~89% of the
+personality driving the outside option is unobservable in this dataset.**
+
+**A self-correction inside the iteration, worth recording.** `d16` reported a
+demographic-dispersion gain of −0.003/−0.006. That was a measurement bug: the correction
+weight had been fitted where the demographic regression was in-sample. `d17` rebuilt it
+nested and the effect vanished to +0.00009. The diagnostic caught its own error only because
+someone re-derived it honestly rather than believing the first pass.
+
+---
+
+## Iteration 19 — Blend diversity probe ✅ COMPLETE (read-only; closes iteration 22)
+
+`experiments/iter19_diversity/probe.R` and `probe2_gating.R`. Emitted no artifacts; its
+variant-A code reproduces `blend_probe.R` to five decimals (1.13044), so every number sits
+on the repository's decision metric.
+
+**1. The blend has ONE axis of disagreement, not three.** Eigenvalues of the 4×4
+error-correlation matrix: **3.726 / 0.202 / 0.056 / 0.016** — the first component is 93% of
+the error variance, participation ratio 1.15 of 4. Pearson r on the log-odds scale:
+
+| pair | alts 1–3 | alt 4 |
+|---|---|---|
+| `xgb_lw2` ↔ `xgb_mono` | .985 | .987 |
+| `mnl_pw` ↔ `lcmnl3` | .959 | .898 |
+| tree ↔ logit (cross-family) | .895–.911 | **.816–.840** |
+
+The axis is **tree vs logit**, and it is widest on the none option. (Iteration 26 later
+explained the first row: `xgb_lw2` and `xgb_mono` are the same model, since the monotone
+constraint does nothing.)
+
+**2. Only one member is load-bearing.** Leave-one-out, nested, against 1.13044:
+
+| dropped | nested without | contribution | z |
+|---|---|---|---|
+| `mnl_pw` | 1.13038 | **−0.00006** | −1.89 |
+| `xgb_lw2` | 1.13061 | +0.00017 | +0.58 |
+| `xgb_mono` | 1.13112 | +0.00067 | +1.60 |
+| `lcmnl3` | 1.13477 | **+0.00433** | **+3.20** |
+
+`mnl_pw` is dead freight — removing it is very slightly *beneficial*.
+
+**3. The none option is the EASY class, refuting a standing assumption.** It carries 27.7%
+of total loss on a 30.2% row share, i.e. *under*-represented; loss is highest on y = 1
+(1.2101 vs 1.0366). And as members disagree more, loss rises on y = 1,2,3 but **falls** on
+y = 4 — when they argue, they argue about the none option, and the blend resolves it
+correctly. None-calibration is near-perfect across p4 deciles.
+
+**4. A separate weight vector for alternative 4 — tested, and killed.** This was the whole
+content of the never-run iteration 22, and it is now answered:
+
+| architecture | nested |
+|---|---|
+| A production log-pool (M+2 par) | 1.13044 |
+| B = A + free none-intercept (M+3) | 1.13054 |
+| C = B + split alt-4 weights (2M+3) | 1.12937 |
+
+C over A: **+0.00108, SE 0.00072, z = +1.49** — noise, with one fold in five moving the
+wrong way. The fitted structure is beautifully interpretable (trust the tree on bundles,
+w = .000/.224/.517/.259; trust the latent-class logit on the none, v = .000/.175/.004/**.821**)
+and it still should not be built.
+
+**The decisive argument, which kills the idea rather than merely failing to support it.** On
+OOF, *every* member reproduces the true class shares to three decimals — all four predict a
+none-rate of 0.302–0.308. The 0.223-vs-0.274 split is a **logit-family vs tree-family**
+phenomenon that exists **only on the test set**. A split alt-4 weight would be fitted on data
+where the members agree about alternative 4 to within 0.005, then deployed where they
+disagree by 5 points. *There is no validation set for the regime it targets.*
+
+**5. Oracle bound, and why the headroom is unreachable.** Per-respondent convex weights,
+honest split-half (fit on ~10 of a respondent's tasks, score the other ~9): **1.08965**
+against a matched global-pool control of 1.13013 — **+0.04048**, four times the entire gain
+from blending. A hostile permutation control (score each respondent with weights fitted on a
+*different* random respondent) gives 1.14309 ± 0.00192, *worse* than the global pool, so the
+gain is genuinely respondent-specific rather than an artifact. But it needs the respondent's
+own labels, and all 263 test respondents have zero observed choices. Two label-free gates:
+
+- tertile of the respondent's mean predicted p4: 1.13068, **−0.00023** (z −1.68)
+- demographic `segment`: 1.13514, **−0.00470** (z −4.87, a real loss)
+
+**Zero of the 0.040 is reachable.**
+
+**Verdict and what it directed.** Do not build a richer blend architecture. The actionable
+finding was compositional rather than architectural: *the blend's only genuine diversity is
+the tree-vs-logit axis, and `lcmnl3` is the only member carrying it* — so improve that member
+rather than re-weighting the four. Iteration 25 did exactly that, taking `lcmnl3` from
+1.14396 to 1.13863, and it remains the highest-weighted member at 0.504.
+
+---
+
+## Iterations 21, 22, 24 — status after the round-3 billing interruption
+
+Round 3 launched six experiments; the two scouts finished and all six builders were killed
+mid-run by a monthly spend limit. They had, however, already written their programs. The
+disposition of each:
+
+| iteration | code state | disposition |
+|---|---|---|
+| **21 fold robustness** | complete: `00_make_folds.R`, `xgb_split.R`, `lcmnl_split.R`, `mnl_split.R`, `blend_probe_split.R`; `folds_b.rds` and `folds_c.rds` built and verified independent (22% agreement vs 20% by chance) | **worth running — in progress.** The one validation that directly addresses selection across 26 iterations on one fold structure |
+| **22 blend architecture** | `run.R` written, never executed | **closed without running.** Iteration 19 tested the same three architectures nested and found C-vs-A z = +1.49 with a fold reversal, and showed the motivating signal is absent from the only data it could be fitted on |
+| **24 within-task contrasts** | `dom_feats.R`, `probe.R` written, never executed | **closed without running.** `d10` measured the features' R² against the incumbent residual at 0.000415 |
+| **16 bundle encoding** | `run.R` written, never executed | **closed on structure.** The briefed idea is impossible (bijection); the surviving marginal-cell variant carries a pre-registered expectation of ~0 and a measured direct-correction gain of 0.00003 |
+| 20, 23 | never created — the agents died first | 20 was renumbered to 26 (seed bagging); 23 (importance-weighted training) remains genuinely untested |
+
+**`model/artifacts/folds.rds` was never regenerated or written at any point**, verified
+against git.

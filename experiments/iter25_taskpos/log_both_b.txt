@@ -11,3 +11,47 @@ fold structure: model/artifacts/folds_b.rds
   [screen det] iter  2  LL = -16144.428  shares = 0.330 0.345 0.324
   [screen det] iter  3  LL = -16086.865  shares = 0.322 0.363 0.315
   [screen rand] iter  1  LL = -19691.003  shares = 0.340 0.337 0.324
+  [screen rand] iter  2  LL = -18251.176  shares = 0.347 0.368 0.284
+  [screen rand] iter  3  LL = -17244.147  shares = 0.329 0.386 0.285
+  start screening LL: -16086.87 / -17244.15 -> keeping det 
+  [final] iter  1  LL = -16070.289  shares = 0.320 0.368 0.312
+  [final] iter  2  LL = -16061.700  shares = 0.320 0.369 0.311
+  [final] iter  3  LL = -16056.182  shares = 0.321 0.368 0.311
+  [final] iter  4  LL = -16052.702  shares = 0.322 0.367 0.311
+  [final] iter  5  LL = -16049.898  shares = 0.323 0.366 0.311
+  [final] iter  6  LL = -16047.194  shares = 0.323 0.365 0.311
+  [final] iter  7  LL = -16044.689  shares = 0.324 0.364 0.312
+  [final] iter  8  LL = -16042.826  shares = 0.325 0.364 0.311
+  [final] iter  9  LL = -16041.671  shares = 0.325 0.363 0.311
+  [final] iter 10  LL = -16040.983  shares = 0.326 0.363 0.311
+  [final] iter 11  LL = -16040.541  shares = 0.326 0.363 0.310
+  [final] iter 12  LL = -16040.228  shares = 0.326 0.363 0.310
+  [final] iter 13  LL = -16039.994  shares = 0.327 0.364 0.310
+  [final] iter 14  LL = -16039.812  shares = 0.327 0.364 0.309
+  [final] iter 15  LL = -16039.659  shares = 0.327 0.364 0.309
+  fold 1 logloss: 1.12499  elapsed 4 min
+--- fold 2 ---
+  [screen det] iter  1  LL = -16594.485  shares = 0.350 0.301 0.349
+  [screen det] iter  2  LL = -15933.836  shares = 0.324 0.343 0.333
+  [screen det] iter  3  LL = -15863.008  shares = 0.313 0.362 0.324
+  [screen rand] iter  1  LL = -19458.723  shares = 0.367 0.315 0.318
+  [screen rand] iter  2  LL = -18037.096  shares = 0.411 0.297 0.293
+  [screen rand] iter  3  LL = -17197.729  shares = 0.400 0.303 0.297
+  start screening LL: -15863.01 / -17197.73 -> keeping det 
+  [final] iter  1  LL = -15842.543  shares = 0.311 0.369 0.320
+  [final] iter  2  LL = -15835.420  shares = 0.312 0.372 0.317
+  [final] iter  3  LL = -15832.192  shares = 0.314 0.372 0.315
+  [final] iter  4  LL = -15829.745  shares = 0.316 0.372 0.313
+  [final] iter  5  LL = -15827.282  shares = 0.317 0.371 0.311
+  [final] iter  6  LL = -15826.264  shares = 0.319 0.371 0.310
+  [final] iter  7  LL = -15825.582  shares = 0.320 0.371 0.309
+  [final] iter  8  LL = -15825.109  shares = 0.321 0.371 0.308
+  [final] iter  9  LL = -15824.780  shares = 0.322 0.370 0.307
+  [final] iter 10  LL = -15824.547  shares = 0.323 0.370 0.307
+  [final] iter 11  LL = -15824.385  shares = 0.324 0.370 0.307
+  [final] iter 12  LL = -15824.265  shares = 0.324 0.369 0.306
+  fold 2 logloss: 1.17064  elapsed 7.6 min
+--- fold 3 ---
+  [screen det] iter  1  LL = -16702.727  shares = 0.347 0.310 0.343
+  [screen det] iter  2  LL = -16007.951  shares = 0.326 0.350 0.324
+  [screen det] iter  3  LL = -15939.586  shares = 0.322 0.363 0.315
