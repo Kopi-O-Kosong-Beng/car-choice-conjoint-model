@@ -1,0 +1,35 @@
+Warning message:
+package 'data.table' was built under R version 4.6.1 
+=== latent-class conditional logit, C = 3 | task-position mode: both ===
+task-position terms added: none_x_Task, Price_x_Task 
+dropped as unidentified: HU_L2 
+taste parameters per class: 87 
+membership covariates: 29 
+--- fold 1 ---
+  [screen det] iter  1  LL = -16709.953  shares = 0.344 0.313 0.343
+  [screen det] iter  2  LL = -16018.749  shares = 0.318 0.356 0.327
+  [screen det] iter  3  LL = -15937.581  shares = 0.311 0.369 0.320
+  [screen rand] iter  1  LL = -19555.544  shares = 0.329 0.323 0.348
+  [screen rand] iter  2  LL = -18272.788  shares = 0.347 0.288 0.365
+  [screen rand] iter  3  LL = -17232.215  shares = 0.367 0.276 0.358
+  start screening LL: -15937.58 / -17232.21 -> keeping det 
+  [final] iter  1  LL = -15922.261  shares = 0.310 0.373 0.317
+  [final] iter  2  LL = -15917.555  shares = 0.310 0.374 0.316
+  [final] iter  3  LL = -15915.244  shares = 0.312 0.373 0.315
+  [final] iter  4  LL = -15913.922  shares = 0.313 0.373 0.315
+  [final] iter  5  LL = -15912.972  shares = 0.314 0.372 0.314
+  [final] iter  6  LL = -15912.230  shares = 0.315 0.371 0.314
+  [final] iter  7  LL = -15911.687  shares = 0.316 0.371 0.314
+  [final] iter  8  LL = -15911.337  shares = 0.316 0.370 0.314
+  [final] iter  9  LL = -15911.135  shares = 0.317 0.370 0.313
+  [final] iter 10  LL = -15911.032  shares = 0.317 0.370 0.313
+  fold 1 logloss: 1.15888  elapsed 2.1 min
+--- fold 2 ---
+  [screen det] iter  1  LL = -16749.872  shares = 0.356 0.300 0.344
+  [screen det] iter  2  LL = -16094.334  shares = 0.336 0.335 0.329
+  [screen det] iter  3  LL = -16032.867  shares = 0.329 0.349 0.322
+  [screen rand] iter  1  LL = -19708.395  shares = 0.343 0.322 0.334
+  [screen rand] iter  2  LL = -18268.869  shares = 0.379 0.265 0.357
+  [screen rand] iter  3  LL = -17052.623  shares = 0.373 0.263 0.365
+  start screening LL: -16032.87 / -17052.62 -> keeping det 
+  [final] iter  1  LL = -16013.029  shares = 0.327 0.354 0.319

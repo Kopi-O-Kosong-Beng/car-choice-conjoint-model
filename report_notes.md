@@ -94,6 +94,45 @@ flatter than any individual. A finite mixture instead routes each respondent to 
 **using their observable demographics**, which survives into the test set. Heterogeneity is
 usable exactly to the extent it correlates with something you can measure about a new person.
 
+**Hierarchical Bayes settles this, and the number is the strongest in the report.** HB is
+the textbook tool for panel conjoint data, so we fitted it (`bayesm::rhierMnlRwMixture`,
+16,000 draws, 3-component mixture population, demographic channel β_i = Δ′z_i + u_i — about
+15 hours of compute). It scored **1.237**, the worst model we built. The reason is visible
+directly in the fit. On *identical rows*:
+
+| prediction | logloss |
+|---|---|
+| each respondent's **own** posterior-mean β_i | **0.352** |
+| the same rows, **population-averaged** — what a new respondent gets | **1.229** |
+
+That gap of **0.877** is the part of HB's fit that is *structurally unavailable at test
+time*. It is not a tuning failure or a convergence problem; it is the cold-start problem
+stated numerically. Any method whose power comes from learning individuals — HB, mixed
+logit, respondent-level shrinkage — is spending its capacity on a quantity that does not
+exist for the 263 people it will be graded on.
+
+**And the demographic channel flips sign with dimensionality.** Ablating demographics from
+HB *improves* it, 1.237 → 1.164. In the latent-class model the same demographic information
+is worth 93% of the model's entire gain. Same data, same idea, opposite outcome — the
+difference is how many parameters the information passes through:
+
+| model | route from demographics to tastes | parameters |
+|---|---|---|
+| latent class | → 3-way segment membership softmax → segment part-worths | (3−1) × 29 = **58** |
+| hierarchical Bayes | → shifts all 73 part-worths, per demographic | 6 × 73 = **438** |
+
+HB was given *fewer* demographics (6 versus 29) and still ended up with roughly eight times
+the parameters, because it interacts each one with every part-worth rather than with a
+low-dimensional membership. **The segment acts as a bottleneck, and the bottleneck is why it
+generalises.** With 1,135 respondents the compressed channel learns something real and the
+free one memorises. This also explains our own iteration-14 result, where enriching the
+membership model made it worse.
+
+The general statement for the report: *heterogeneity helps when it is discrete and
+low-dimensional, and hurts when it is continuous and high-dimensional* — and the binding
+constraint is not how much heterogeneity exists in the population, but how much of it can be
+recovered from what you observe about a stranger.
+
 ### 3. The choice sets are a designed experiment, and that leaks information
 
 Only 299 distinct choice-set designs exist per task position, each shown to ~4.7 respondents,
@@ -134,6 +173,41 @@ about it: a **two-stage** model that predicted "buy at all?" separately from "wh
 scored 1.17169 (z = −11.0), and a **nested logit** isolating it scored no better than plain
 MNL. Opting out is the modal behaviour, but it is evidently governed by the *same* utility
 scale as the bundles rather than by a separate decision process.
+
+### 6. How much accuracy is left — and why we stopped
+
+Most competition reports end with "future work: try more models." We can do better, because
+we measured the ceiling.
+
+**The oracle bound.** Give the model each respondent's *own* observed choice rates — the
+best any method could do if it knew every individual perfectly — and the blend's 1.130 falls
+to **0.986**. That gap of **0.144** is where *all* remaining loss lives, and essentially none
+of it is reachable: every test respondent is a stranger.
+
+**Why it is unreachable, quantified.** Decomposing the variance of choice behaviour into
+between-respondent and within-respondent parts:
+
+| alternative | share of variance that is between-respondent |
+|---|---|
+| alt 4 (the "none" option) | **33%** |
+| alts 1–3 (real bundles) | 5–7% |
+
+So the *only* strongly personal decision is whether to buy at all — which bundle you prefer,
+conditional on buying, is nearly universal. And of the true between-respondent variation in
+propensity to decline, demographics explain only **11.2%** (true variance 0.0693 after
+removing the binomial component from an observed 0.0804; demographic R² = 0.0968).
+**Roughly 89% of the personality that drives the outside option is simply not observable in
+this dataset.** That single number bounds everything: no model, however sophisticated, can
+recover taste variation that was never recorded.
+
+**The design side is exhausted too.** The best predictor built purely from choice-set
+identity — the empirical design shares that were worth +0.005 as a *feature* — scores
+**1.307** on its own, against the blend's 1.130. There is no large untapped design signal.
+
+**What this justified.** Given a 0.144 gap that is ~89% unobservable, a private leaderboard
+of ~1,500 rows with SE ≈ ±0.02, and a measured local→public transfer rate that decayed from
+58% to about a third, we judged further model search to have a lower expected return than
+the analysis itself. We report the ceiling rather than gesturing at future work.
 
 ---
 

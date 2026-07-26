@@ -1,0 +1,24 @@
+Warning message:
+package 'data.table' was built under R version 4.6.1 
+=== latent-class conditional logit, C = 3 | task-position mode: tilt ===
+task-position terms added: Price_x_Task 
+dropped as unidentified: HU_L2 
+taste parameters per class: 86 
+membership covariates: 29 
+--- fold 1 ---
+  [screen det] iter  1  LL = -16709.513  shares = 0.343 0.314 0.343
+  [screen det] iter  2  LL = -16024.562  shares = 0.318 0.355 0.327
+  [screen det] iter  3  LL = -15946.692  shares = 0.311 0.367 0.322
+  [screen rand] iter  1  LL = -19555.818  shares = 0.329 0.323 0.348
+  [screen rand] iter  2  LL = -18271.643  shares = 0.348 0.288 0.364
+  [screen rand] iter  3  LL = -17225.302  shares = 0.368 0.275 0.357
+  start screening LL: -15946.69 / -17225.30 -> keeping det 
+  [final] iter  1  LL = -15930.436  shares = 0.310 0.370 0.320
+  [final] iter  2  LL = -15925.411  shares = 0.311 0.370 0.320
+  [final] iter  3  LL = -15923.121  shares = 0.312 0.369 0.319
+  [final] iter  4  LL = -15921.865  shares = 0.313 0.369 0.319
+  [final] iter  5  LL = -15920.981  shares = 0.314 0.368 0.319
+  [final] iter  6  LL = -15920.280  shares = 0.315 0.367 0.318
+  [final] iter  7  LL = -15919.750  shares = 0.315 0.367 0.318
+  [final] iter  8  LL = -15919.394  shares = 0.316 0.366 0.318
+  [final] iter  9  LL = -15919.180  shares = 0.316 0.366 0.318

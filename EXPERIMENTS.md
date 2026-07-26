@@ -114,7 +114,7 @@ Either richer people genuinely buy more, or the membership model over-extrapolat
 Iteration 17, ~15 hours of compute. `hbmnl` OOF **1.23703**, blend weight **0.000**.
 Ablating the demographic channel *improves* it to 1.16405 — the opposite sign to
 `lcmnl3`, where demographics carry 93% of the gain. The difference is dimensionality:
-`lcmnl3` routes demographics through a 3-way membership softmax (56 parameters), HB
+`lcmnl3` routes demographics through a 3-way membership softmax (58 parameters), HB
 shifts all 73 part-worths per demographic (438). **Heterogeneity helps when it is
 discrete and low-dimensional and hurts when it is continuous and high-dimensional.**
 
@@ -714,7 +714,7 @@ difference is dimensionality, and the numbers are stark:
 
 | model | how demographics reach tastes | parameters |
 |---|---|---|
-| `lcmnl3` | → 3-way segment membership softmax → segment part-worths | (3−1) × 28 = **56** |
+| `lcmnl3` | → 3-way segment membership softmax → segment part-worths | (3−1) × 29 = **58** |
 | `hbmnl` | → shifts all 73 part-worths directly, per demographic | 6 × 73 = **438** |
 
 HB was given *fewer* demographics than `lcmnl3` (6 versus 28 — a measured compute

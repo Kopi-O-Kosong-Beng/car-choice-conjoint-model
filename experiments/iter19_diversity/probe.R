@@ -26,6 +26,24 @@
 #       NESTED (weights fitted on 4 folds, scored on the 5th) so the extra
 #       parameters are honestly charged for, and compared paired with
 #       respondent-clustered SEs.
+# RESULT (written after the run; the hypotheses above are left as they were).
+#   H1 CONFIRMED, and worse than stated. xgb_lw2/xgb_mono correlate 0.985-0.986
+#      on every alternative and agree on the argmax 93.2% of the time. But the
+#      logit pair is nearly as bad: mnl_pw/lcmnl3 correlate 0.958-0.960. The
+#      blend has TWO opinions (tree family, logit family), not four. Dropping
+#      any member except lcmnl3 changes the nested blend by <0.0007.
+#   H2 REFUTED. y == 4 is the EASIEST class (mean loss 1.037 vs 1.210 for y==1)
+#      and carries 27.7% of total loss against a 30.2% row share -- less than
+#      its share. Loss rises with member disagreement, but only 1.054 -> 1.174
+#      across quintiles, and the share of total loss is nearly flat.
+#   H3 NOT SUPPORTED. The alt-4 weight vector really is different (L1 |w-v| =
+#      1.12 of a possible 2), but the nested gain is +0.00108 at paired z=+1.49,
+#      one of five folds moves the wrong way, and the fitted v is unstable
+#      across folds. Decisive context: on OOF all four members reproduce the
+#      true class shares to three decimals, so the 0.223-vs-0.275 none-rate
+#      disagreement that motivated H3 DOES NOT EXIST in the data the weights
+#      would be fitted on. See probe2_gating.R for the follow-up.
+#
 #   Q5  oracle bound: best per-respondent convex combination of the 4 members,
 #       fitted and scored on the same rows (cheating -- it is an upper bound on
 #       what ANY per-respondent gating scheme could buy), plus an honest
@@ -202,7 +220,7 @@ cat(paste(sprintf("%s %.3f", MEMB, wA), collapse = " | "),
 # ============================================================================
 cat("\n########## Q3. LOSS DECOMPOSITION ##########\n")
 # disagreement score: SD across members of the alt-4 log-odds, and mean pairwise TV
-sd_l4 <- apply(sapply(OOF, function(P) logit(P[, 4])), 1, sd)
+sd_l4 <- apply(sapply(OOF, function(P) logit(pmin(pmax(P[, 4], 1e-9), 1 - 1e-9))), 1, sd)
 tv <- rowMeans(sapply(combn(M, 2, simplify = FALSE), function(ij)
   0.5 * rowSums(abs(OOF[[ij[1]]] - OOF[[ij[2]]]))))
 dt <- data.table(y = y, Case = Case, loss = A$loss, sd_l4 = sd_l4, tv = tv,
@@ -275,7 +293,7 @@ em_w <- function(rows, grp, iters = 400) {
   for (it in 1:iters) {
     num <- q * W[g, , drop = FALSE]
     R   <- num / rowSums(num)
-    S   <- rowsum(R, g); n <- as.vector(table(g))
+    S   <- rowsum(R, g); n <- tabulate(g, nbins = G)
     W   <- S / n
     W   <- pmax(W, 1e-10); W <- W / rowSums(W)
   }

@@ -1,0 +1,7 @@
+Warning message:
+package 'data.table' was built under R version 4.6.1 
+=== latent-class conditional logit, C = 3 ===
+dropped as unidentified: HU_L2 
+taste parameters per class: 85 
+membership covariates: 29 
+--- fold 1 ---

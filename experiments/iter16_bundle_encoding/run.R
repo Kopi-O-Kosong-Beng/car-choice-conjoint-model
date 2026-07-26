@@ -83,7 +83,36 @@
 # model/03_xgb_listwise.R -- same feature list, same design-share encoding
 # (ENC_COLS, kept as instructed), same custom listwise objective, same
 # hyperparameters, same seeds (123 / 7), same early-stopping split carved by Case.
-# The only change under test is the added bundle-encoding columns. nthread = 4.
+# The only change under test is the added bundle-encoding columns.
+#
+# nthread = 3, not the production 0, because this run shares the machine with other
+# agents. Thread count does not change the algorithm, only float summation order in
+# the histogram build, so it adds a whisker of noise to the paired comparison
+# against xgb_lw2 (built at nthread = 0). Recorded so it is not mistaken for a
+# design change.
+#
+# -----------------------------------------------------------------------------
+# LEAKAGE AUDIT, run before this fit -- experiments/iter16_bundle_encoding/audit_leak.R
+#   A. All 1,135 respondents sit in exactly one fold (227 per fold). Premise holds.
+#   B. SCORE SIDE, decisive: permuting every label in fold k (37-38% of fold-k rows
+#      change label) moves the fold-k encoding by max |delta| = 0.000e+00, for all
+#      five folds. No fold-k label -- least of all a scored row's own label -- can
+#      reach the feature it is scored with. This is the check iteration 12 failed.
+#   C. TRAIN SIDE, residual and bounded: leave-one-fold-out means a training row in
+#      fold j is encoded from folds != j, which includes the scored fold k. Against
+#      the doubly nested folds != {j,k} the training feature moves by at most 0.21
+#      on an SD of 0.79 (worst ratio 0.33) with correlation 0.9983, i.e. ~0.3% of
+#      its variance is fold-k dependent. That variance sits in a 91-cell global
+#      lookup table shared by every row with the same attribute levels, so it
+#      cannot address an individual fold-k respondent. It is also the exact scheme
+#      the production ENC_COLS encoding already uses at 4.68 obs/cell rather than
+#      10,137. Left as is; if this run had shown a gain it would have been rerun
+#      doubly nested before being believed.
+#   D. 91 cells, median 10,137 observations, min 4,958. Within-task SD of the
+#      composite is 0.79 across the three real alternatives, so it is not the
+#      degenerate within-task constant that killed the presence-pattern variant.
+#      The none option's raw score is constant by construction (all-zero bundle);
+#      only its task-centred version moves.
 #
 # Artifacts: model/artifacts/{oof,test}_xgb_bundle.rds
 # Compare:   model/compare.R xgb_lw2 xgb_bundle
@@ -136,7 +165,7 @@ eval_tasklogloss <- function(preds, dtrain) {
 }
 
 params <- list(eta = 0.03, max_depth = 8, min_child_weight = 20,
-               subsample = 0.8, colsample_bytree = 0.8, base_score = 0, nthread = 4)
+               subsample = 0.8, colsample_bytree = 0.8, base_score = 0, nthread = 3)
 new_api <- packageVersion("xgboost") >= "2.1.0"
 get_best_iter <- function(fit) {
   bi <- tryCatch(xgb.attr(fit, "best_iteration"), error = function(e) NULL)
