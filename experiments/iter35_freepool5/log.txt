@@ -1,0 +1,169 @@
+
+==============================================================================
+MEMBER SINGLE OOF (all three added members are WORSE than both incumbents)
+==============================================================================
+  xgb_lw2bag     1.13682   [production]
+  lcmnl3_both    1.13863   [production]
+  xgb_long       1.15516   [added: control variate]
+  xgb_wide       1.17456   [added: control variate]
+  xgb_2stage     1.17169   [added: control variate]
+
+==============================================================================
+NESTED BLEND OOF -- baseline: 2-member SIMPLEX (production, members.txt)
+==============================================================================
+  [2-simplex] fold 1 held-out logloss 1.14250
+  [2-simplex] fold 2 held-out logloss 1.10742
+  [2-simplex] fold 3 held-out logloss 1.12000
+  [2-simplex] fold 4 held-out logloss 1.14231
+  [2-simplex] fold 5 held-out logloss 1.12871
+>>> nested 1.12819  (fold sd 0.01502)
+
+==============================================================================
+NESTED BLEND OOF -- 2-member FREE (implementation validation)
+==============================================================================
+If the free implementation is correct, 2 members free should land on the same
+number as 2 members simplex -- with only two members the simplex is already
+able to express the optimum, and the temperature absorbs the scale.
+  [2-free] fold 1 held-out logloss 1.14250
+  [2-free] fold 2 held-out logloss 1.10742
+  [2-free] fold 3 held-out logloss 1.12000
+  [2-free] fold 4 held-out logloss 1.14231
+  [2-free] fold 5 held-out logloss 1.12871
+>>> nested 1.12819  (fold sd 0.01502)   delta vs simplex +0.00000
+
+==============================================================================
+NESTED BLEND OOF -- 3-member FREE (+xgb_long)  [staging, for attribution]
+==============================================================================
+  [3-free] fold 1 held-out logloss 1.14014
+  [3-free] fold 2 held-out logloss 1.10628
+  [3-free] fold 3 held-out logloss 1.11806
+  [3-free] fold 4 held-out logloss 1.13762
+  [3-free] fold 5 held-out logloss 1.12394
+>>> nested 1.12521  (fold sd 0.01404)
+
+==============================================================================
+NESTED BLEND OOF -- 5-member FREE  [THE CANDIDATE]
+==============================================================================
+  [5-free] fold 1 held-out logloss 1.13861
+  [5-free] fold 2 held-out logloss 1.10686
+  [5-free] fold 3 held-out logloss 1.11484
+  [5-free] fold 4 held-out logloss 1.13554
+  [5-free] fold 5 held-out logloss 1.12121
+>>> nested 1.12341  (fold sd 0.01351)
+
+==============================================================================
+CROSS-CHECK skipped (set CROSSCHECK=1 to enable)
+==============================================================================
+  This script's nested loop is self-contained. It was verified against
+  model/06_blend.R free mode on 27 Jul 2026: both read 1.12341.
+
+==============================================================================
+PER-FOLD HELD-OUT LOGLOSS
+==============================================================================
+    fold n_rows simplex2   free3   free5 gain_5_vs_2  gain_5_vs_3
+   <int>  <int>    <num>   <num>   <num>       <num>        <num>
+1:     1   4313  1.14250 1.14014 1.13861 0.003888274  0.001531404
+2:     2   4313  1.10742 1.10628 1.10686 0.000565045 -0.000577315
+3:     3   4313  1.12000 1.11806 1.11484 0.005164027  0.003223029
+4:     4   4313  1.14231 1.13762 1.13554 0.006771208  0.002081812
+5:     5   4313  1.12871 1.12394 1.12121 0.007500908  0.002734844
+
+  5-member beats 2-member production in 5 of 5 folds
+  5-member beats 3-member in 4 of 5 folds
+
+==============================================================================
+PER-FOLD FITTED COEFFICIENTS -- 5-member FREE (stability evidence)
+==============================================================================
+         fit xgb_lw2bag lcmnl3_both xgb_long xgb_wide xgb_2stage       eps
+      <char>      <num>       <num>    <num>    <num>      <num>     <num>
+1:     fold1      1.131      0.6552  -0.3721  -0.1700    -0.2516 4.714e-03
+2:     fold2      1.213      0.6001  -0.3670  -0.2160    -0.2690 7.208e-03
+3:     fold3      1.208      0.5753  -0.3884  -0.1933    -0.2022 2.437e-02
+4:     fold4      1.125      0.6097  -0.3163  -0.1757    -0.2473 1.444e-02
+5:     fold5      1.093      0.5913  -0.3014  -0.1907    -0.2182 1.742e-10
+6: FULL-DATA      1.151      0.6056  -0.3480  -0.1889    -0.2372 9.263e-03
+
+  stability summary (5 nested fits):
+    xgb_lw2bag     mean  +1.1540  sd  0.0534  range [ +1.0932,  +1.2128]  sign-consistent: YES
+    lcmnl3_both    mean  +0.6063  sd  0.0301  range [ +0.5753,  +0.6552]  sign-consistent: YES
+    xgb_long       mean  -0.3491  sd  0.0379  range [ -0.3884,  -0.3014]  sign-consistent: YES
+    xgb_wide       mean  -0.1891  sd  0.0179  range [ -0.2160,  -0.1700]  sign-consistent: YES
+    xgb_2stage     mean  -0.2376  sd  0.0269  range [ -0.2690,  -0.2022]  sign-consistent: YES
+
+  members priced NEGATIVE on the full-data fit: xgb_long, xgb_wide, xgb_2stage
+
+==============================================================================
+PAIRED RESPONDENT-CLUSTERED TESTS on the NESTED predictions
+==============================================================================
+
+  2-member simplex (production) -> 5-member free
+    improvement +0.00478   clustered SE 0.00124   z +3.84   95% CI [+0.00234, +0.00722]
+    wins on 57.5% of the 1135 respondents
+
+  2-member simplex (production) -> 3-member free
+    improvement +0.00298   clustered SE 0.00098   z +3.03   95% CI [+0.00105, +0.00490]
+    wins on 55.1% of the 1135 respondents
+
+  3-member free -> 5-member free
+    improvement +0.00180   clustered SE 0.00063   z +2.84   95% CI [+0.00056, +0.00304]
+    wins on 55.3% of the 1135 respondents
+
+==============================================================================
+SEGMENT-REWEIGHTED NESTED OOF  (test-share/train-share by segmentind)
+==============================================================================
+Key: <segmentind>
+   segmentind     ptr     pte     wt
+        <int>   <num>   <num>  <num>
+1:          1 0.11278 0.21673 1.9218
+2:          2 0.33744 0.03422 0.1014
+3:          3 0.04317 0.31939 7.3982
+4:          4 0.18590 0.06084 0.3272
+5:          5 0.05110 0.36882 7.2175
+6:          6 0.26960 0.00000 0.0000
+  effective respondents under segment weights: 208 of 1135
+
+  2-member simplex (production)  1.19610
+  3-member free                  1.19304   (+0.00307)
+  5-member free                  1.18813   (+0.00798)
+
+==============================================================================
+PRE-REGISTERED DECISION RULE
+==============================================================================
+  (1) nested gain +0.00478 > 0.00048 (blend seed sd) .......... PASS
+  (2) clustered z +3.84 >= 2 ............................. PASS
+  (3) positive in 5 of 5 folds (>= 4) ................... PASS
+  (4) segment-reweighted 1.18813 <= 1.19610 (no regression) ... PASS
+
+  VERDICT: ADOPT (all four conditions met)
+  NOTE: adoption is a recommendation to the user. This script does NOT edit
+        model/members.txt and does NOT touch blend.rds / test_blend.rds.
+
+==============================================================================
+WRITING ASSEMBLED ARTIFACTS (last act)
+==============================================================================
+  wrote model/artifacts/oof_blend_freepool5.rds  (NESTED oof, 21565 rows)
+  wrote model/artifacts/test_blend_freepool5.rds  (full-data fit, 4997 rows)
+  wrote submissions/sub_iterfreepool5.csv 
+  wrote experiments/iter35_freepool5/per_fold.csv / per_fold_coefficients.csv / summary.csv
+
+==============================================================================
+CSV VALIDATION (read back from disk)
+==============================================================================
+  header    OK
+  nrow      OK
+  no_na     OK
+  rowsums   OK
+  in01      OK
+  no_ids    OK
+  max |rowsum - 1| = 1.554e-15 ; min p = 6.470e-03 ; max p = 0.921538
+
+  CSV VALID.
+
+==============================================================================
+DONE
+==============================================================================
+  nested 2-member simplex (production) : 1.12819
+  nested 5-member free    (candidate)  : 1.12341  (+0.00478, z +3.84, 5/5 folds)
+  segment-reweighted                   : 1.19610 -> 1.18813
+  full-data coefs: xgb_lw2bag +1.151 | lcmnl3_both +0.606 | xgb_long -0.348 | xgb_wide -0.189 | xgb_2stage -0.237
+OK

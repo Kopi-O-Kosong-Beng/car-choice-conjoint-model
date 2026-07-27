@@ -1172,3 +1172,143 @@ disposition of each:
 
 **`model/artifacts/folds.rds` was never regenerated or written at any point**, verified
 against git.
+
+---
+
+## Iteration 35 — the combiner could not represent a negative weight ✅ ADOPTED (1.12819 → 1.12341)
+
+**This is a combiner change, not a new model.** Nothing is fitted here: no tree is grown, no
+likelihood maximised. The script consumes `oof_*.rds` / `test_*.rds` artifacts that earlier
+iterations already produced. The only thing that changes is the function that combines them.
+
+### The defect, found by reading the code rather than by searching
+
+`model/06_blend.R` fitted the pool weights as
+
+```r
+w <- exp(theta[1:M]); w <- w / sum(w)
+```
+
+a softmax onto the **simplex**. Every weight is thereby forced non-negative and forced to sum
+to one. The consequence, unexamined for thirty-four iterations, is that a **negative
+coefficient is not disfavoured — it is unrepresentable**. A member whose optimal coefficient
+is negative can only be pinned at the boundary, `w ≈ 0`, and is then reported as "earns weight
+0.000, contributes nothing" and dropped.
+
+That is the exact language `members.txt` uses about `mnl_pw` and `xgb_monobag`, and it is what
+iteration 11 recorded when it found that "adding the seven zero-weight members changes the
+nested score by 0.00005". It is also why the iteration-30 frontier probe reported its ceiling
+as **"+0.00027, at NEGATIVE weight"** — it could see the sign and had no way to act on it.
+
+**"Weight 0.000 under a non-negativity constraint" and "contributes nothing" are different
+statements.** In a log-opinion pool a member with a negative coefficient is a **control
+variate**: it subtracts a component the retained members share.
+
+### Why it works here specifically
+
+The tree family (`xgb_lw2bag`, `xgb_long`, `xgb_wide`, `xgb_2stage`) is fitted on overlapping
+views of the same design with the same algorithm, so its errors share a large common
+component. Iteration 19 measured the 4×4 error-correlation matrix's eigenvalues at
+3.726 / 0.202 / 0.056 / 0.016 — **93% of the error variance in one direction**. A strictly
+worse tree model is a noisy but nearly unbiased *reading* of that shared direction. Subtracting
+a multiple of it removes shared tree bias without removing the signal only the good tree has.
+
+Consistent with that mechanism, **only trees price negative**. `mnl_pw` prices at ≈0
+(β = −0.02) because the logit direction is already spanned by `lcmnl3_both`.
+
+### Result
+
+| combiner | nested | vs production | clustered z |
+|---|---|---|---|
+| 2-member **simplex** (production) | 1.12819 | — | — |
+| 2-member **free** | 1.12819 | −0.00000 | — |
+| 3-member free (+`xgb_long`) | 1.12521 | +0.00298 | +3.03 |
+| **5-member free** (+`xgb_wide`, `xgb_2stage`) | **1.12341** | **+0.00478** | **+3.84** |
+
+Per-fold held-out logloss, 5-member: 1.13861 / 1.10686 / 1.11484 / 1.13554 / 1.12121 —
+**positive in all five folds**.
+
+Full-data coefficients: `xgb_lw2bag` +1.151, `lcmnl3_both` +0.606, `xgb_long` −0.348,
+`xgb_wide` −0.189, `xgb_2stage` −0.237, ε 0.009. Per-fold coefficients are stable
+(`xgb_long` −0.30…−0.39).
+
+**The 2-member free row is the implementation check and it matters.** With two members the
+simplex can already express the optimum, so free and simplex must agree — and they do, to five
+decimals. The entire gain therefore comes from newly admissible negative coefficients, not
+from a different optimiser finding a better answer.
+
+Every added member is individually **worse** than both incumbents: `xgb_long` 1.15516,
+`xgb_wide` 1.17456, `xgb_2stage` 1.17169, against 1.13682 and 1.13863.
+
+### Verification — the leak question, and why the repo's usual detector is wrong here
+
+Negative weights on out-of-fold predictions is the textbook way stacked generalisation fails.
+All members' OOF predictions were generated under the *same* `folds.rds`, so their errors are
+correlated **through** the folds, and a negative coefficient could be subtracting fold-specific
+structure absent on 263 new respondents.
+
+`CLAUDE.md`'s standing detector — *"a real gain appears in every fold, a leak concentrates in
+one"* — **cannot see this failure mode**, because fold-correlated structure appears in every
+fold. "Positive in all five folds" is not evidence here.
+
+The right instrument is a **within-fold shuffle placebo**: permute the added members' OOF rows
+*inside each fold*, preserving every fold-level property (per-fold mean, variance, calibration,
+any fold-specific artefact) while destroying row-level alignment.
+
+| | gain | share of real |
+|---|---|---|
+| real | **+0.00478** | — |
+| within-fold shuffle placebo, 5 reps | **−0.00016** (sd 0.00011) | **−3%** |
+| matched-marginal noise placebo, 3 reps | −0.00018 | −4% |
+
+The placebo recovers **nothing**, and is reliably slightly negative — what you expect from
+adding uninformative members that cost a little fitted-parameter noise. Two independently
+constructed nulls agree.
+
+### The other five checks
+
+| check | result |
+|---|---|
+| **member-level `folds_b`** | 2-member 1.13248 → 4-member 1.12963, gain +0.00284 (z +3.16) vs matched production gain +0.00251 — **113% retention** (bar is 80%) |
+| **segment-reweighted** | 1.19610 → 1.18811, **167% retention** |
+| **multiplicity** | 46 candidates scanned; **31 price negative, 15 of those improve the blend**. Bonferroni needs z ≥ 3.27; measured z is +3.84 |
+| **deployment / regime asymmetry** | re-applying each member's own OOF→test drift as a shock moves the 5-member blend 0.0055 vs the 2-member's 0.0048 — **~15% amplification**, not catastrophic |
+| **guard rails** | mean p4 0.2377, entropy 1.1626, max prob 0.9216, **zero rows > 0.95, zero probabilities < 1e-3** |
+
+The `folds_b` arm is **member-level**, not weight-level: `xgb_long` and `xgb_wide` had their
+OOF regenerated under the independent respondent grouping. `xgb_2stage_b` was unavailable, so
+that arm is the 4-member subset — which makes it conservative, not optimistic.
+
+The multiplicity result is the answer to "you scanned 30 artifacts and kept the best three."
+Thirty-one of forty-six price negative. This is a **property of the tree family**, not three
+lucky picks.
+
+### Honest reflection
+
+Three things worth recording.
+
+**The finding came from reading the combiner, not from searching model space.** Eleven
+iterations of search the night before produced one adoption worth +0.0003, and a frontier probe
+had declared member addition closed at +0.00027. That probe was *correct about what it
+measured* and wrong about what it concluded, because it inherited the constraint it was
+measuring under. The cheapest remaining gain was a line of code nobody had questioned.
+
+**`model/blendfast.R` has used unconstrained coefficients all along.** The machinery to find
+this existed in the repo for a day and was only ever pointed at screening existing member sets,
+never at member *addition*. The tool was right there.
+
+**`xgb_pt` ranks first in the marginal table at +0.00444 and is excluded.**
+`experiments/iter30_decorr/run.R` states in its own header that the run was killed at fold 3
+and any `xgb_pt` artifact from it is misnamed and must not be cited. The top of the candidate
+table is a trap; the ⛔ discipline is what keeps it out.
+
+### Status
+
+`members.txt` is **not** changed by this iteration. The 5-member pool is a validated candidate
+with a ready submission CSV; production remains the 2-member blend until the board says
+otherwise. Local 1.12341 forecasts **~1.189–1.195** public (segment-anchored vs transfer-rate
+routes disagree by ~0.005).
+
+**Note for the entropy-floor discussion elsewhere in this file:** 1.12341 sits *below* the
+quoted 1.125–1.133 floor. That floor was estimated over *models* and never priced the
+*combiner*, so it was too conservative.
