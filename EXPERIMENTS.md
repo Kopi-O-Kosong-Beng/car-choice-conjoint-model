@@ -1441,3 +1441,88 @@ read as a curiosity rather than a warning.
 Cost: one submission slot, and the board is unchanged. Bought: the knowledge that ~0.005 of the
 apparent local edge was a fitting-regime artifact — discovered *before* it went into a final
 submission rather than after.
+
+---
+
+## Iteration 45 — the ensemble's randomness is already optimal ⭕ NULL (both directions)
+
+**A rare shape of result: two opposing hypotheses, both refuted, and the pair is worth more
+than either would have been alone.**
+
+### The gap, which was an error rather than an omission
+
+Production ships `xgb_lw2bag`: a 10-seed bag at `subsample = 0.8, colsample_bytree = 0.8`.
+Those values were tuned in **iteration 06, for a SINGLE model**, before bagging existed in this
+project. Iteration 26 then wrapped ten seeds around them and changed nothing else — its own
+header reads *"ONE CHANGE UNDER TEST: the number of seeds averaged."*
+
+So production has been running single-model hyperparameters inside an ensemble, and nobody had
+ever checked whether that is right.
+
+### 45a — hypothesis: an ensemble wants MORE randomness. REFUTED.
+
+The reasoning was derived, not guessed:
+
+```
+loss(bag) ~ bias^2 + rho * var + (1 - rho) * var / S
+```
+
+Raising per-model randomness raises `var` and lowers `rho`. At S = 1 that trade is bad, so
+single-model tuning drives randomness down. At S = 10 the `(1-rho)var/S` term is divided by
+ten, so cutting correlation should be worth more than the variance it costs — and the ensemble
+optimum should sit at MORE randomness than 0.8/0.8.
+
+Pre-registered direction: the winner must have `sub <= 0.8 AND col <= 0.8`, so that a null
+could not be re-read as a win.
+
+12 points, 3 seeds each, nested, fixed 540 rounds. **Every point with more randomness was
+worse, monotonically.** The winner was the boundary — the incumbent 0.8/0.8 — at 1.13606
+against the matched baseline `xgb_lw2fr` of 1.13604, a difference of 0.00002 and pure seed
+noise.
+
+### 45b — the opposite hypothesis, registered separately. ALSO REFUTED.
+
+The 45a trend pointed *outside* the grid, toward less randomness. That is a **new hypothesis**,
+not a reinterpretation of the old one, so it was registered as such before running, and the
+multiplicity was carried forward rather than reset (16 points searched in total, bar z >= 2.98).
+
+4 points at `sub, col ∈ {0.9, 1.0}`. All worse, and increasingly so.
+
+### The combined surface — 16 points
+
+| sub | col | OOF | | sub | col | OOF |
+|---|---|---|---|---|---|---|
+| 0.5 | 0.4 | 1.14100 | | 0.8 | 0.4 | 1.13829 |
+| 0.5 | 0.6 | 1.13924 | | 0.8 | 0.6 | 1.13658 |
+| 0.5 | 0.8 | 1.13776 | | **0.8** | **0.8** | **1.13606** ← minimum |
+| 0.6 | 0.6 | 1.13780 | | 0.9 | 0.9 | 1.13711 |
+| 0.6 | 0.8 | 1.13726 | | 0.9 | 1.0 | 1.13797 |
+| 0.7 | 0.6 | 1.13641 | | 1.0 | 0.9 | 1.14091 |
+| 0.7 | 0.8 | 1.13707 | | 1.0 | 1.0 | 1.14554 |
+
+**Unimodal, with an interior optimum exactly at production's setting.**
+
+### What this is actually worth
+
+Nothing for the score, and that was the likely outcome. But it converts a live assumption into
+a measurement: **the single-model optimum and the ensemble optimum coincide here.** Iteration
+06's tuning survives being wrapped in a 10-seed bag, which nobody had verified and which the
+bias-variance algebra above says should NOT generally be true.
+
+It also closes the tree's randomness axis in both directions, so no future iteration needs to
+revisit it.
+
+### Reflection
+
+Two things worth recording.
+
+**The mechanism was sound and the prediction was still wrong.** `loss(bag) = bias² + ρ·var +
+(1−ρ)var/S` is correct; what it does not tell you is where this particular ensemble sits on the
+`ρ(randomness)` curve. The 10-seed bag's members are evidently already decorrelated enough that
+extra randomness buys no `ρ` reduction worth its variance. A derived hypothesis is still a
+hypothesis.
+
+**This was only affordable because of a failed experiment.** Iteration 39 removed the
+early-stopping carve; its change did not survive the blend gate, but the harness it built cut
+a fit from ~3 minutes to ~11 seconds by eliminating the per-round R callback. A 16-point grid
+was not feasible in this project before that. Negative results build infrastructure.
