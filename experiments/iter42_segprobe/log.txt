@@ -1,0 +1,127 @@
+
+==============================================================================
+SECTION 1 -- DATA, MASKS, CONSTANTS
+==============================================================================
+  train tasks 21565   test tasks 4997   (No 21566..26562, contiguous ascending)
+  luxury = segmentind in {3,5}
+  train luxury row share 0.09427   (2033 rows, 107 of 1135 respondents)
+  TEST  luxury row share 0.68821   (3439 rows, 181 of 263 respondents)
+  r* (probe 1, score 1.499) = 0.266521    3-dp band [0.26607, 0.26698]
+  ds/dr_non = -(1-f)*log3 = -0.34253
+
+==============================================================================
+SECTION 2 -- GATE 0: OOF CORRECTNESS REHEARSAL
+==============================================================================
+
+  per-segment table (OOF, 5-member free-sign nested pool)
+    segment        observed  predicted       miss
+    all             0.30230    0.30738   +0.00508
+    luxury          0.15986    0.21307   +0.05321
+    non-lux         0.31712    0.31719   +0.00007
+
+  nested logloss  base                        1.12341
+  nested logloss  1-moment (d  = -0.02834)      1.12334   (gain +0.00007)
+  nested logloss  2-moment (dl = -0.39908,
+                            dn = -0.00040)      1.12245   (gain +0.00089 over 1-moment)
+
+  GATE 0 assertions (tolerance 1e-4)
+    obs_all   PASS
+    obs_lux   PASS
+    obs_non   PASS
+    prd_all   PASS
+    prd_lux   PASS
+    prd_non   PASS
+    base_ll   PASS
+    d1        PASS
+    ll_1m     PASS
+    dl        PASS
+    dn        PASS
+    ll_2m     PASS
+  GATE 0: PASS (all 12)
+
+==============================================================================
+SECTION 3 -- GATE 2: FROZEN RESPONSE TABLE G(r_non)
+==============================================================================
+  raw shipped p4 (unshifted 5-member pool): all 0.23766 | lux 0.20960 | non 0.29960
+  uniform comparator delta  w=0.85: +0.15311 (ships p4 0.26219)
+  uniform comparator delta  w=1.00: +0.17922 (ships p4 0.26652)
+
+  wrote experiments/iter42_segprobe/gain_curve.csv (141 rows, r_non 0.2000..0.5500 step 0.0025)
+
+  ANCHOR CROSS-CHECK (pre-registered expectations +0.0003 / +0.005 / +0.0057)
+    r_non 0.3171 -> r_lux 0.2436 | G(w=0.85) +0.00030 | G(w=1.00) +0.00031
+    r_non 0.3924 -> r_lux 0.2095 | G(w=0.85) +0.00443 | G(w=1.00) +0.00452
+    r_non 0.4000 -> r_lux 0.2060 | G(w=0.85) +0.00562 | G(w=1.00) +0.00574
+
+  ADOPT / ABSTAIN BANDS over r_non (G >= 0.00100 under BOTH w = 0.85 and 1.00)
+    ADOPT   r_non in [0.2000, 0.3025]   (r_lux [0.2502, 0.2967])   G_w85 [+0.00114, +0.02278]
+    ABSTAIN  r_non in [0.3050, 0.3600]   (r_lux [0.2242, 0.2491])   G_w85 [+0.00000, +0.00096]
+    ADOPT   r_non in [0.3625, 0.5500]   (r_lux [0.1381, 0.2230])   G_w85 [+0.00111, +0.05888]
+
+  minimum of G_w85 at r_non = 0.3325 (G = +0.000000) -- the ABSTAIN trough,
+  which is where the 2-moment projection coincides with the uniform one.
+  story B r_non = 0.3171 sits 0.0154 from the trough; story A r_non = 0.3924 sits 0.0599.
+
+==============================================================================
+SECTION 4 -- IDENTIFICATION MAP (score -> verdict lookup)
+==============================================================================
+  inversion: r_non = [log6 - (s - f*log4)/(1-f)]/log3, f = 0.68821
+  anchor predictions:  story B (r_non 0.3171) -> s = 1.4041
+                       story A (r_non 0.3924) -> s = 1.3783
+  separation 0.0258 = 26 x the 0.001 rounding band
+
+  wrote experiments/iter42_segprobe/identification.csv (201 rows, s 1.300..1.500 step 0.001)
+
+  VERDICT MAP over the returned score s (Gates 3+4+5 applied)
+    s in [1.300, 1.307]  ->  r_non [0.6006, 0.6210]  ->  INFEASIBLE
+    s in [1.308, 1.389]  ->  r_non [0.3612, 0.5976]  ->  ADOPT
+    s in [1.390, 1.408]  ->  r_non [0.3057, 0.3583]  ->  ABSTAIN
+    s in [1.409, 1.461]  ->  r_non [0.1510, 0.3028]  ->  ADOPT
+    s in [1.462, 1.500]  ->  r_non [0.0371, 0.1481]  ->  INFEASIBLE
+
+  lookup s = 1.378 -> r_non 0.3933, r_lux 0.2091, G_w85 +0.00456, 4-corner min +0.00376 -> ADOPT
+
+  lookup s = 1.404 -> r_non 0.3174, r_lux 0.2435, G_w85 +0.00029, 4-corner min +0.00012 -> ABSTAIN
+
+==============================================================================
+SECTION 5 -- GATE 1: PROBE CSV
+==============================================================================
+
+  GATE 1 assertions
+    nrows      PASS
+    header     PASS
+    No_range   PASS
+    rowsum     PASS
+    lux_vals   PASS
+    non_vals   PASS
+    lux_count  PASS
+    lux_share  PASS
+    lux_resp   PASS
+  GATE 1: PASS (all 9)
+  wrote submissions/probe_seg.csv -- 3439 luxury rows at (.25,.25,.25,.25), 1558 non-luxury at (1/6,1/6,1/6,.5)
+  THIS FILE IS NOT UPLOADED BY THIS ITERATION. submissions/probe_alt4.csv untouched.
+
+==============================================================================
+SECTION 6 -- DEFERRED DEPLOYMENT FUNCTION (defined, unit-tested, NOT run for real)
+==============================================================================
+
+  unit test  s = 1.378 (story A): r_non 0.3933 r_lux 0.2091 G +0.00456 -> ADOPT
+  unit test  s = 1.404 (story B): r_non 0.3174 r_lux 0.2435 G +0.00029 -> ABSTAIN (GATE 4 or 5)
+    unit-test storyA_adopt    PASS
+    unit-test storyB_abstain  PASS
+    unit-test no_write_A      PASS
+  GATE 6 rehearsal on the story-A matrix:
+    maxp       PASS
+    minp       PASS
+    rowsum     PASS
+    withinbuy  PASS
+    hits       PASS
+    dl -0.00297  dn +0.41824  shipped overall p4 0.26219
+
+  apply_segcal() has NOT been called with a real score. No RDS, no submission CSV
+  written. test_blend_freepool5_cal.rds remains the shipping candidate.
+
+==============================================================================
+OK iter42
+==============================================================================
+OK iter42

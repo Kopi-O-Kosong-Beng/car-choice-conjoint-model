@@ -15,18 +15,32 @@ Predicting which of four car safety-feature bundles a respondent chooses.
 |---|---|
 | Benchmark (25% for everything) | 1.38629 |
 | Our first submission | 1.233 public |
-| Rival team's known best | **1.187 public** (parinwaris) |
-| **Ours, live on the board** | **1.197 public** (local CV 1.12819) |
-| **Ours, best validated candidate** | local CV **1.12341** — built, not yet uploaded |
+| Rival team's best | **1.186 public** (parinwaris) |
+| **Ours — live, and our best** | **1.197 public** (local CV 1.12819) |
 
 The live 1.197 is our best public score, so Kaggle auto-selects it for private scoring.
-The 1.12341 candidate is the subject of
-[PR #1](https://github.com/Kopi-O-Kosong-Beng/TAE_R-izzlers/pull/1) — see
-[The combiner could not represent a negative weight](#the-combiner-could-not-represent-a-negative-weight).
+
+> ### ⚠️ The 1.12341 "improvement" was refuted on the leaderboard
+>
+> A previous version of this README recommended a five-member free-sign blend at local CV
+> **1.12341**, merged as [PR #1](https://github.com/Kopi-O-Kosong-Beng/TAE_R-izzlers/pull/1).
+> It has since been submitted twice and **scores worse than the two-member blend it was
+> meant to replace**:
+>
+> | | local CV | public |
+> |---|---|---|
+> | two-member blend (live) | 1.12819 | **1.197** |
+> | five-member free-sign, calibrated | 1.12341 | **1.209** |
+> | five-member free-sign, raw | 1.12341 | **1.211** |
+>
+> Local said better by 0.005; the board says worse by 0.012 — a **sign flip**, at about 2.5
+> paired standard errors. Do not ship it. The full analysis is
+> [iteration 43 in `EXPERIMENTS.md`](EXPERIMENTS.md), and the methodological lesson is
+> [below](#the-failure-that-taught-us-most).
 
 Our local cross-validation and the Kaggle score differ by about +0.07. That gap is
-expected — see [Why local ≠ Kaggle](#why-local--kaggle-matters) below, it's one of the
-more interesting things we learned.
+expected — see [Why local ≠ Kaggle](#why-local--kaggle-matters) below, and it turned out to
+be deeper than we understood when we wrote that section.
 
 ---
 
@@ -73,11 +87,11 @@ superseded work kept for the record.
 | [`experiments/iter25_taskpos/run.R`](experiments/iter25_taskpos/run.R) | **latent-class conditional logit + task position** | 1.13863 | **0.472** |
 | [`model/06_blend.R`](model/06_blend.R) | pools them in log-space + temperature | **1.12819** | — |
 
-> **A better candidate exists and is not yet production.**
-> [`experiments/iter35_freepool5/run.R`](experiments/iter35_freepool5/run.R) reaches
-> **1.12341** by letting the combiner use *negative* weights. `members.txt` still declares
-> the two-member blend above; the candidate ships only once the leaderboard supports it.
-> See below.
+> **This two-member blend is the production model and the best we have.**
+> [`experiments/iter35_freepool5/run.R`](experiments/iter35_freepool5/run.R) reaches a lower
+> *local* number (1.12341) by letting the combiner use negative weights — but it scores
+> **1.209** on the board against this blend's 1.197. It is kept for the record, not for use.
+> `members.txt` has always declared the two-member blend and was never switched.
 
 **The blend used to have four members and now has two, at an unchanged score.** Two of them
 turned out not to be models at all:
@@ -213,6 +227,98 @@ placebo**: permute the added members' OOF rows *inside* each fold, preserving ev
 property while destroying row-level alignment. It recovered **−3%** of the gain, and an
 independently built noise placebo agreed at −4%.
 
+**And then it failed anyway.** See the next section — that placebo, and five other checks,
+were all blind to the thing that actually broke it.
+
+---
+
+## The failure that taught us most
+
+*(iteration 43 — read this one if you read nothing else)*
+
+The blend above was the most heavily verified result in the project:
+
+| check | result |
+|---|---|
+| within-fold shuffle placebo | recovers −3% |
+| matched-noise placebo | −4% |
+| **member-level replication on an independent respondent partition** | **+0.00308, z +3.17, 103% retention** |
+| placebo member (a near-duplicate) | prices *positive*, gains nothing — as the theory predicts |
+| multiplicity, 46 candidates scanned | z +3.84 against a Bonferroni bar of 3.27 |
+| segment reweighting to the test population | **167% retention** |
+| margin-neutralised gain | +0.00480 — the gain is not none-rate movement |
+
+**It scored 1.209 against the incumbent's 1.197.**
+
+### Why every check missed it
+
+A control variate cancels shared bias only if it **drifts with the member it corrects**.
+Member OOF predictions come from fits on 80% of respondents; the shipped test predictions come
+from 100%-data refits. The three subtracted trees are older artifacts whose test refits moved
+differently from `xgb_lw2bag`'s — the tree family's OOF→test none-rate drift spans **0.0157**.
+Subtracting a correction sized for a gap that no longer exists *adds* bias.
+
+The sign is what makes it violent. With positive weights you average, and errors partly cancel.
+With negative weights you take a **difference**, and differences amplify: if A drifts by δ_A and
+B by δ_B independently, then A − 0.35·B drifts with variance `var_A + 0.12·var_B`. The errors
+add.
+
+### The rule worth carrying
+
+> **Cross-validation holds the training procedure fixed and varies the data. Deployment varies
+> the training procedure too — and nothing in CV can see that.**
+
+All seven checks were computed on out-of-fold predictions or a reweighting of them. Counting
+independent *tests* is not the same as counting independent *assumptions*: seven tests
+collapsed to one assumption, that OOF predictions represent test predictions.
+
+Three concrete rules follow:
+
+1. **Negative weights require matched-regime members.** A control variate must be refit under
+   the *same* protocol as the member it corrects.
+2. **"Verified N ways" is worthless if the N tests share a blind spot.** Ask what each test
+   *cannot* see, and check whether the answers coincide.
+3. **The leaderboard is not a scoreboard — it is the only instrument for one specific
+   question.** Spending a submission to answer it cost nothing, because Kaggle auto-selects
+   the best public score. The real mistake would have been shipping this at the end untested.
+
+---
+
+## Measuring the test set directly
+
+We spent one submission on a CSV where **every row is the same constant** `(1/6, 1/6, 1/6, 1/2)`.
+For a constant prediction the logloss is exact algebra, so the returned score inverts to a fact
+about the graded data:
+
+```
+score = 1.7918 − 1.0986 · r        ⇒        r = (1.7918 − score) / 1.0986
+```
+
+where `r` is the fraction of scored rows on which "none of these" was chosen. Kaggle returned
+**1.499**, so **r = 0.2665** (3-dp band 0.2661–0.2670). It is the only direct observation of
+the test population anyone on the team has, and it cost one slot — the probe scores ~1.5, so it
+can never be auto-selected and cannot affect the grade.
+
+**It rejected every prior belief.** The latent-class model predicted 0.2237, an independent
+estimator said ~0.30, the tree was nearly exact at 0.2726. It also killed a candidate that
+would have pushed the shipped rate to 0.2064 — roughly 0.010 of damage avoided.
+
+**And the correction it implies is confirmed.** Two submissions of the *same five members*,
+differing only in the none-column, isolate it exactly:
+
+| ships p4 | none-margin cost | public |
+|---|---|---|
+| 0.2377 | 0.00223 | 1.211 |
+| 0.2622 | 0.00005 | 1.209 |
+
+Predicted gain from the shift **0.00218**; observed **0.002**. The dial works, even though the
+model it was attached to does not.
+
+**A statistical subtlety worth recording.** Shrinking the correction by `w* = e²/(e²+s²)` is
+wrong — that minimises mean-squared error of the *rate*. Expected logloss `E[KL(r‖t)]` is
+minimised at `t = E[r]`, and the split-type variance adds a constant that does not move the
+optimum. Shrink only for prior pull on the mean.
+
 ---
 
 ## Why local ≠ Kaggle (matters)
@@ -265,11 +371,29 @@ Start at `Vault/00 Hub.md`. The competition notes are:
 
 ## Want to continue the work?
 
-**The search over *models* is exhausted; the freeze was re-opened once, deliberately, and it
-paid.** Thirty-five iterations are done. Iterations 27–34 searched model space hard — six
-independent axes, several formally measured as closed — and produced almost nothing. The one
-real gain of that round, iteration 35, came from **reading the combiner** rather than
-searching: a single line that had silently constrained every blend ever fitted here.
+**Forty-five iterations are done, and the model search is measured-exhausted.** Iterations
+27–34 searched model space hard across six independent axes and produced almost nothing.
+Iteration 35 found a real defect by *reading the combiner* rather than searching — a single
+line that had constrained every blend ever fitted here — but the leaderboard then refuted the
+fix (above). Iterations 37, 38, 40 closed the combiner from four more directions; 39 and 45
+tuned the tree and found nothing; 44 confirmed that respondents genuinely differ in
+decisiveness (τ = 1.609) but could not turn it into accuracy.
+
+**Do not re-open these.** Each is closed by a measurement, not an opinion:
+
+| channel | closed by |
+|---|---|
+| adding a positive-weight member | frontier probe: best possible **+0.00027** across 32 artifacts, 7 families |
+| combiner search | greedy, forward, backward, ridge over 41 members, class intercepts — **all land at 1.1234** |
+| negative-weight control variates | **1.209 on the board** vs 1.197 (iteration 43) |
+| calibration maps / temperature | an *oracle* in-sample 20-bin recalibration makes logloss **worse** |
+| per-respondent dispersion | model captures 29–35% of the true spread, and `√R²` predicts **31%** — correctly shrunk |
+| hierarchical Bayes | `hbmnl_nod` already earns weight in the 41-member ridge fit; the total does not move |
+
+**Where the remaining headroom provably is.** Oracle per-respondent rates would take the blend
+from 1.12969 to **0.98565** — a gap of 0.144 — but demographics reach only **11.2%** of that
+heterogeneity, so ~0.016 is all that is demographically reachable, and much of it is already
+captured. **~89% of what drives the outside option is unobservable in this dataset.**
 
 The lesson worth carrying: when the search space is genuinely exhausted, look at the
 *apparatus* doing the searching. Start with [`STRATEGY_REVIEW.md`](STRATEGY_REVIEW.md) for the

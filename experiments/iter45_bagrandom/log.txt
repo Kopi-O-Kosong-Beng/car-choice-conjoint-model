@@ -1,0 +1,14 @@
+
+==============================================================================
+SCREENING GRID: 12 points x 3 seeds x 5 folds, fixed 540 rounds
+==============================================================================
+  baseline for comparison: xgb_lw2fr (fixed rounds, 0.8/0.8) OOF 1.13604
+  pre-registered direction: winner must have sub <= 0.8 AND col <= 0.8
+
+  sub 0.5 col 0.4 -> OOF 1.14100   (2.7 min)
+  sub 0.5 col 0.6 -> OOF 1.13924   (2.7 min)
+  sub 0.5 col 0.8 -> OOF 1.13776   (2.7 min)
+  sub 0.6 col 0.4 -> OOF 1.13921   (2.6 min)
+  sub 0.6 col 0.6 -> OOF 1.13780   (2.7 min)
+  sub 0.6 col 0.8 -> OOF 1.13726   (2.7 min)
+  sub 0.7 col 0.4 -> OOF 1.13820   (2.7 min)

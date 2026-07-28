@@ -1,0 +1,6 @@
+Estimating SMNL model 
+fit 29.1 min | tau 1.6091
+Error in UseMethod("predict") : 
+  no applicable method for 'predict' applied to an object of class "gmnl"
+Calls: matrix -> predict
+Execution halted

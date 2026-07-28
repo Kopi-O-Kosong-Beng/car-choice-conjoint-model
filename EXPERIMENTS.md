@@ -1312,3 +1312,132 @@ routes disagree by ~0.005).
 **Note for the entropy-floor discussion elsewhere in this file:** 1.12341 sits *below* the
 quoted 1.125–1.133 floor. That floor was estimated over *models* and never priced the
 *combiner*, so it was too conservative.
+
+---
+
+# ⚠️ ITERATION 43 — THE FREE-SIGN BLEND FAILED ON THE TEST SET (1.12341 local → 1.209 public)
+
+**This is the most important entry in this file.** A result that passed six independent local
+checks, replicated at 103% on an independent respondent partition, cleared a Bonferroni
+multiplicity bar, and retained 167% under segment reweighting was **wrong on the test set** —
+and wrong by more than its own claimed gain, with the sign reversed.
+
+## The numbers
+
+| | local nested | public |
+|---|---|---|
+| 2-member simplex blend (`sub_20260726_2328.csv`) | 1.12819 | **1.197** |
+| 5-member free-sign + calibration (`sub_20260727_2200_free5cal85.csv`) | **1.12341** | **1.209** |
+
+Local said **better by 0.00478**. The board said **worse by 0.012** — a sign flip of roughly
+2.5 paired public SE (0.0047), so not noise.
+
+## What was under test
+
+The free-sign combiner (iteration 35): `model/06_blend.R` had fitted weights as a softmax onto
+the simplex, making negative coefficients unrepresentable for 34 iterations. Freeing the sign
+admitted three strictly *worse* tree models as **control variates** for the tree family's shared
+error direction (iteration 19 measured 93% of error variance in one direction):
+
+```
+xgb_lw2bag +1.151 | lcmnl3_both +0.606 | xgb_long -0.348 | xgb_wide -0.189 | xgb_2stage -0.237
+```
+
+## Why it failed — the mechanism
+
+A control variate cancels bias only if it **drifts with the member it corrects**. Member OOF
+predictions come from fits on 80% of respondents (4 of 5 folds); the shipped test predictions
+come from 100%-data refits. `xgb_long`, `xgb_wide` and `xgb_2stage` are older artifacts whose
+test refits shifted differently from `xgb_lw2bag`'s. Subtracting 0.348 × something that moved
+the wrong way does not remove bias — **it adds it.**
+
+The drift was measured beforehand and under-weighted: the tree family's OOF→test mean-p4 shift
+spans **0.0157** (`xgb_lw2bag` −0.0346, `xgb_long` −0.0189, `xgb_wide` −0.0280,
+`xgb_2stage` −0.0245), and a shock simulation put the amplification at ~15%. The realised cost
+was several times that. **A 15% haircut was forecast; a sign flip occurred.**
+
+## THE METHODOLOGICAL FINDING — this is the report's headline
+
+**Six independent checks passed, and all six were blind to the same thing.**
+
+| check | result | why it could not see the failure |
+|---|---|---|
+| within-fold shuffle placebo | recovers −3% | computed on OOF |
+| matched-noise placebo | −4% | computed on OOF |
+| member-level `folds_b` replication | +0.00308, z +3.17, **103% retention** | computed on OOF, different partition |
+| placebo member (`xgb_mono_b`) | prices positive, gains nothing | computed on OOF |
+| multiplicity (46 candidates) | z +3.84 vs Bonferroni bar 3.27 | computed on OOF |
+| segment reweighting | **167% retention** | *reweighted* OOF — still OOF |
+| margin-neutralised gain | +0.00480, z +3.85 | computed on OOF |
+
+Every one was computed on out-of-fold predictions or a reweighting of them. **The failure lives
+in the gap between OOF and test, and no amount of cross-validation reaches across that gap,
+because CV never leaves the training population.**
+
+Counting independent *tests* is not the same as counting independent *assumptions*. Seven tests
+collapsed to one assumption: that OOF predictions represent test predictions. They do not, when
+the two are produced under different fitting regimes.
+
+## Three rules derived from this
+
+1. **Negative weights require matched-regime members.** A control variate must be refit under
+   the *same* protocol as the member it corrects, or its correction is meaningless at deploy
+   time. Ours were artifacts built at different times under different early-stopping draws.
+2. **"Verified N ways" is worthless if the N tests share a blind spot.** Ask what each test
+   *cannot* see, and check whether the answers coincide.
+3. **The leaderboard is not a scoreboard — it is the only instrument for one specific
+   question.** Spending a submission to answer it was correct and cost nothing, because Kaggle
+   auto-selects the best public score. The real mistake would have been shipping this at the
+   end without ever testing it.
+
+## Decomposition — done WITHOUT spending a second slot
+
+The submission bundled two changes: the free-sign members and the probe-derived none-margin
+shift. They can be separated by bounding, because the shift's *entire possible influence* is the
+spread of the none-margin cross-entropy across the versions we built:
+
+| file | ships p4 | miss vs measured 0.26651 | none-margin cost | public |
+|---|---|---|---|---|
+| `sub_20260726_2328.csv` (live, 2-member) | 0.2480 | −0.0185 | 0.00090 | **1.197** |
+| `sub_20260727_1420.csv` (5-member, uncalibrated) | 0.2377 | −0.0289 | 0.00224 | not sent |
+| `sub_20260727_2100_free5cal.csv` (w = 0.60) | 0.2550 | −0.0115 | 0.00035 | not sent |
+| `sub_20260727_2200_free5cal85.csv` (w = 0.85) | 0.2622 | −0.0043 | **0.00005** | **1.209** |
+
+The calibration can move the score by at most **0.00224** in either direction. The observed
+damage is **0.012** — more than five times that. **Therefore the free-sign members cost ~0.012
+on their own**, and the version we shipped was the best-calibrated of the four.
+
+Corollary: submitting the uncalibrated `sub_20260727_1420.csv` would score **~1.211**, not
+better — same five members, dial set further from the measured truth. It was not worth a slot.
+
+Second corollary: an isolating experiment (2-member + calibration alone) would measure a
+quantity worth at most 0.0009 — **below Kaggle's three-decimal resolution**. It cannot return a
+readable answer and was therefore *not* run, despite being the obvious next step.
+
+## What survives
+
+- **The probe measurement stands.** r = 0.2665 is exact algebra on a returned score and is
+  untouched by this failure. It remains the only direct observation of the graded population.
+- **The simplex-constraint finding stands as a fact about the code**: negative weights genuinely
+  were unrepresentable for 34 iterations, and members genuinely were being recorded as
+  "contributes nothing" when their optimal coefficient was negative. What does *not* survive is
+  the conclusion that exploiting it improves the shipped model.
+- **The 2-member blend at 1.197 is unaffected** and remains the auto-selected private entry.
+
+## Honest reflection
+
+The free-sign result was the most thoroughly verified finding in this project and it was wrong.
+It was not wrong because the verification was sloppy — every individual test was sound, and the
+mechanism (control variates cancelling a shared error direction) is real and is visible in the
+OOF data. It was wrong because **the object being verified was not the object being shipped**.
+
+The gap between "this blend of OOF predictions scores better" and "this blend of test
+predictions scores better" is exactly the gap the whole exercise assumed away. Iteration 39 had
+already hinted at it: killing the early-stopping carve gained +0.00252 at member level but only
++0.00020 at blend level, because the control variates were absorbing regime-specific variance.
+That was a signal that the negative weights were fitting something regime-dependent, and it was
+read as a curiosity rather than a warning.
+
+Cost: one submission slot, and the board is unchanged. Bought: the knowledge that ~0.005 of the
+apparent local edge was a fitting-regime artifact — discovered *before* it went into a final
+submission rather than after.
