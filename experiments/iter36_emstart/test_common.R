@@ -66,4 +66,14 @@ expect_error(write_lc_outputs(
   oof = p, test = p, config = cfg, settings = written$settings, split = "",
   historical_oof = hist_oof, historical_test = hist_test))
 
+child_cfg <- lc_experiment_config("b", "2207", "D:/path with spaces/bundle.rds", "1")
+install_lc_child_env(child_cfg)
+runner <- file.path(R.home("bin"),
+                    if (.Platform$OS.type == "windows") "Rscript.exe" else "Rscript")
+probe <- paste(
+  "cat(paste(Sys.getenv(c('LC_RANDOM_START_SEED','LC_EXPERIMENT_OUT',",
+  "'LC_SKIP_FULL_TEST')), collapse='|'))")
+child_env <- system2(runner, c("-e", shQuote(probe)), stdout = TRUE, stderr = TRUE)
+stopifnot(identical(child_env, "2207|D:/path with spaces/bundle.rds|1"))
+
 cat("test_common.R: OK\n")

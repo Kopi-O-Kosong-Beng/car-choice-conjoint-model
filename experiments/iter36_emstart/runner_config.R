@@ -28,3 +28,11 @@ write_lc_outputs <- function(oof, test, config, settings, split,
   saveRDS(test, historical_test)
   invisible(c(historical_oof, historical_test))
 }
+
+install_lc_child_env <- function(config) {
+  values <- list(
+    LC_RANDOM_START_SEED = as.character(config$random_seed),
+    LC_EXPERIMENT_OUT = config$output,
+    LC_SKIP_FULL_TEST = if (config$skip_full_test) "1" else "0")
+  invisible(do.call(Sys.setenv, values))
+}
