@@ -152,6 +152,9 @@ N_MAX    <- as.integer(Sys.getenv("LC_MAX", "25"))     # further EM iters for th
 TOL      <- as.numeric(Sys.getenv("LC_TOL", "1e-5"))   # relative tol on the mixture LL
 
 OUTDIR <- "experiments/iter11_latent_class"
+source("experiments/iter36_emstart/common.R")
+source("experiments/iter36_emstart/runner_config.R")
+EXP_CFG <- lc_experiment_config(SPLIT)
 
 # =============================================================================
 # 1. Design matrices
@@ -497,7 +500,7 @@ fit_one <- function(train_tasks) {
   }
 
   starts <- list(list(kind = "det", seed = 0),
-                 list(kind = "rand", seed = 4242))
+                 list(kind = "rand", seed = EXP_CFG$random_seed))
   scr <- lapply(seq_along(starts), function(i) {
     s <- starts[[i]]
     em_fit(X, yrow, resp, Zf, C, init_H(C, length(ucase), nr, s$kind, s$seed),
@@ -564,17 +567,19 @@ if (C > 1) {
 }
 
 oof <- clip_norm(oof)
-saveRDS(data.table(No = tasks$No[tr_t], p1 = oof[, 1], p2 = oof[, 2],
-                   p3 = oof[, 3], p4 = oof[, 4]),
-        sprintf("model/artifacts/oof_%s.rds", NAME))
+oof_dt <- data.table(No = tasks$No[tr_t], p1 = oof[, 1], p2 = oof[, 2],
+                     p3 = oof[, 3], p4 = oof[, 4])
 
 # ---- refit on ALL training respondents, predict test -------------------------
-cat("--- full refit ---\n")
-full <- fit_one(tr_t)
-te <- clip_norm(predict_lc(full, te_t))
-saveRDS(data.table(No = tasks$No[te_t], p1 = te[, 1], p2 = te[, 2],
-                   p3 = te[, 3], p4 = te[, 4]),
-        sprintf("model/artifacts/test_%s.rds", NAME))
+full <- NULL
+te_dt <- NULL
+if (!EXP_CFG$skip_full_test) {
+  cat("--- full refit ---\n")
+  full <- fit_one(tr_t)
+  te <- clip_norm(predict_lc(full, te_t))
+  te_dt <- data.table(No = tasks$No[te_t], p1 = te[, 1], p2 = te[, 2],
+                      p3 = te[, 3], p4 = te[, 4])
+}
 
 # =============================================================================
 # 6. Report material
@@ -582,7 +587,7 @@ saveRDS(data.table(No = tasks$No[te_t], p1 = te[, 1], p2 = te[, 2],
 # Label switching: the mixture likelihood is invariant to permuting the classes,
 # so the raw indices mean nothing across runs. Relabel by descending posterior
 # share before printing anything. Predictions are unaffected.
-if (C > 1) {
+if (C > 1 && !is.null(full)) {
   ord <- order(colMeans(full$H), decreasing = TRUE)
   betas <- full$betas[ord]
   Hs    <- full$H[, ord, drop = FALSE]
@@ -627,8 +632,22 @@ if (C > 1) {
   }
   cat("\nLL path (training mixture log-likelihood):\n")
   print(round(full$path, 2))
-  saveRDS(list(betas = betas, G = full$G, keep = keep, zcols = colnames(Z),
-               shares = colMeans(Hs), path = full$path, oof = ll_oof),
-          file.path(OUTDIR, sprintf("fit_C%d.rds", C)))
+  if (!EXP_CFG$enabled) {
+    saveRDS(list(betas = betas, G = full$G, keep = keep, zcols = colnames(Z),
+                 shares = colMeans(Hs), path = full$path, oof = ll_oof),
+            file.path(OUTDIR, sprintf("fit_C%d.rds", C)))
+  }
 }
+expected <- list(train = sort(tasks$No[tr_t]), test = sort(tasks$No[te_t]))
+oof_dt <- validate_pred(oof_dt[order(No)], expected$train, "runner oof")
+if (!is.null(te_dt))
+  te_dt <- validate_pred(te_dt[order(No)], expected$test, "runner test")
+settings <- settings_fingerprint(
+  EXP_CFG$random_seed, SPLIT,
+  unname(tools::md5sum("experiments/iter25_taskpos/run.R")),
+  N_SCREEN, N_MAX, TOL)
+write_lc_outputs(
+  oof = oof_dt, test = te_dt, config = EXP_CFG, settings = settings, split = SPLIT,
+  historical_oof = sprintf("model/artifacts/oof_%s.rds", NAME),
+  historical_test = sprintf("model/artifacts/test_%s.rds", NAME))
 cat("OK\n")

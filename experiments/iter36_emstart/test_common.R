@@ -1,5 +1,6 @@
 suppressMessages(library(data.table))
 source("experiments/iter36_emstart/common.R")
+source("experiments/iter36_emstart/runner_config.R")
 
 expect_error <- function(expr) {
   ok <- FALSE
@@ -30,5 +31,39 @@ expect_error(validate_pred(bad_zero, nos, "bad zero"))
 m <- mean_pred(list(p, p), nos, "mean")
 stopifnot(max(abs(as.matrix(m[, .(p1,p2,p3,p4)]) -
                   as.matrix(p[, .(p1,p2,p3,p4)]))) < 1e-12)
+
+b <- list(seed = 1103L, split = "",
+          settings = settings_fingerprint(1103L, "", "test-md5", 3L, 25L, 1e-5),
+          oof = p, test = p)
+vb <- validate_bundle(b, 1103L, "", list(train = nos, test = nos), TRUE)
+stopifnot(vb$seed == 1103L, nrow(vb$oof) == 3L, nrow(vb$test) == 3L)
+expect_error(validate_bundle(b, 2207L, "", list(train = nos, test = nos), TRUE))
+
+default_cfg <- lc_experiment_config("", "4242", "", "0")
+stopifnot(default_cfg$random_seed == 4242L, !default_cfg$enabled,
+          !default_cfg$skip_full_test)
+fold_b_cfg <- lc_experiment_config("b", "1103", "bundle.rds", "1")
+stopifnot(fold_b_cfg$random_seed == 1103L, fold_b_cfg$enabled,
+          fold_b_cfg$skip_full_test)
+expect_error(lc_experiment_config("", "1103", "bundle.rds", "1"))
+expect_error(lc_experiment_config("b", "1103", "", "1"))
+expect_error(lc_experiment_config("b", "abc", "bundle.rds", "1"))
+
+td <- tempfile("iter36-output-")
+dir.create(td)
+exp_path <- file.path(td, "bundle.rds")
+hist_oof <- file.path(td, "historical-oof.rds")
+hist_test <- file.path(td, "historical-test.rds")
+cfg <- lc_experiment_config("", "1103", exp_path, "0")
+write_lc_outputs(
+  oof = p, test = p, config = cfg,
+  settings = settings_fingerprint(1103L, "", "test-md5", 3L, 25L, 1e-5),
+  split = "", historical_oof = hist_oof, historical_test = hist_test)
+stopifnot(file.exists(exp_path), !file.exists(hist_oof), !file.exists(hist_test))
+written <- readRDS(exp_path)
+stopifnot(written$seed == 1103L, written$split == "", nrow(written$oof) == 3L)
+expect_error(write_lc_outputs(
+  oof = p, test = p, config = cfg, settings = written$settings, split = "",
+  historical_oof = hist_oof, historical_test = hist_test))
 
 cat("test_common.R: OK\n")
