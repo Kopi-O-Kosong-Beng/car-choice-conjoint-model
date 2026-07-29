@@ -1,0 +1,46 @@
+Warning messages:
+1: package 'data.table' was built under R version 4.6.1 
+2: package 'xgboost' was built under R version 4.6.1 
+XGB_NODEMO (drop the 15 demographic features): TRUE 
+  seed 1 fold 1 best_iter 1168 
+  seed 1 fold 2 best_iter 1413 
+  seed 1 fold 3 best_iter 1792 
+  seed 1 fold 4 best_iter 661 
+  seed 1 fold 5 best_iter 877 
+>>> seed 1 OOF: 1.09541
+seed 1 done in 182.6 min -> experiments/iter35_xgb_nodemo/seed_lw2_001.rds
+OK
+Warning messages:
+1: package 'data.table' was built under R version 4.6.1 
+2: package 'xgboost' was built under R version 4.6.1 
+XGB_NODEMO (drop the 15 demographic features): TRUE 
+  seed 2 fold 1 best_iter 127 
+  seed 2 fold 2 best_iter 666 
+  seed 2 fold 3 best_iter 340 
+  seed 2 fold 4 best_iter 1207 
+  seed 2 fold 5 best_iter 1140 
+>>> seed 2 OOF: 1.12090
+seed 2 done in 77.7 min -> experiments/iter35_xgb_nodemo/seed_lw2_002.rds
+OK
+Warning messages:
+1: package 'data.table' was built under R version 4.6.1 
+2: package 'xgboost' was built under R version 4.6.1 
+XGB_NODEMO (drop the 15 demographic features): TRUE 
+  seed 3 fold 1 best_iter 777 
+  seed 3 fold 2 best_iter 1224 
+  seed 3 fold 3 best_iter 591 
+  seed 3 fold 4 best_iter 888 
+  seed 3 fold 5 best_iter 997 
+>>> seed 3 OOF: 1.11049
+seed 3 done in 48.0 min -> experiments/iter35_xgb_nodemo/seed_lw2_003.rds
+OK
+Warning messages:
+1: package 'data.table' was built under R version 4.6.1 
+2: package 'xgboost' was built under R version 4.6.1 
+XGB_NODEMO (drop the 15 demographic features): TRUE 
+  seed 4 fold 1 best_iter 1299 
+  seed 4 fold 2 best_iter 496 
+  seed 4 fold 3 best_iter 710 
+  seed 4 fold 4 best_iter 1463 
+  seed 4 fold 5 best_iter 1100 
+>>> seed 4 OOF: 1.10458

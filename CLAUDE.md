@@ -10,10 +10,21 @@ Kaggle competition for SUTD's *The Analytics Edge* (2026), graded coursework. Pr
 of 4 car safety-feature bundles a respondent picks. Metric: mean multiclass logloss.
 **R only** — hard competition rule, never propose Python.
 
-**State (27 Jul 2026):** nested blend **1.12819**, public **1.199** (best; auto-selected for
-private scoring). Benchmark 1.38629, rival reference 1.210. Production blend is **two
-members**: `xgb_lw2bag` 0.528 + `lcmnl3_both` 0.472. Kaggle closes **1 Aug**, report due
-**10 Aug**.
+**State (29 Jul 2026):** nested blend **1.12819**, public **1.197**, ~12th in a field whose
+top twelve span 0.011 (leader 1.186). Benchmark 1.38629. Production blend is **two members**:
+`xgb_lw2bag` 0.528 + `lcmnl3_both` 0.472. Kaggle closes **1 Aug**, report due **10 Aug**.
+
+**⚠️ Our OOF is an anti-signal below ~1.128.** Six measured (local, public) pairs now exist.
+The four inside the established model family transfer at ~37%. The two that departed from it
+both failed badly: free-sign blend weights (1.12341 → **1.211**) and demographic feature
+ablation (1.09690 → **1.265**). The second passed 5/5 folds, three out-of-population holdouts,
+and a breadth test before scoring 0.068 worse. **A better local score is not evidence.**
+
+**The one durable gain of round 4 was measured, not fitted.** The alt-4 probe — a constant
+`(1/6,1/6,1/6,1/2)` submission — scored 1.499, and `r = (log6 − score)/log3` gives the test
+none-rate **0.26648** exactly. Correcting the shipped marginal to it is worth **+0.00104** and
+transfers at ~100%. See `EXPERIMENTS.md` "Round 4" for the three mechanisms that were
+confidently argued and then refuted in the same round.
 
 ---
 

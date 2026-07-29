@@ -194,3 +194,119 @@ previous submission. Only 79% of its gain survives income reweighting, against ~
 the earlier structural wins. This submission is partly a test of that behaviour.
 | 2026-07-26 16:43 | sub_20260726_1643.csv | mnl_pw+xgb_lw2+xgb_mono+lcmnl3_both | 1.12867 | expect public ~1.179 | (pending) |
 | 2026-07-26 23:28 | sub_20260726_2328.csv | xgb_lw2bag+lcmnl3_both | 1.12819 | expect public ~1.178 | (pending) |
+
+---
+
+## 27 Jul — the leaderboard as a measuring instrument
+
+Two uploads, and the second one answered a question eighteen iterations could not.
+
+| when | file | what | public |
+|---|---|---|---|
+| 27 Jul 14:20 | `sub_20260727_1420.csv` | freepool5, free-sign 5-member, local **1.12341** | **1.211** |
+| 27 Jul ~19:00 | `probe_alt4.csv` | constant (1/6,1/6,1/6,1/2) — not a model | **1.499** |
+
+### The probe: r = 0.26648
+
+For a constant prediction, logloss is algebra: `score = log6 − r·log3`, so
+`r = (1.791759 − 1.499)/1.098612 = 0.26648`. The test none-rate is **0.2665**,
+known to ±0.0005 from display precision and ±0.0043 from the public(70%)→full step.
+This is not an estimate from our folds — it is a measurement of the test set.
+
+| | predicted | error |
+|---|---|---|
+| **tree family** | 0.2730 | **+0.0065** ✅ |
+| 2-member blend | 0.2480 | −0.0185 |
+| freepool5 | 0.2377 | −0.0288 |
+| `lcmnl3_both` | 0.2240 | −0.0425 |
+| iter27 nonparametric cells | 0.2959 | +0.0294 |
+| iter27 importance-weighted | 0.3017 | +0.0352 |
+| iter27 logistic | 0.2061 | −0.0604 |
+
+### ⛔ RETRACTION
+
+This file previously stated: *"The latent-class extrapolation was safe… It was genuine —
+the score improved. Richer respondents really do decline less often, and the membership
+model extrapolates in the right direction."* **That is now refuted by direct measurement.**
+`lcmnl3` predicted 0.224 against a measured 0.2665 — the largest error of any production
+model. The 1.199 score improved for other reasons. The *direction* was right (0.2665 < the
+training 0.3023) but the magnitude was overshot by 2.3×: predicted drop 0.078, actual 0.036.
+
+### ⛔ RETRACTED — "the 1.197 null is explained, not a failure"
+
+~~freepool5's local gain was real and merely masked: conditional gain +0.00478 × ⅓ = +0.00159,
+extra marginal error −0.00133, net +0.00026, invisible at three decimals.~~
+
+**This was built on a misread score and is false.** freepool5 never scored 1.197. **1.197 was
+the leaderboard**, which displays only a team's *best* submission — still the 2-member blend.
+freepool5's own score, on the My Submissions page, is **1.211**.
+
+There was no null to explain. The arithmetic above was neat, fitted the number it was built to
+fit, and was wrong. Recorded rather than deleted because the failure mode is the lesson: an
+explanation that reproduces an observation to five decimals is not evidence the observation
+was read correctly.
+
+### The real result: local and public moved in OPPOSITE directions
+
+| model | local nested | public | ships p4 |
+|---|---|---|---|
+| 2-member (production) | 1.12819 | **1.197** | 0.2480 |
+| freepool5 (free-sign) | **1.12341** | 1.211 | 0.2377 |
+
+Local improved by **0.00478**; public got **worse by 0.014**. The marginal error accounts for
+only 0.00133 of that gap — the remaining **~0.0127 is conditional structure that exists in our
+fold split and not in the test set.** Transfer for this change was not ⅓, it was **−2.9×**.
+
+Free-sign weights are precisely the mechanism that produces this. Unconstrained signs across
+five members have enough freedom to fit the folds' noise, and it passed every internal check
+we had: paired z = 3.84, improvement in 5 of 5 folds, artifact verified to the digit. **None of
+that detected it.** The only instrument that did was the leaderboard.
+
+**Consequences:** freepool5 is not promoted. `members.txt` is unchanged. `BLEND_WEIGHTS=free`
+stays opt-in and is now documented as refuted on held-out data. And the freeze is vindicated
+harder than any argument for it managed — at this point a local gain is not merely discounted,
+it can be actively negative.
+
+### The finding that outlives the competition
+
+Iteration 28's validation (B) split the training respondents by income tertile:
+
+| tertile | none-rate |
+|---|---|
+| low | 0.2968 |
+| middle | 0.3204 |
+| high | 0.2903 |
+
+**Flat and non-monotonic.** Income does not predict declining in the training data at all.
+Yet the test none-rate is 0.2665, clearly below training's 0.3023. So the drop is real, and
+it is **not** the wealth shift that every model and every diagnostic assumed. `lcmnl3` was
+right by accident; iteration 27's three income-based estimators all predicted ~0.30 *because*
+income is flat, and were internally consistent and still wrong. The trees, which never routed
+through a demographic membership channel, were the only thing that got it right.
+
+The test population differs on something not identifiable from the demographics we have.
+
+### Next: `sub_20260728_2058.csv` (iteration 28b)
+
+⚠️ **`sub_20260727_2022.csv` must NOT be uploaded.** It applies the correction to freepool5,
+which is the 1.211 base. Superseded — see `experiments/iter28_marginal/run.R` for why.
+
+The shipping candidate is the **2-member production blend** with a single constant log-odds
+shift on alternative 4 (α = 1.11770, +0.1113 in log-odds), moving mean p4 from 0.2480 to the
+measured 0.26648. One parameter, closed form, solved against a **measured** target — no model
+selection, no fold structure, nothing refitted. p4 rank order preserved exactly (Spearman 1.0);
+relative odds among alternatives 1–3 preserved to 1e−13. The model is untouched.
+
+Pre-registered validation on the 2-member nested OOF (reconstructed to 1.12819 exactly), both
+passed: (A) tilt cleanliness 87.3%, meaning the realised change runs ~1.15× the marginal KL;
+(B) correcting a **genuine** income-tertile miscalibration realises 115.5%.
+
+**Expected public 1.196** (gain ~0.00104). Small, but it is the one gain in this project that
+does not depend on transfer at all — it corrects a quantity measured on the test set itself.
+Given that free-sign blending just cost 0.014 by going the other way, "small and measured"
+is now clearly the better class of bet.
+
+**Standing: 1.197 vs parinwaris 1.187.** We are 0.010 behind and the correction closes ~0.001
+of it. The probe was worth running and returned a real answer; that answer was that the
+2-member blend was already close to right. There is no remaining lever of the size needed.
+The report is 15 of 30 marks and is where the remaining time belongs.

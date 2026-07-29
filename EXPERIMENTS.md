@@ -22,10 +22,19 @@ should be able to read it top to bottom and continue the work.
 > allowed experiment (EM-start variance of `lcmnl3_both`), the freeze rule, and the dated
 > report plan through 10 Aug.
 
-**State as of 27 Jul 2026:** nested blend **1.12819** (income-reweighted 1.13273), public
-leaderboard **1.199** from the older 1.13044 blend. Rival reference 1.210, benchmark 1.38629.
-`submissions/sub_20260726_2328.csv` is built and **not yet uploaded** — read
-`STRATEGY_REVIEW.md` Phase 0 for the pre-registered interpretation of each possible result.
+**State as of 29 Jul 2026:** nested blend **1.12819**, public **1.197**, rank ~12 of a field
+whose top twelve span 0.011 (leader 1.186). Benchmark 1.38629.
+
+> **⚠️ READ THE SIX MEASURED (local, public) PAIRS AT THE BOTTOM OF THIS FILE BEFORE
+> PROPOSING ANY MODEL CHANGE.** Both changes that departed from the established model family
+> failed on the board at a measured combined cost of **0.082** — free-sign blend weights
+> (1.12341 local → **1.211** public) and demographic feature ablation (1.09690 local →
+> **1.265** public). The second passed 5/5 folds, three out-of-population holdouts, and a
+> breadth test. **Below ~1.128 local, our OOF is an anti-signal.**
+>
+> The only change worth shipping from round 4 is the **measured** marginal correction:
+> the alt-4 probe scored 1.499, giving test none-rate **r = 0.26648**, worth **+0.00104** at
+> ~100% transfer. Measurement transfers; fitting does not.
 
 Production blend is **two members**: `xgb_lw2bag` 0.528 + `lcmnl3_both` 0.472.
 `model/members.txt` is the source of truth and documents why each dropped member was dropped.
@@ -1312,3 +1321,205 @@ routes disagree by ~0.005).
 **Note for the entropy-floor discussion elsewhere in this file:** 1.12341 sits *below* the
 quoted 1.125–1.133 floor. That floor was estimated over *models* and never priced the
 *combiner*, so it was too conservative.
+
+---
+
+# Round 4 (28–29 Jul) — the leaderboard as an instrument, and three refuted mechanisms
+
+This round produced **one** durable gain (+0.00104, measured) and **three** confidently-argued
+mechanisms that were all wrong. The refutations are the valuable part and are written up in
+full, because each one was believed at the time on evidence that looked strong.
+
+## The one thing that worked: measure the test set instead of modelling it
+
+**Iteration 28 — the alt-4 probe.** A submission of the constant `(1/6, 1/6, 1/6, 1/2)` makes
+logloss pure algebra: `score = log6 − r·log3`. It returned **1.499**, so the test none-rate is
+
+> **r = (1.791759 − 1.499) / 1.098612 = 0.26648**
+
+known to ±0.0005 from display precision and ±0.0043 from the public(70%)→full-test step
+(simulated on the real row geometry).
+
+| model | predicted test none-rate | error |
+|---|---|---|
+| tree family | 0.2730 | **+0.0065** ✅ |
+| 2-member blend | 0.2480 | −0.0185 |
+| freepool5 | 0.2377 | −0.0288 |
+| `lcmnl3_both` | 0.2240 | **−0.0425** ✗ |
+| iter27 nonparametric cells | 0.2959 | +0.0294 |
+| iter27 importance-weighted | 0.3017 | +0.0352 |
+| iter27 logistic | 0.2061 | −0.0604 |
+
+**All three of iteration 27's "independent" estimators were worse than the blend they were
+built to adjudicate.** The correction is one scalar α solved by bisection so mean p4 hits the
+measured target; p4 rank order is preserved exactly (Spearman 1.0) and the odds among
+alternatives 1–3 to 1e−13. Validated before shipping: a tilt realises ~1.15× the marginal KL
+(87.3% cleanliness), and correcting a *genuine* income-tertile miscalibration realises 115.5%.
+Worth **+0.00104**, and because it is measured rather than fitted it transfers at ~100% rather
+than the ~37% everything else pays.
+
+⛔ **RETRACTED here:** the earlier claim that "the latent-class extrapolation was safe — it was
+genuine." `lcmnl3` predicted 0.224 against a measured 0.2665, the largest error of any
+production model. The 1.199 improved for other reasons.
+
+## Iterations 29–32 — six channels measured and closed
+
+| # | question | result |
+|---|---|---|
+| 29 | do fitted blend parameters transfer to new people? | overfit cost 0.00126 (income split) / 0.00307 (random); equal weights beat fitted on **both** |
+| 29b | does a wealthier population want a different weight? | yes and it is real (0.608/0.586/0.633/0.691 vs production 0.528, beats the random control) — but worth only **+0.0002 to +0.0007**. The loss curve is flat to **0.0002 across w ∈ [0.45, 0.60]** |
+| 30 | how much signal is there left at all? | oracle floor **0.942**; respondent heterogeneity 0.065 (scale) / 0.149 (none) / 0.185 (price) |
+| 31 | does the test *design* differ from training? | **no** — not one attribute differs by 0.02 sd, zero rows outside the Price range |
+| 31b | should we mix over heterogeneity instead of sharpening? | k = 0.2 helps on both holdouts, **+0.0003**; arithmetic pooling is *worse* by 0.00043, so log-opinion was right |
+| 32 | is the model miscalibrated in *shape*? | **no** — quintile gaps are a uniform mean shift, which the tilt already fixes. Probe campaign rejected by its own ≥0.004 rule |
+| — | are alternatives 1–3 exchangeable (test-time augmentation)? | **no** — real middle-option bias (0.2204 / **0.2501** / 0.2271 vs 0.2326 symmetric), and the blend reproduces it to +0.0001 / −0.0029 / −0.0007 |
+
+**Reflection.** Six experiments, one root cause: *all of them were post-processing.* A
+calibrated two-member blend has almost no downstream degrees of freedom, and I should have
+concluded that after the second flat result rather than the sixth. **The remaining value, if
+any, is in the members — not in what is done to their output.**
+
+## Leaderboard noise, measured on the real geometry
+
+Simulating 263 respondents with a 70/30 row split, using two genuinely different models of
+ours:
+
+```
+PUBLIC  (~3,498 rows):  paired SE 0.00364   absolute SE 0.0196
+PRIVATE (~1,499 rows):  paired SE 0.00445   absolute SE 0.0231
+```
+
+Rank 1 → rank 12 spans 0.011 = **3.0 public paired SE** (real). Rank 5 is 0.004 = **1.1 SE**
+(inside noise). Twelve teams inside 2.5 private SE ⇒ expect substantial reshuffling.
+
+## ❌ Refutation 1 — "demographics carry zero information"
+
+Iteration 30 fitted per-respondent `(a_none, T_scale, b_price)` on top of the blend, then
+regressed them on 13 demographics out of fold, with a permutation control. Out-of-fold
+**R² = −0.029 / −0.020 / −0.020**, indistinguishable from shuffled. Conclusion drawn:
+demographics are noise.
+
+**Wrong, and the design was close to circular.** The blend *already contains* demographics —
+`xgb_lw2bag` carries 15 of them, `lcmnl3_both` routes class membership through ~40. The
+residual left after the blend is by construction the part demographics cannot explain.
+
+**Correct claim:** demographics carry no information *beyond what the models already extract*.
+Iteration 34 then proved directly that they do help: removing them costs 0.011–0.016 on
+held-out richer respondents.
+
+**Lesson.** A permutation control catches the machinery flattering itself. It cannot catch you
+asking the wrong question. To test "X carries no signal", **ablate X and measure** — never
+infer it from a residual computed on top of a model that already uses X.
+
+## ❌ Refutation 2 — "removing features cannot be a leak, so the +0.031 is real"
+
+**Iteration 34 (`lcmnl3_both_nod`)** — membership made intercept-only. Pre-registered
+prediction was exactly right: local OOF **worse** (1.13863 → 1.15054) while the test marginal
+error collapsed 12-fold (−0.0425 → **+0.0036**). But the nested blend degraded 1.12819 →
+1.13260 (+0.0044, over the 0.002 limit) and it **lost** on held-out richer respondents by
+0.011–0.016. **Rejected by its own decision rule.**
+
+**Iteration 35 (`xgb_lw2bag_nod`)** — the 15 demographic features dropped from xgboost.
+
+| | bagged OOF | nested blend | test p4 |
+|---|---|---|---|
+| baseline | 1.13682 | 1.12819 | 0.2731 |
+| ablated (3 seeds) | **1.10252** | **1.09690** | 0.3068 |
+
+Every local check passed: better in **5/5 folds**, better on **all three** out-of-population
+holdouts (+0.031/+0.034/+0.034), **63.7%** of respondents improved with **median ≈ mean**
+(broad, not top-heavy), top 1% of respondents contributing only 15.6% of the gain. And the
+argument that felt decisive: *deleting columns cannot manufacture information.*
+
+**Public score: 1.265.** A local gain of 0.031 became a public loss of **0.068**.
+
+**Lesson.** The premise was true and irrelevant. Removing features cannot *create* a leak, but
+it can make a model lean on whatever else is present, and it changes what the model relies on
+in ways no in-fold statistic reveals. "This cannot fail for reason X" is not a substitute for
+testing whether it fails.
+
+## ❌ Refutation 3 — "the design encoder leaks"
+
+Proposed mechanism for the 1.265: `ENC_COLS` is a target encoding, and fold *k*'s model trains
+on rows whose encodings were built from folds ≠ *j*, which includes fold *k*. Plausible,
+matches iteration 15's known history of encoding leakage, and explains all three anomalies.
+
+**Measured and refuted the same hour.** AUC of `share_a1` on training rows vs evaluation rows:
+
+```
+fold 1 +0.003   fold 2 −0.013   fold 3 +0.008   fold 4 −0.010   fold 5 +0.011
+```
+
+Mean ≈ 0, alternating sign. A leaky feature is *systematically* better on the rows the model
+trained on. `share_a1/a5/a20` have identical train/test means (0.2500). **The encoder is
+honest.** The only real finding: `design_n` shifts **+0.67 sd** train→test (2.88 → 3.94),
+because test encodings use all 1,135 respondents while OOF encodings use ~908 — worth
+investigating, but a count, not the signal-carrying feature.
+
+## The six measured (local, public) pairs — read this before proposing anything
+
+| local nested | public | what changed |
+|---|---|---|
+| 1.13878 | 1.201 | 9 members, simplex |
+| 1.13556 | 1.201 | 2 members + `mnl_pw` |
+| 1.13044 | 1.199 | 4 members |
+| **1.12819** | **1.197** | **production — best measured** |
+| 1.12341 | 1.211 | free-sign weights — *structural departure* |
+| 1.09690 | **1.265** | feature ablation — *structural departure* |
+
+The first four are monotone and well-behaved at ~37% transfer. **Both structural departures
+failed catastrophically, at a measured combined cost of 0.082.** The causal variable is not the
+local score — it is whether the change stays inside the established model family.
+
+## Meta-reflection for the report
+
+Three mechanisms, each argued from real numbers, each refuted within hours. The common failure
+was treating *"I have an explanation that fits the data"* as evidence the explanation is true.
+Every one of them fit the data available at the time. None survived a direct measurement of the
+mechanism itself, and in each case that measurement was cheap and available.
+
+The single most useful finding of the whole project is not a model. It is that a change passing
+**z = 3.84, 5 of 5 folds, and independent artifact verification** (freepool5) cost 0.014, and a
+change passing **5/5 folds, three out-of-population holdouts, and a breadth test** (iter 35)
+cost 0.068. Our cross-validation is not a weak signal about the test set — past a point it is
+an *anti*-signal, and we have measured where that point is.
+
+## Status after this round
+
+`members.txt` unchanged. Production remains `xgb_lw2bag` 0.528 + `lcmnl3_both` 0.472, nested
+1.12819, public 1.197. The only change worth shipping is the measured marginal correction
+(+0.00104). Six fallback candidates in `submissions/cand_*.csv`, all inside the model family
+and all carrying that correction.
+
+---
+
+## Iteration 36 — latent-class EM-start variance audit (29 Jul)
+
+**Hypothesis.** The fixed-start `lcmnl3_both` procedure may contain avoidable optimization
+variance. If independently initialized EM fits differ materially, averaging five complete
+procedures could reduce variance without changing model family. The seeds and gates were
+pre-registered in `docs/superpowers/specs/2026-07-29-full-test-robustness-design.md`:
+seeds 4242, 1103, 2207, 3301, and 4409; proceed to split-B replication only when the
+primary start-to-start logloss SD is at least 0.001.
+
+| seed | primary OOF logloss |
+|---:|---:|
+| 4242 | 1.138626 |
+| 1103 | 1.138626 |
+| 2207 | 1.138626 |
+| 3301 | 1.138626 |
+| 4409 | 1.138626 |
+
+**Result: rejected at Gate 1.** Start-to-start SD was exactly **0.000000**. The deterministic
+initialization won the internal screening for every fit, so changing the external seed did
+not change the fitted procedure or its predictions. Per the stop rule, split-B was not run,
+no start-bag artifact was promoted, and `model/members.txt` remains unchanged.
+
+**Decision.** Close EM-start bagging as a variance-reduction route. The final conservative
+submission uses the unchanged production blend and only the independently measured
+alternative-4 log-odds correction, targeting test mean `p4 = 0.2664812`. This is a measured
+marginal adjustment, not another locally optimized model.
+
+**Reflection.** The audit answered the uncertainty cheaply and cleanly: the apparent EM-start
+degree of freedom is inert in the implemented procedure. There is no honest gain to extract
+from bagging identical predictions, so further modelling remains frozen.
