@@ -1,0 +1,141 @@
+# =============================================================================
+# ITERATION 47 -- SWEEP THE TREE UNDER THE FIXED-ROUNDS PROTOCOL
+#
+# Everything in this header is written BEFORE any result is looked at.
+#
+# -----------------------------------------------------------------------------
+# THE GAP
+# -----------------------------------------------------------------------------
+# eta, max_depth and min_child_weight were tuned in ITERATION 06 under EARLY
+# STOPPING, where the model chooses its own stopping point and a too-large eta is
+# partly self-correcting -- the fit simply stops sooner.
+#
+# Iteration 47's base protocol is FIXED ROUNDS (no early-stopping carve; adopted
+# because it recovers 114 respondents in the shipped refit and gained +0.00078 on
+# the production blend, z 2.48, 5/5 folds). Under fixed rounds the hyperparameters
+# must be right FOR EXACTLY THAT ROUND COUNT. eta and nrounds are strongly
+# coupled: their product sets total shrinkage-adjusted capacity, and depth sets
+# how much of it each round can use.
+#
+# So the iteration-06 values are being used outside the regime they were fitted
+# in. Iteration 45 swept subsample/colsample under fixed rounds and found the
+# incumbent optimal -- but it never touched eta, depth, or min_child_weight, which
+# interact with the round count far more strongly than the sampling fractions do.
+#
+# -----------------------------------------------------------------------------
+# HYPOTHESIS
+# -----------------------------------------------------------------------------
+# The (eta, depth, min_child_weight, nrounds) optimum under fixed rounds differs
+# from iteration 06's early-stopping optimum, and moving to it beats the current
+# fixed-rounds member (xgb_lw2fr10, OOF 1.13551).
+#
+# -----------------------------------------------------------------------------
+# THE TRICK THAT MAKES THIS AFFORDABLE
+# -----------------------------------------------------------------------------
+# Fit ONCE at NR_MAX rounds per (config, fold), then predict with
+# iterationrange = c(1, k) for many k. One fit yields the ENTIRE nrounds curve, so
+# the round-count axis is free. Combined with the fixed-rounds harness from
+# iteration 39 (~11s per 540-round fit, versus ~3 min under early stopping because
+# that calls back into R every round over a growing model), a real sweep is
+# possible for the first time in this project.
+#
+# -----------------------------------------------------------------------------
+# DECISION RULE -- fixed before running
+# -----------------------------------------------------------------------------
+#   1. SCREEN at 1 seed. Carry forward only configs beating the incumbent's
+#      1-seed equivalent; a 1-seed number is worth nothing on its own (model-level
+#      seed sd is 0.00283) and is used ONLY to rank.
+#   2. CONFIRM the top config at 10 seeds and require a paired
+#      respondent-clustered z >= qnorm(1 - 0.025/N) over the N configs screened.
+#      Multiplicity is cumulative with iteration 45's 16 points.
+#   3. BLEND GATE: it must improve the production 2-member nested blend by more
+#      than the blend-level seed sd of 0.00048. Member gains do not automatically
+#      reach the blend -- iteration 39 gained +0.00252 at member level and only
+#      +0.00020 in the 5-member pool.
+#   4. The chosen nrounds must be INTERIOR to the evaluated grid. A boundary
+#      optimum means the grid was wrong and the result is not trustworthy.
+# ADOPT only if all four hold. A null closes the tree's capacity axis, which
+# together with iteration 45 would close tree tuning entirely.
+#
+# ARTIFACTS: oof_xgb_swp.rds / test_xgb_swp.rds -- NEW names, grep-verified.
+# Names are built from string literals, never from variables: an earlier iteration
+# overwrote a live blend member by inheriting a name through a variable.
+# =============================================================================
+suppressMessages({ library(data.table); library(xgboost) })
+source("model/99_utils.R"); source("model/encode_design.R")
+
+DIR <- "experiments/iter47_treesweep"; dir.create(DIR, showWarnings = FALSE, recursive = TRUE)
+NR_MAX <- 1500L   # must exceed max(KS) because iterationrange end is exclusive
+KS <- c(200L, 300L, 400L, 540L, 700L, 900L, 1100L, 1400L)
+rule <- function(s) cat("\n", strrep("=", 78), "\n", s, "\n", strrep("=", 78), "\n", sep = "")
+
+long <- readRDS("model/artifacts/long.rds"); folds <- readRDS("model/artifacts/folds.rds")
+wide <- readRDS("model/artifacts/wide.rds")
+long <- add_design_key(long, wide, ATTRS); setorder(long, No, alt)
+trl <- merge(long[is_test == FALSE], folds[, .(No, fold)], by = "No")
+tel <- long[is_test == TRUE]
+setorder(trl, No, alt); setorder(tel, No, alt)
+apply_design_encoding(trl, tel)
+demo <- c("segmentind","yearind","milesind","milesa","nightind","nighta","pparkind",
+          "genderind","ageind","agea","educind","regionind","Urbind","incomeind","incomea")
+feat <- c(ATTRS, paste0(ATTRS, "_c"), "richness","lvlsum","price_rank","price_min_rival",
+          "price_task_mean","rich_task_mean","Task", paste0("alt", 1:4), demo, ENC_COLS)
+sbt <- function(s) { M <- matrix(s, ncol = 4, byrow = TRUE); M <- M - apply(M, 1, max)
+                     E <- exp(M); E / rowSums(E) }
+obj_lw <- function(preds, dtrain) {
+  y <- getinfo(dtrain, "label"); p <- as.vector(t(sbt(preds)))
+  list(grad = p - y, hess = pmax(2 * p * (1 - p), 1e-6))
+}
+ytr <- unique(long[is_test == FALSE, .(No, y)])[order(No), y]
+NOS <- sort(unique(trl$No))
+
+# one config, one seed: returns OOF logloss at EVERY k in KS from a single fit set
+sweep_one <- function(eta, depth, mcw, seed) {
+  prm <- list(eta = eta, max_depth = depth, min_child_weight = mcw,
+              subsample = 0.8, colsample_bytree = 0.8, base_score = 0,
+              nthread = 3, seed = seed)
+  P <- lapply(KS, function(k) matrix(NA_real_, 21565L, 4L)); names(P) <- as.character(KS)
+  for (k5 in 1:5) {
+    d <- trl[fold != k5]
+    fit <- xgb.train(params = prm,
+                     data = xgb.DMatrix(as.matrix(d[, ..feat]), label = as.numeric(d$chosen)),
+                     nrounds = NR_MAX, verbose = 0, obj = obj_lw, maximize = FALSE)
+    v <- trl[fold == k5]; dm <- xgb.DMatrix(as.matrix(v[, ..feat]))
+    idx <- match(unique(v$No), NOS)
+    for (k in KS) {
+      pr <- predict(fit, dm, iterationrange = c(1, k + 1), outputmargin = TRUE)
+      P[[as.character(k)]][idx, ] <- sbt(as.vector(pr))
+    }
+  }
+  vapply(KS, function(k) logloss(ytr, P[[as.character(k)]]), 0)
+}
+
+GRID <- CJ(eta = c(0.02, 0.03, 0.05), depth = c(6L, 8L, 10L), mcw = c(10L, 20L, 40L))
+rule(sprintf("SCREEN: %d configs x %d round-counts, 1 seed, fixed rounds", nrow(GRID), length(KS)))
+cat(sprintf("  incumbent xgb_lw2fr10 = eta .03 / depth 8 / mcw 20 / 540 rounds\n"))
+cat(sprintf("  its 1-seed equivalent (mean over 10 seeds) = 1.13740\n"))
+cat(sprintf("  round counts evaluated: %s\n\n", paste(KS, collapse = ", ")))
+
+res <- list()
+for (i in seq_len(nrow(GRID))) {
+  t0 <- Sys.time()
+  ll <- sweep_one(GRID$eta[i], GRID$depth[i], GRID$mcw[i], 1L)
+  best <- which.min(ll)
+  res[[i]] <- data.table(eta = GRID$eta[i], depth = GRID$depth[i], mcw = GRID$mcw[i],
+                         best_k = KS[best], oof = ll[best],
+                         interior = best > 1 && best < length(KS),
+                         mins = as.numeric(difftime(Sys.time(), t0, units = "mins")))
+  cat(sprintf("  eta %.2f depth %2d mcw %2d -> best k %4d  OOF %.5f  %s (%.1f min)\n",
+              GRID$eta[i], GRID$depth[i], GRID$mcw[i], KS[best], ll[best],
+              if (res[[i]]$interior) { "interior" } else { "BOUNDARY" }, res[[i]]$mins))
+  saveRDS(rbindlist(res), file.path(DIR, "screen.rds"))
+}
+R <- rbindlist(res); setorder(R, oof)
+rule("SCREEN RESULT (1 seed -- ranking only, not evidence)")
+print(head(R, 12))
+fwrite(R, file.path(DIR, "screen.csv"))
+cat(sprintf("\n  incumbent 1-seed reference: 1.13740\n"))
+cat(sprintf("  configs beating it: %d of %d\n", sum(R$oof < 1.13740), nrow(R)))
+cat(sprintf("  best: eta %.2f depth %d mcw %d at %d rounds -> %.5f (%s)\n",
+            R$eta[1], R$depth[1], R$mcw[1], R$best_k[1], R$oof[1],
+            if (R$interior[1]) { "interior" } else { "BOUNDARY -- gate 4 fails" }))

@@ -1,0 +1,175 @@
+
+==============================================================================
+SECTION 1 -- DATA, MASKS, CONSTANTS
+==============================================================================
+  train tasks 21565   test tasks 4997   (No 21566..26562 ascending)
+  TEST luxury row share f = 0.688213   (3439 rows, 181 of 263 respondents)
+  r*  (rounded constants) = 0.266521
+  r*  (exact log6/log3)   = 0.266481    difference -0.000040
+
+==============================================================================
+SECTION 2 -- GATE A: CONSTRUCTION CORRECTNESS
+==============================================================================
+  raw free5 test p4:  all 0.23766 | lux 0.20960 | non 0.29960
+  logit(file1 p4) - logit(raw p4):  mean +0.153114308   sd 2.532e-16   range [+0.153114308, +0.153114308]
+  du(w=0.85) solved here = +0.1531143   (ships overall p4 0.262191)
+
+  GATE A assertions
+    f_share      PASS
+    raw_all      PASS
+    raw_lux      PASS
+    raw_non      PASS
+    du_value     PASS
+    du_constant  PASS
+    du_matches   PASS
+    file1_recon  PASS
+  GATE A: PASS (all 8)
+
+==============================================================================
+SECTION 3 -- BUILD FILE2 (story-A 2-moment) AND GATE B
+==============================================================================
+  story A: r_non 0.393300 -> r_lux 0.209085 (via r* identity)
+  shrinkage w = 0.85  ->  targets  t_lux 0.209162   t_non 0.379244
+  solved shifts:  dl = -0.003009   dn = +0.418306
+  file2 ships p4: all 0.262191 | lux 0.209162 | non 0.379244
+  file1 ships p4: all 0.262191 | lux 0.232496 | non 0.327738
+
+  GATE B TIER 1 (blocking, exact identities)
+    rowsum       PASS
+    maxp         PASS
+    minp         PASS
+    withinbuy    PASS
+    mean_eq_f1   PASS
+    lux_target   PASS
+    non_target   PASS
+  GATE B TIER 2 (reported, literals at their own rounding half-width)
+    lit_all      PASS
+    lit_lux      PASS
+    lit_non      PASS
+    lit_dl       PASS
+    lit_dn       PASS
+  GATE B TIER 1: PASS (all 7)
+  GATE B TIER 2: 5 of 5 literals matched
+
+==============================================================================
+SECTION 4 -- GATE C: THE FROZEN INVERSION TABLE
+==============================================================================
+  lm(Delta_s ~ r_non):  slope -0.1313604   max |residual| 3.309e-16
+    linear   PASS
+    slope    PASS
+
+  GATE C anchor cross-check
+    Delta_s(r_non = 0.3171) = +0.0054490   expected +0.00545   miss -1.01e-06   PASS / PASS
+    Delta_s(r_non = 0.3325) = +0.0034260   expected +0.00343   miss -3.96e-06   PASS / PASS
+    Delta_s(r_non = 0.3933) = -0.0045607   expected -0.00456   miss -6.69e-07   PASS / PASS
+  GATE C TIER 1 (1e-4): PASS (3/3)   TIER 2 (1e-5): 3/3
+
+  inversion:  r_non_hat = 0.3933 + (Delta_s - (-0.0045607)) / (-0.1313604)
+  sd(Delta_s) from two 3-dp scores = 0.000408  ->  sd(r_non_hat) = 0.00311
+
+  built inversion table: 121 rows, Delta_s -0.0300..0.0300 step 0.0005
+
+  selected rows
+    ds -0.0200 -> r_non 0.5108 r_lux 0.1558 | G_f2 +0.02000 | G_exopt +0.03941 | over-better +0.01941 | kaggle picks file2
+    ds -0.0100 -> r_non 0.4347 r_lux 0.1903 | G_f2 +0.01000 | G_exopt +0.01289 | over-better +0.00289 | kaggle picks file2
+    ds -0.0050 -> r_non 0.3966 r_lux 0.2076 | G_f2 +0.00500 | G_exopt +0.00508 | over-better +0.00008 | kaggle picks file2
+    ds -0.0020 -> r_non 0.3738 r_lux 0.2179 | G_f2 +0.00200 | G_exopt +0.00210 | over-better +0.00010 | kaggle picks file2
+    ds +0.0000 -> r_non 0.3586 r_lux 0.2248 | G_f2 +0.00000 | G_exopt +0.00084 | over-better +0.00084 | kaggle picks file1
+    ds +0.0030 -> r_non 0.3357 r_lux 0.2352 | G_f2 -0.00300 | G_exopt +0.00001 | over-better +0.00001 | kaggle picks file1
+    ds +0.0050 -> r_non 0.3205 r_lux 0.2421 | G_f2 -0.00500 | G_exopt +0.00018 | over-better +0.00018 | kaggle picks file1
+    ds +0.0110 -> r_non 0.2748 r_lux 0.2628 | G_f2 -0.01100 | G_exopt +0.00423 | over-better +0.00423 | kaggle picks file1
+    ds +0.0200 -> r_non 0.2063 r_lux 0.2938 | G_f2 -0.02000 | G_exopt +0.02061 | over-better +0.02061 | kaggle picks file1
+
+  THIRD-SLOT bands over Delta_s (GATE F (i) and (ii) only; (iii) applied at lookup)
+    THIRD SLOT    Delta_s in [-0.0300, -0.0090]  ->  r_non [0.4271, 0.5870]
+    no third slot Delta_s in [-0.0085, +0.0070]  ->  r_non [0.3053, 0.4233]
+    THIRD SLOT    Delta_s in [+0.0075, +0.0300]  ->  r_non [0.1302, 0.3015]
+
+  r* SENSITIVITY (rounded 0.266521 vs exact 0.266481, difference -0.000040)
+    Delta_s(0.3171): +0.0054490 -> +0.0054428   shift -6.23e-06  (=> r_non shift +0.00005)
+    Delta_s(0.3325): +0.0034260 -> +0.0034198   shift -6.23e-06  (=> r_non shift +0.00005)
+    Delta_s(0.3933): -0.0045607 -> -0.0045669   shift -6.23e-06  (=> r_non shift +0.00005)
+  max induced r_non shift 0.00005 -- 65x smaller than the 0.0031 rounding sd;
+  it moves no band edge on a 0.0005 Delta_s grid.
+
+==============================================================================
+SECTION 4b -- SECONDARY HYPOTHESIS: WHAT EACH MEMBER IMPLIES FOR r_non
+==============================================================================
+  Each member's RAW test luxury p4 is read as its estimate of r_lux; r_non then
+  follows from probe 1's identity r_non = (r* - f*r_lux)/(1-f). Delta_s is what
+  the paired upload would return if that member were right about the shape.
+
+    member            lux p4  -> r_non   Delta_s kaggle picks
+    xgb_lw2bag       0.25887    0.2834  +0.00988       file1
+    lcmnl3_both      0.18954    0.4364  -0.01023       file2
+    xgb_long         0.27790    0.2414  +0.01539       file1
+    xgb_wide         0.26324    0.2738  +0.01114       file1
+    xgb_2stage       0.26281    0.2747  +0.01102       file1
+    xgb_lw2fr        0.26156    0.2775  +0.01065       file1
+    free5 POOL       0.20960    0.3922  -0.00441       file2
+
+  the w=1.00 UNIFORM shift's own implication: r_non = 0.34162, Delta_s = +0.00223
+  iteration 42's ABSTAIN trough sits at r_non 0.3325 -> Delta_s +0.00343.
+
+  tree members span r_non [0.2414, 0.2834]; lcmnl3_both sits at 0.4364.
+  If the trees are right, Delta_s > 0 and Kaggle keeps file1. If the latent-class
+  model is right, Delta_s < 0 and Kaggle switches to file2. One number decides.
+
+==============================================================================
+SECTION 5 -- PUBLIC->PRIVATE DRIFT RISK (the correction to iter42 caveat 4)
+==============================================================================
+  respondent none-rate sd (train): luxury 0.2142 (n=107) | non-luxury 0.2858 (n=1028) | all 0.2835
+  test respondents: 181 luxury, 82 non-luxury
+  public share 50%:  sd(r_lux_priv - r_lux_pub) = 0.0318 (n_pub 90, n_priv 91) | sd(r_non diff) = 0.0631 (n_pub 41, n_priv 41)
+  public share 70%:  sd(r_lux_priv - r_lux_pub) = 0.0348 (n_pub 127, n_priv 54) | sd(r_non diff) = 0.0686 (n_pub 57, n_priv 25)
+
+  ---- MANDATORY RISK STATEMENT (story-A ADOPT: ship file2 instead of file1) ----
+  deterministic public gain at r_non = 0.3933: G = +0.00456
+  70/30 split:  E[G_private] +0.00465  sd 0.00676  P(G<0) 0.241  5th -0.00666  95th +0.01565
+  50/50 split:  E[G_private] +0.00464  sd 0.00621  P(G<0) 0.224  5th -0.00577  95th +0.01476
+  The expectation is UNBIASED because logloss is affine in the true rate.
+  The downside is NOT zero. Iteration 42's caveat 4 said it was; that was wrong.
+
+==============================================================================
+SECTION 6 -- DEFERRED INVERSION FUNCTION (defined, unit-tested, NOT run for real)
+==============================================================================
+
+  unit test 1: Delta_s -0.0100 -> r_non 0.4347 r_lux 0.1903 | kaggle picks file2
+    GATE F  (i) PASS  (ii) PASS [m85 +0.00289 m100 +0.00323]  (iii) PASS [-drift -0.00328, +drift +0.00907]
+    verdict ADOPT-high-exactopt    (expected ADOPT-high-exactopt   ) PASS | E[G] +0.00295 sd 0.00457 P(G<0) 0.253 | wrote: <dry run: write path stubbed>
+
+  unit test 2: Delta_s +0.0030 -> r_non 0.3357 r_lux 0.2352 | kaggle picks file1
+    GATE F  (i) PASS  (ii) FAIL [m85 +0.00001 m100 +0.00007]  (iii) FAIL [-drift -0.00045, +drift +0.00047]
+    verdict NO-THIRD-SLOT          (expected NO-THIRD-SLOT         ) PASS | E[G] +0.00002 sd 0.00034 P(G<0) 0.483 | wrote: NA
+
+  unit test 3: Delta_s +0.0110 -> r_non 0.2748 r_lux 0.2628 | kaggle picks file1
+    GATE F  (i) PASS  (ii) PASS [m85 +0.00423 m100 +0.00437]  (iii) PASS [-drift +0.01310, +drift -0.00465]
+    verdict ADOPT-low-exactopt     (expected ADOPT-low-exactopt    ) PASS | E[G] +0.00414 sd 0.00671 P(G<0) 0.278 | wrote: <dry run: write path stubbed>
+
+  unit tests verdicts PASS   dry_run wrote nothing PASS
+
+==============================================================================
+SECTION 7 -- WRITE ARTIFACTS (last act)
+==============================================================================
+  name check: 133 artifacts scanned; matches for 'segA' -> 0, 'exactopt' -> 0
+
+  post-write verification of the submission CSV
+    nrows     PASS
+    header    PASS
+    No_range  PASS
+    rowsum    PASS
+
+  wrote experiments/iter43_pairdiff/invert.csv
+  wrote experiments/iter43_pairdiff/drift_risk.csv
+  wrote model/artifacts/test_blend_freepool5_segA.rds
+  wrote submissions/sub_20260727_free5segA.csv
+
+  THIS ITERATION UPLOADED NOTHING. No 'kaggle competitions submit' was run.
+  submissions/probe_seg.csv and submissions/probe_alt4.csv are untouched.
+  model/artifacts/test_blend_freepool5_cal.rds is untouched and remains file1.
+  members.txt, blend.rds, test_blend.rds, folds*.rds, 06_blend.R: untouched.
+
+==============================================================================
+OK iter43
+==============================================================================
+OK iter43

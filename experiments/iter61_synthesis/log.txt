@@ -1,0 +1,45 @@
+  segment reweighting: ESS 3946 of 21565 tasks; reference 1.19610 -> public 1.197
+  one-hot block: 92 level dummies over 20 attributes
+
+==============================================================================
+S1 -- HONEST BASELINE: no encoding, one-hot, depth sweep (3 seeds)
+==============================================================================
+  reference to beat on SEG: 1.19610 (production blend)
+  d3_r400                      plain 1.15947   SEG 1.25077   (2.1 min)
+  d4_r400                      plain 1.15240   SEG 1.23800   (2.1 min)
+  d5_r300                      plain 1.15179   SEG 1.23405   (1.7 min)
+  d6_r250                      plain 1.15226   SEG 1.23172   (1.5 min)
+
+  S1 winner on SEG: d6_r250 at 1.23172
+
+==============================================================================
+S2 -- + MF COLD-START FEATURES
+==============================================================================
+  d6_r250+mf                   plain 1.15396   SEG 1.23138   (1.5 min)
+  MF KEPT (SEG -0.00034)
+
+==============================================================================
+S3 -- + SEGMENT IMPORTANCE WEIGHTING IN THE FIT
+==============================================================================
+  d6_r250+mf_tau0.25           plain 1.15426   SEG 1.23332   (1.5 min)
+  d6_r250+mf_tau0.50           plain 1.15426   SEG 1.23275   (1.5 min)
+  d6_r250+mf_tau1.00           plain 1.15447   SEG 1.23156   (1.5 min)
+
+==============================================================================
+ALL STAGES, ranked by the SEGMENT-REWEIGHTED metric
+==============================================================================
+                  cfg    plain      seg     mins
+               <char>    <num>    <num>    <num>
+1:         d6_r250+mf 1.153957 1.231381 1.522511
+2: d6_r250+mf_tau1.00 1.154468 1.231560 1.509728
+3:            d6_r250 1.152262 1.231721 1.499719
+4: d6_r250+mf_tau0.50 1.154256 1.232747 1.512406
+5: d6_r250+mf_tau0.25 1.154259 1.233316 1.509641
+6:            d5_r300 1.151789 1.234051 1.724083
+7:            d4_r400 1.152395 1.237997 2.135819
+8:            d3_r400 1.159466 1.250771 2.066683
+
+  best d6_r250+mf: plain 1.15396  SEG 1.23138  vs production SEG 1.19610 (delta +0.03528)
+
+  NEXT: rebuild the winner at 20 seeds, emit oof_xgb_syn/test_xgb_syn,
+  blend with lcmnl3_both, then apply the probe margin at deploy.

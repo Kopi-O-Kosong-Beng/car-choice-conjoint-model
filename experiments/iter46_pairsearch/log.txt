@@ -1,0 +1,137 @@
+segment reweighting: effective respondents 207.7 of 1135
+excluded: blend_freepool5, lcmnl3_both_b, lcmnl3_none_b, mnl_pw_b, segcal5, xgb_lw2_b, xgb_lw2bag3_b, xgb_mono_b, xgb_pt, xgb_resenc, xgb_resenc2, xgb_resenc3 
+admissible members: 43 
+glmnet, glmnet_pw, hbmnl, hbmnl_nod, lcmnl, lcmnl1, lcmnl2, lcmnl3, lcmnl3_bag, lcmnl3_both, lcmnl3_drift, lcmnl3_sm, lcmnl3_tilt, lcmnl3b, lcmnl3p, lcmnl3x, lcmnl4, lcmnl5, mixl, mixl2, mnl, mnl_lr, mnl_pw, nlogit, xgb_2stage, xgb_bagA, xgb_bagB, xgb_bagC, xgb_de, xgb_long, xgb_lw, xgb_lw2, xgb_lw2bag, xgb_lw2bag3, xgb_lw2fr, xgb_lw2fr10, xgb_lw3, xgb_mono, xgb_mono2, xgb_monobag, xgb_monoc, xgb_monor, xgb_wide 
+
+DUPLICATE OOF (head-identical): lcmnl == lcmnl3 == lcmnl3x 
+SANITY -- reproducing production (xgb_lw2bag + lcmnl3_both)
+     nested    plain        w1        w2      Temp         eps   test_p4
+      <num>    <num>     <num>     <num>     <num>       <num>     <num>
+1: 1.128189 1.127627 0.5281198 0.4718802 0.9653266 0.005112279 0.2479982
+    seg_oof
+      <num>
+1: 1.195076
+  06_blend.R says 1.12819 / weights 0.528 0.472 ; here 1.12819 / 0.528 0.472
+
+pairs to evaluate: 900 (elapsed: 10.33875 mins  scored: 903 
+
+================ TOP 25 PAIRS BY NESTED OOF ================
+              m1          m2  nested        d    w1 test_p4 p4_gap seg_oof
+          <char>      <char>   <num>    <num> <num>   <num>  <num>   <num>
+ 1:  lcmnl3_both xgb_lw2fr10 1.12741 -0.00078 0.460  0.2504 0.0161  1.1951
+ 2:  lcmnl3_tilt xgb_lw2fr10 1.12744 -0.00075 0.458  0.2503 0.0162  1.1950
+ 3:  lcmnl3_both   xgb_lw2fr 1.12756 -0.00063 0.467  0.2492 0.0174  1.1948
+ 4  chunk 10/15  (600 pairs)  elapsed 7.093771 mins
+  chunk 11/15  (660 pairs)  elapsed 7.55896 mins
+  chunk 12/15  (720 pairs)  elapsed 7.959733 mins
+  chunk 13/15  (780 pairs)  elapsed 8.308543 mins
+  chunk 14/15  (840 pairs)  elapsed 8.666968 mins
+  chunk 15/15  (900 pairs)  elapsed 9.035107 mins
+elapsed: 9.035125 mins  scored: 900 
+
+================ TOP 25 PAIRS BY NESTED OOF ================
+              m1          m2  nested        d    w1 test_p4 p4_gap seg_oof
+          <char>      <char>   <num>    <num> <num>   <num>  <num>   <num>
+ 1:  lcmnl3_both xgb_lw2fr10 1.12741 -0.00078 0.460  0.2504 0.0161  1.1951
+ 2:  lcmnl3_tilt xgb_lw2fr10 1.12744 -0.00075 0.458  0.2503 0.0162  1.1950
+ 3:  lcmnl3_both   xgb_lw2fr 1.12756 -0.00063 0.467  0.2492 0.0174  1.1948
+ 4:  lcmnl3_tilt   xgb_lw2fr 1.12759 -0.00060 0.465  0.2491 0.0174  1.1948
+ 5:    lcmnl3_sm xgb_lw2fr10 1.12771 -0.00048 0.459  0.2514 0.0152  1.1954
+ 6:    lcmnl3_sm   xgb_lw2fr 1.12786 -0.00033 0.466  0.2502 0.0163  1.1951
+ 7:  lcmnl3_both  xgb_lw2bag 1.12819  0.00000 0.472  0.2480 0.0185  1.1951
+ 8:  lcmnl3_tilt  xgb_lw2bag 1.12821  0.00002 0.469  0.2479 0.0186  1.1951
+ 9:    lcmnl3_sm  xgb_lw2bag 1.12850  0.00031 0.471  0.2490 0.0176  1.1955
+10: lcmnl3_drift xgb_lw2fr10 1.12851  0.00032 0.419  0.2541 0.0125  1.1971
+11:  lcmnl3_both xgb_lw2bag3 1.12859  0.00040 0.493  0.2463 0.0202  1.1939
+12:  lcmnl3_tilt xgb_lw2bag3 1.12863  0.00044 0.491  0.2462 0.0203  1.1939
+13: lcmnl3_drift   xgb_lw2fr 1.12869  0.00050 0.427  0.2528 0.0137  1.1968
+14:  lcmnl3_both    xgb_mono 1.12872  0.00053 0.514  0.2470 0.0196  1.1950
+15:  lcmnl3_tilt    xgb_mono 1.12876  0.00057 0.512  0.2469 0.0197  1.1950
+16:  lcmnl3_both xgb_monobag 1.12882  0.00063 0.472  0.2475 0.0190  1.1966
+17:  lcmnl3_tilt xgb_monobag 1.12887  0.00068 0.469  0.2475 0.0190  1.1966
+18:      lcmnl3p xgb_lw2fr10 1.12889  0.00070 0.405  0.2531 0.0134  1.1974
+19:    lcmnl3_sm xgb_lw2bag3 1.12891  0.00072 0.494  0.2472 0.0193  1.1943
+20:        lcmnl xgb_lw2fr10 1.12894  0.00075 0.403  0.2532 0.0133  1.1975
+21:       lcmnl3 xgb_lw2fr10 1.12894  0.00075 0.403  0.2532 0.0133  1.1975
+22:      lcmnl3x xgb_lw2fr10 1.12894  0.00075 0.403  0.2532 0.0133  1.1975
+23:    lcmnl3_sm    xgb_mono 1.12899  0.00080 0.514  0.2479 0.0186  1.1953
+24:      lcmnl3p   xgb_lw2fr 1.12908  0.00089 0.412  0.2519 0.0146  1.1970
+25:  lcmnl3_both     xgb_lw2 1.12912  0.00093 0.532  0.2461 0.0204  1.1946
+              m1          m2  nested        d    w1 test_p4 p4_gap seg_oof
+
+---- production reference ----
+xgb_lw2bag + lcmnl3_both  nested 1.12819  test_p4 0.2480  seg_oof 1.1951  rank 7
+beats production by > 0.00048 : 5 pairs
+
+===== TOP 40 BY NESTED, RE-RANKED BY DISTANCE TO PROBE none-rate 0.26651 =====
+              m1          m2  nested test_p4 p4_gap seg_oof
+          <char>      <char>   <num>   <num>  <num>   <num>
+ 1:      lcmnl3b xgb_lw2fr10 1.12956  0.2558 0.0107  1.1984
+ 2:       lcmnl4 xgb_lw2fr10 1.12964  0.2552 0.0113  1.2000
+ 3: lcmnl3_drift xgb_lw2fr10 1.12851  0.2541 0.0125  1.1971
+ 4:        lcmnl xgb_lw2fr10 1.12894  0.2532 0.0133  1.1975
+ 5:       lcmnl3 xgb_lw2fr10 1.12894  0.2532 0.0133  1.1975
+ 6:      lcmnl3x xgb_lw2fr10 1.12894  0.2532 0.0133  1.1975
+ 7:      lcmnl3p xgb_lw2fr10 1.12889  0.2531 0.0134  1.1974
+ 8: lcmnl3_drift   xgb_lw2fr 1.12869  0.2528 0.0137  1.1968
+ 9:        lcmnl   xgb_lw2fr 1.12914  0.2520 0.0146  1.1971
+10:       lcmnl3   xgb_lw2fr 1.12914  0.2520 0.0146  1.1971
+11:      lcmnl3x   xgb_lw2fr 1.12914  0.2520 0.0146  1.1971
+12:      lcmnl3p   xgb_lw2fr 1.12908  0.2519 0.0146  1.1970
+13: lcmnl3_drift  xgb_lw2bag 1.12933  0.2516 0.0149  1.1971
+14:    lcmnl3_sm xgb_lw2fr10 1.12771  0.2514 0.0152  1.1954
+15:      lcmnl3p  xgb_lw2bag 1.12973  0.2507 0.0158  1.1974
+16:  lcmnl3_both xgb_lw2fr10 1.12741  0.2504 0.0161  1.1951
+17:  lcmnl3_tilt xgb_lw2fr10 1.12744  0.2503 0.0162  1.1950
+18:    lcmnl3_sm   xgb_lw2fr 1.12786  0.2502 0.0163  1.1951
+19:  lcmnl3_both   xgb_lw2fr 1.12756  0.2492 0.0174  1.1948
+20:  lcmnl3_tilt   xgb_lw2fr 1.12759  0.2491 0.0174  1.1948
+21:    lcmnl3_sm  xgb_lw2bag 1.12850  0.2490 0.0176  1.1955
+22:    lcmnl3_sm xgb_monobag 1.12913  0.2485 0.0180  1.1970
+23:  lcmnl3_both  xgb_lw2bag 1.12819  0.2480 0.0185  1.1951
+24:  lcmnl3_tilt  xgb_lw2bag 1.12821  0.2479 0.0186  1.1951
+25:    lcmnl3_sm    xgb_mono 1.12899  0.2479 0.0186  1.1953
+26:  lcmnl3_both xgb_monobag 1.12882  0.2475 0.0190  1.1966
+27:  lcmnl3_tilt xgb_monobag 1.12887  0.2475 0.0190  1.1966
+28:    lcmnl3_sm xgb_lw2bag3 1.12891  0.2472 0.0193  1.1943
+29:    lcmnl3_sm     xgb_lw2 1.12941  0.2471 0.0194  1.1950
+30:  lcmnl3_both    xgb_mono 1.12872  0.2470 0.0196  1.1950
+31:  lcmnl3_tilt    xgb_mono 1.12876  0.2469 0.0197  1.1950
+32:  lcmnl3_tilt   xgb_monor 1.12962  0.2468 0.0197  1.1950
+33:  lcmnl3_both   xgb_monor 1.12957  0.2468 0.0197  1.1950
+34:  lcmnl3_both xgb_lw2bag3 1.12859  0.2463 0.0202  1.1939
+35:  lcmnl3_tilt xgb_lw2bag3 1.12863  0.2462 0.0203  1.1939
+36:  lcmnl3_both     xgb_lw2 1.12912  0.2461 0.0204  1.1946
+37:  lcmnl3_tilt     xgb_lw2 1.12914  0.2460 0.0205  1.1946
+38:    lcmnl3_sm     xgb_lw3 1.12967  0.2152 0.0513  1.1949
+39:  lcmnl3_both     xgb_lw3 1.12931  0.2144 0.0521  1.1945
+40:  lcmnl3_tilt     xgb_lw3 1.12938  0.2142 0.0523  1.1947
+              m1          m2  nested test_p4 p4_gap seg_oof
+
+===== PAIRS WITH test_p4 IN THE PROBE BAND [0.2600, 0.2730], BEST 20 BY NESTED =====
+             m1          m2  nested test_p4 seg_oof
+         <char>      <char>   <num>   <num>   <num>
+ 1:      mnl_pw xgb_lw2fr10 1.13245  0.2606  1.2003
+ 2:      lcmnl1 xgb_lw2fr10 1.13245  0.2603  1.2001
+ 3:      nlogit xgb_lw2fr10 1.13249  0.2602  1.2003
+ 4:         mnl xgb_lw2fr10 1.13499  0.2686  1.2088
+ 5:         mnl   xgb_lw2fr 1.13539  0.2667  1.2082
+ 6:         mnl  xgb_lw2bag 1.13636  0.2659  1.2097
+ 7:  xgb_lw2bag xgb_monobag 1.13652  0.2724  1.2157
+ 8:     xgb_lw2 xgb_monobag 1.13665  0.2727  1.2162
+ 9:         mnl xgb_monobag 1.13683  0.2669  1.2136
+10:    xgb_mono xgb_monobag 1.13684  0.2726  1.2168
+11: xgb_lw2bag3 xgb_monobag 1.13695  0.2717  1.2158
+12:      glmnet  xgb_lw2bag 1.13696  0.2726  1.2154
+13:      xgb_de  xgb_lw2bag 1.13697  0.2726  1.2154
+14:    xgb_bagA  xgb_lw2bag 1.13698  0.2726  1.2154
+15:    xgb_long  xgb_lw2bag 1.13699  0.2726  1.2154
+16:  xgb_lw2bag    xgb_wide 1.13699  0.2726  1.2153
+17:    xgb_bagB  xgb_lw2bag 1.13699  0.2726  1.2154
+18:  xgb_2stage  xgb_lw2bag 1.13699  0.2726  1.2154
+19:    xgb_bagC  xgb_lw2bag 1.13709  0.2726  1.2154
+20:  xgb_lw2bag xgb_lw2bag3 1.13710  0.2726  1.2153
+             m1          m2  nested test_p4 seg_oof
+
+wrote experiments/iter46_pairsearch/pairs.csv 
+OK

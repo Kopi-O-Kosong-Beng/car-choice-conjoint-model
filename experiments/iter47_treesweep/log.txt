@@ -1,0 +1,57 @@
+
+==============================================================================
+SCREEN: 27 configs x 8 round-counts, 1 seed, fixed rounds
+==============================================================================
+  incumbent xgb_lw2fr10 = eta .03 / depth 8 / mcw 20 / 540 rounds
+  its 1-seed equivalent (mean over 10 seeds) = 1.13740
+  round counts evaluated: 200, 300, 400, 540, 700, 900, 1100, 1400
+
+  eta 0.02 depth  6 mcw 10 -> best k 1400  OOF 1.13743  BOUNDARY (2.2 min)
+  eta 0.02 depth  6 mcw 20 -> best k 1400  OOF 1.13928  BOUNDARY (2.1 min)
+  eta 0.02 depth  6 mcw 40 -> best k 1400  OOF 1.14176  BOUNDARY (2.1 min)
+  eta 0.02 depth  8 mcw 10 -> best k 1400  OOF 1.12758  BOUNDARY (2.4 min)
+  eta 0.02 depth  8 mcw 20 -> best k 1400  OOF 1.13108  BOUNDARY (2.4 min)
+  eta 0.02 depth  8 mcw 40 -> best k 1400  OOF 1.13731  BOUNDARY (2.3 min)
+  eta 0.02 depth 10 mcw 10 -> best k 1400  OOF 1.11980  BOUNDARY (2.6 min)
+  eta 0.02 depth 10 mcw 20 -> best k 1400  OOF 1.12611  BOUNDARY (2.5 min)
+  eta 0.02 depth 10 mcw 40 -> best k 1400  OOF 1.13334  BOUNDARY (2.4 min)
+  eta 0.03 depth  6 mcw 10 -> best k 1400  OOF 1.13564  BOUNDARY (2.1 min)
+  eta 0.03 depth  6 mcw 20 -> best k 1400  OOF 1.13802  BOUNDARY (2.1 min)
+  eta 0.03 depth  6 mcw 40 -> best k 1400  OOF 1.14158  BOUNDARY (2.1 min)
+  eta 0.03 depth  8 mcw 10 -> best k 1400  OOF 1.12738  BOUNDARY (2.3 min)
+  eta 0.03 depth  8 mcw 20 -> best k 1400  OOF 1.13193  BOUNDARY (2.3 min)
+  eta 0.03 depth  8 mcw 40 -> best k 1100  OOF 1.13830  interior (2.2 min)
+  eta 0.03 depth 10 mcw 10 -> best k  900  OOF 1.12094  interior (26.7 min)
+  eta 0.03 depth 10 mcw 20 -> best k 1100  OOF 1.12838  interior (28.6 min)
+  eta 0.03 depth 10 mcw 40 -> best k  900  OOF 1.13474  interior (19.8 min)
+  eta 0.05 depth  6 mcw 10 -> best k 1100  OOF 1.13548  interior (18.1 min)
+  eta 0.05 depth  6 mcw 20 -> best k 1100  OOF 1.13897  interior (6.9 min)
+  eta 0.05 depth  6 mcw 40 -> best k  900  OOF 1.14206  interior (21.2 min)
+  eta 0.05 depth  8 mcw 10 -> best k  700  OOF 1.12919  interior (15.2 min)
+  eta 0.05 depth  8 mcw 20 -> best k  900  OOF 1.13551  interior (28.1 min)
+  eta 0.05 depth  8 mcw 40 -> best k  540  OOF 1.14013  interior (34.9 min)
+  eta 0.05 depth 10 mcw 10 -> best k  540  OOF 1.12557  interior (27.2 min)
+  eta 0.05 depth 10 mcw 20 -> best k  540  OOF 1.13127  interior (28.5 min)
+  eta 0.05 depth 10 mcw 40 -> best k  540  OOF 1.13857  interior (33.5 min)
+
+==============================================================================
+SCREEN RESULT (1 seed -- ranking only, not evidence)
+==============================================================================
+      eta depth   mcw best_k      oof interior      mins
+    <num> <int> <int>  <int>    <num>   <lgcl>     <num>
+ 1:  0.02    10    10   1400 1.119796    FALSE  2.615515
+ 2:  0.03    10    10    900 1.120944     TRUE 26.749051
+ 3:  0.05    10    10    540 1.125572     TRUE 27.162221
+ 4:  0.02    10    20   1400 1.126106    FALSE  2.523930
+ 5:  0.03     8    10   1400 1.127383    FALSE  2.304481
+ 6:  0.02     8    10   1400 1.127583    FALSE  2.354376
+ 7:  0.03    10    20   1100 1.128381     TRUE 28.644353
+ 8:  0.05     8    10    700 1.129192     TRUE 15.207094
+ 9:  0.02     8    20   1400 1.131080    FALSE  2.357031
+10:  0.05    10    20    540 1.131274     TRUE 28.469952
+11:  0.03     8    20   1400 1.131935    FALSE  2.273853
+12:  0.02    10    40   1400 1.133342    FALSE  2.448813
+
+  incumbent 1-seed reference: 1.13740
+  configs beating it: 17 of 27
+  best: eta 0.02 depth 10 mcw 10 at 1400 rounds -> 1.11980 (BOUNDARY -- gate 4 fails)

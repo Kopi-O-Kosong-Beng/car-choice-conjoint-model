@@ -1,0 +1,9 @@
+=== foldcheck seed: cfg lw2 split b seed 3 nthread 3 ===
+  seed 3 fold 1 best_iter 566  elapsed 2.8 min
+  seed 3 fold 2 best_iter 525  elapsed 7.2 min
+  seed 3 fold 3 best_iter 430  elapsed 10.7 min
+  seed 3 fold 4 best_iter 844  elapsed 22.9 min
+  seed 3 fold 5 best_iter 437  elapsed 26.7 min
+>>> lw2 split b seed 3 OOF: 1.14334
+seed 3 done in 34.9 min -> experiments/iter21_foldrobust/fcseed_lw2b_003.rds
+OK

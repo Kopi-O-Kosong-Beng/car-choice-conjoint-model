@@ -1,0 +1,16 @@
+=== ABLATION: is the depth-10 gain real, or is it the design encoding? ===
+
+  config                                               OOF
+  WINNER  depth10 mcw10 eta.02 nr1400  WITH enc    1.11981
+  WINNER  same config                  NO enc      1.19632
+  INCUMBENT depth8 mcw20 eta.03 nr540  WITH enc    1.13761
+  INCUMBENT same config                NO enc      1.15879
+
+  gain from depth-10 config, WITH encoding : +0.01779
+  gain from depth-10 config, WITHOUT enc   : -0.03753
+
+  value of the encoding to the INCUMBENT   : +0.02118
+  value of the encoding to the WINNER      : +0.07650
+
+  If the encoding is worth VASTLY more to the deep model, the deep model is
+  mining it -- and iterations 12/15 proved this encoding family can leak.

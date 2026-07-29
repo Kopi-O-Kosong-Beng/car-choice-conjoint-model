@@ -1,0 +1,65 @@
+=== ARM noenc_d6_m20_e003_n540_s7 ===
+  fold 1 done (0.2 min)
+  fold 2 done (0.4 min)
+  fold 3 done (0.6 min)
+  fold 4 done (0.8 min)
+  fold 5 done (0.9 min)
+>>> noenc_d6_m20_e003_n540_s7  OOF 1.15315
+ARM_DONE noenc_d6_m20_e003_n540_s7 1.15315
+=== ARM noenc_d6_m20_e003_n540_s2024 ===
+  fold 1 done (0.2 min)
+  fold 2 done (0.4 min)
+  fold 3 done (0.6 min)
+  fold 4 done (0.7 min)
+  fold 5 done (0.9 min)
+>>> noenc_d6_m20_e003_n540_s2024  OOF 1.15248
+ARM_DONE noenc_d6_m20_e003_n540_s2024 1.15248
+=== ARM noenc_d6_m20_e003_n900_s123 ===
+  fold 1 done (0.3 min)
+  fold 2 done (0.6 min)
+  fold 3 done (0.9 min)
+  fold 4 done (1.2 min)
+  fold 5 done (1.6 min)
+>>> noenc_d6_m20_e003_n900_s123  OOF 1.15336
+ARM_DONE noenc_d6_m20_e003_n900_s123 1.15336
+=== ARM noenc_d5_m20_e003_n900_s123 ===
+  fold 1 done (0.4 min)
+  fold 2 done (0.7 min)
+  fold 3 done (1.1 min)
+  fold 4 done (1.5 min)
+  fold 5 done (1.9 min)
+>>> noenc_d5_m20_e003_n900_s123  OOF 1.15060
+ARM_DONE noenc_d5_m20_e003_n900_s123 1.15060
+=== ARM noenc_d6_m10_e003_n900_s123 ===
+  fold 1 done (0.4 min)
+  fold 2 done (0.7 min)
+  fold 3 done (1.1 min)
+  fold 4 done (1.5 min)
+  fold 5 done (1.9 min)
+>>> noenc_d6_m10_e003_n900_s123  OOF 1.15375
+ARM_DONE noenc_d6_m10_e003_n900_s123 1.15375
+=== ARM noenc_d6_m20_e003_n900_s7 ===
+  fold 1 done (0.4 min)
+  fold 2 done (0.8 min)
+  fold 3 done (1.2 min)
+  fold 4 done (1.6 min)
+  fold 5 done (2.0 min)
+>>> noenc_d6_m20_e003_n900_s7  OOF 1.15428
+ARM_DONE noenc_d6_m20_e003_n900_s7 1.15428
+=== ARM noenc_d5_m20_e003_n900_s7 ===
+  fold 1 done (0.3 min)
+  fold 2 done (0.6 min)
+  fold 3 done (0.9 min)
+  fold 4 done (1.2 min)
+  fold 5 done (1.5 min)
+>>> noenc_d5_m20_e003_n900_s7  OOF 1.15077
+ARM_DONE noenc_d5_m20_e003_n900_s7 1.15077
+=== ARM noenc_d6_m10_e003_n900_s7 ===
+  fold 1 done (0.3 min)
+  fold 2 done (0.6 min)
+  fold 3 done (0.9 min)
+  fold 4 done (1.2 min)
+  fold 5 done (1.5 min)
+>>> noenc_d6_m10_e003_n900_s7  OOF 1.15481
+ARM_DONE noenc_d6_m10_e003_n900_s7 1.15481
+DRIVER_D_DONE

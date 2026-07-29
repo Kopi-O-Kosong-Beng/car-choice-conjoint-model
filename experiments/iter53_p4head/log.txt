@@ -1,0 +1,72 @@
+
+==============================================================================
+SECTION 1 -- NESTED BLEND BASELINE (the number every gate is against)
+==============================================================================
+  fold 1 held-out blend logloss 1.14250
+  fold 2 held-out blend logloss 1.10742
+  fold 3 held-out blend logloss 1.12000
+  fold 4 held-out blend logloss 1.14231
+  fold 5 held-out blend logloss 1.12871
+
+  nested blend OOF (pooled) 1.12819   mean-of-folds 1.12819
+  base mean p4 = 0.30645   observed training none-rate = 0.30230   probe r* = 0.26652
+
+==============================================================================
+SECTION 2 -- GAM DESIGN (task-level; one row per choice task)
+==============================================================================
+  low-df by construction: k = 4 cubic-regression smooths, select = TRUE,
+  gamma = 1.8 (heavier-than-AIC complexity penalty). The head must be a
+  SMOOTH population trend -- a flexible one would refit the base's residual.
+
+==============================================================================
+SECTION 3 -- NESTED GAM PREDICTIONS (fit on fold != k, predict fold == k)
+==============================================================================
+  fold 1  edf 42.19  dev.expl 0.1228
+  fold 2  edf 43.03  dev.expl 0.1123
+  fold 3  edf 42.79  dev.expl 0.1071
+  fold 4  edf 42.60  dev.expl 0.1174
+  fold 5  edf 42.44  dev.expl 0.1087
+  GAM mean p4 0.30337  sd 0.17171   |   base mean p4 0.30645  sd 0.17123
+  cor(gam_p4, base_p4) = 0.8696  -- a low correlation is what makes it additive
+
+==============================================================================
+SECTION 4 -- RAW vs SHAPE-ONLY (the crux)
+==============================================================================
+        w      raw    shape   mean_p4
+    <num>    <num>    <num>     <num>
+ 1:  0.00 1.128189 1.128189 0.3064525
+ 2:  0.05 1.127783 1.127786 0.3062982
+ 3:  0.10 1.127482 1.127489 0.3061438
+ 4:  0.15 1.127283 1.127293 0.3059895
+ 5:  0.20 1.127184 1.127197 0.3058351
+ 6:  0.25 1.127182 1.127198 0.3056808
+ 7:  0.30 1.127276 1.127294 0.3055264
+ 8:  0.35 1.127464 1.127485 0.3053721
+ 9:  0.40 1.127746 1.127770 0.3052177
+10:  0.45 1.128122 1.128148 0.3050634
+11:  0.50 1.128592 1.128620 0.3049090
+12:  0.55 1.129157 1.129187 0.3047547
+13:  0.60 1.129817 1.129850 0.3046003
+
+  base 1.12819
+  best RAW   w = 0.25 -> 1.12718  (delta -0.00101)
+  best SHAPE w = 0.20 -> 1.12720  (delta -0.00099)   <-- decision measure
+
+==============================================================================
+SECTION 5 -- NESTED CHOICE OF w (inner CV; the quotable number)
+==============================================================================
+  raw    inner-picked w by fold: 0.30 0.25 0.20 0.25 0.20   nested OOF 1.12742  (delta -0.00077, 1.60 blend sd)
+  shape  inner-picked w by fold: 0.30 0.25 0.20 0.20 0.20   nested OOF 1.12745  (delta -0.00074, 1.54 blend sd)
+
+==============================================================================
+SECTION 6 -- GATE 3: is this really a margin-only edit?
+==============================================================================
+  max |within-buy share change| = 1.110e-16  -> PASS -- margin-only
+
+==============================================================================
+SECTION 7 -- SEGMENT-REWEIGHTED CHECK (report only; never an optimisation target)
+==============================================================================
+  base   plain 1.12819   reweighted 1.13352
+  +head  plain 1.12720   reweighted 1.13361   (delta +0.00009)
+
+done

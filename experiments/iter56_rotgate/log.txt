@@ -1,0 +1,17 @@
+
+==============================================================================
+GATE b -- SEGMENT-REWEIGHTED RETENTION AT MEMBER LEVEL
+==============================================================================
+  xgb_lw2bag  plain 1.13682   segment-reweighted 1.19441
+  xgb_rot     plain 1.11363   segment-reweighted 1.17003
+  delta       plain -0.02319  reweighted -0.02439   retention 105%  -> PASS
+
+==============================================================================
+GATE c -- THE BLEND GATE (the decision number)
+==============================================================================
+  run these and compare against the production nested 1.12819:
+    BLEND_MEMBERS='xgb_rot lcmnl3_both'                    -> swap
+    BLEND_MEMBERS='xgb_lw2bag lcmnl3_both xgb_rot'         -> add
+Error in `<current-expression>` : error in running command
+Calls: system2
+Execution halted

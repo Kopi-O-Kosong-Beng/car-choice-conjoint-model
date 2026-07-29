@@ -1526,3 +1526,345 @@ hypothesis.
 early-stopping carve; its change did not survive the blend gate, but the harness it built cut
 a fit from ~3 minutes to ~11 seconds by eliminating the per-round R callback. A 16-point grid
 was not feasible in this project before that. Negative results build infrastructure.
+
+---
+
+## Iteration 46 — temperature on the test-population metric ❌ OVERFITTING, caught by nesting
+
+**A near-miss worth recording, because the in-sample number was convincing.**
+
+**The idea.** Every calibration parameter in this project was fitted on *plain* OOF — the
+training population. The graded population is different (two luxury segments are 9.4% of
+training respondents and 68.8% of graded rows). So re-fit the temperature on the
+segment-reweighted metric, which is the test population's proxy.
+
+**The in-sample result looked strong and had a mechanism:**
+
+| | optimal T | gain |
+|---|---|---|
+| plain OOF | 1.0022 | +0.00000 |
+| segment-reweighted OOF | 1.0812 | **+0.00101** |
+
+and it *survived* correcting the none-margin first (+0.00116 after, slightly larger), so it
+was not the margin fix in disguise. The mechanism was plausible: the model has ~1/10 the data
+on luxury respondents, so it should be less confident about them, but it applies one global
+sharpness everywhere.
+
+**Then the nested test killed it.** Fit T on folds != k, evaluate on fold k, reweighted:
+
+```
+T chosen per fold:  1.006, 1.141, 1.186, 1.115, 0.983
+base (T = 1)        1.19610
+nested T            1.20263
+NESTED GAIN         -0.00654      (in-sample: +0.00116)
+```
+
+The per-fold instability is the diagnosis: a real effect would have the folds agree; these span
+0.98 to 1.19. The metric's own respondent-bootstrap SE is **0.02123**, so the in-sample gain was
+**1/18th of the noise in the instrument measuring it**.
+
+**This is iteration 07 again, and iteration 07 called it.** That iteration refuted shift-aware
+blend calibration on the *income*-reweighted objective and diagnosed the cause exactly:
+*"importance weighting is self-defeating here — reweighting cuts the effective sample, so
+fitting parameters against a noisier target produced a worse fit even when judged on that same
+noisy target."* Segment reweighting has **ESS 208 of 1,135 respondents**, thinner than income's,
+so the effect is stronger rather than weaker.
+
+**What survives.** The segment-reweighted metric remains usable as a *veto* and a rough
+forecaster. It must never be used as a *fitting objective* — for any parameter, not just blend
+weights. CLAUDE.md already says "never optimise on it (iteration 07)"; this extends that from
+income to segment reweighting, which is the version that looks more legitimate and is in fact
+worse.
+
+**Reflection.** The failure mode was building the submission CSV before running the nested
+check. The in-sample number, the mechanism, and the interaction test with the none-margin all
+pointed the same way, and the order of operations is what caught it. A convincing story plus an
+unnested number is exactly the shape of the results this log keeps retracting.
+
+---
+
+# ⛔ ITERATION 48 — THE DESIGN-SHARE ENCODING IS LEAKING, AND IT INVALIDATES THE TUNING OF THE WHOLE PROJECT
+
+**This is the most important entry in this file.** It explains three failed submissions, it
+retracts the tuning of the tree member, and it means every plain-OOF number recorded above
+for an encoded model is inflated. Read it before trusting any earlier figure.
+
+`experiments/iter48_encleak/` — four matched arms plus an independent block construction.
+
+## The defect
+
+`model/encode_design.R` is fold-aware **at the row level** — verified two ways: the code does
+`encode_aligned(trl[fold != k], trl[fold == k])`, and 0 of 1,135 respondents span a fold
+boundary. The docstring *"a person never contributes to their own encoding"* is literally true.
+
+But `apply_design_encoding()` is called **ONCE, BEFORE any CV loop**
+(`model/03_xgb_listwise.R:37`, and in every experiment script that consumes it). So a training
+row in fold *j* carries an encoding built from folds ≠ *j* — **a set that includes the scored
+fold k**.
+
+For cell `(dkey, alt)` the numerator is exactly `n_ch = C − c_j` (C = cell total over all folds,
+`c_j` = own fold's chosen count). Verified numerically: recovering `n_ch` from
+`(share_a1, design_n, fold prior)` and subtracting `(C − c_j)` gives max abs error **8.88e-16**.
+The four-column tuple is an **exact invertible encoding** of `(C − c_own_fold, N − n_own_fold)`.
+
+**Support is what makes it fatal.** 5,624 designs, 22,496 `(dkey, alt)` cells, mean 3.83 rows
+per cell, **median 1 row per (cell, fold)**. **46.3% of training rows sit in a (cell, fold)
+block of size 1** — for those, `c_j` *is* the row's own label, so leave-own-fold-out degenerates
+to **leave-own-ROW-out**.
+
+Within-cell `cor(share, own chosen)`: **−0.7107 / −0.7110 / −0.6926** for α = 1/5/20. On the
+scored rows, `cor(C_U − enc, own label)` is **+0.7442** in production against **+0.1149** under
+an honest construction.
+
+## The decomposition — depth 8, 5 seeds per arm, paired and respondent-clustered
+
+| contrast | meaning | delta | SE | z |
+|---|---|---|---|---|
+| noenc → prod | production's claim | **+0.02179** | 0.00148 | 14.69 |
+| honest → leaky | **pure leak**, matched support | **+0.01781** | 0.00139 | 12.79 |
+| noenc → honest | **honest value** | **−0.00596** | 0.00169 | **−3.53** |
+| leaky → prod | 3→4 fold reference | +0.00995 | 0.00169 | 5.89 |
+
+A second, independent construction (a disjoint one-fold reference block seen identically by
+train and score rows, with no complement identity anywhere) also comes out **negative**:
+−0.00440 (z −3.45) at depth 8, −0.00287 (z −1.85) at depth 10.
+
+**Two independent honest constructions, both negative. The encoding's genuine value is zero or
+worse. All of its apparent +0.0218 is the complement identity.**
+
+## Why it cannot transfer
+
+Test respondents are new people who appear in no cell, so test rows are encoded from all of
+`trl` with **nothing subtracted**. `design_n` averages **3.943 on test against 2.876 on
+train/OOF** (×1.371), and **7.0% of test rows have `share_a1` strictly above every training
+value of the same cell**. The within-cell rule the tree learned cannot fire correctly there.
+
+## THE LEAK SCALES WITH TREE CAPACITY — this is what wrecked the tuning
+
+| config | noenc | prod | leak gain |
+|---|---|---|---|
+| depth 4 | 1.15640 | 1.15678 | **−0.00038** |
+| depth 6 | 1.15259 | 1.14597 | +0.00662 |
+| depth 8 | 1.15910 | 1.13673 | **+0.02237** |
+| depth 10 | 1.16793 | 1.12855 | +0.03938 |
+| d10 / mcw10 / eta .02 / 1400r | 1.19566 | 1.11799 | **+0.07767** |
+
+**And the honest curve runs the other way** — no-encoding gets monotonically *worse* with depth
+(d4 1.14994 → d10 1.19566). **The honest optimum is depth 4–5. Production ships depth 8.**
+
+Iteration 01 measured the encoding at +0.00461 (z 2.94) using depth **6**. Production reads
++0.0218 at depth **8**. Nothing changed between them except capacity. Monotone-in-capacity with
+no saturation is the leak signature; a real design-share effect must saturate, and the honest
+share alone caps out at 1.307.
+
+## What this retracts
+
+1. **Production's nested OOF 1.12819 is inflated by ~0.0077.** The honest figure is **~1.1359**.
+2. **The blend weight is wrong.** `w_tree = 0.528` was fitted on leaked OOF; honest wants
+   **0.194–0.243**. Forcing 0.528 onto an honest tree costs +0.00437 nested. **We are
+   over-weighting the tree by roughly 2.2×, live, in the shipped submission.**
+3. **Iteration 47's 27-config sweep is void.** Its ranking is monotone in depth-up and
+   mcw-down — exactly the direction that increases cell-isolation power — and the no-encoding
+   ranking is the *reverse*.
+
+## ⚠️ IT ALSO BREAKS THIS REPO'S OWN LEAK HEURISTIC
+
+`CLAUDE.md` says *"a real gain appears in every fold; a leak concentrates in one."* **This leak
+appears in 5/5 folds at every depth and every seed.** A *structural* leak is uniform across
+folds. That heuristic would have missed this entirely, and must be amended.
+
+## What it does NOT explain
+
+**It does not explain the gap to the leaders.** A model without the encoding scores ~0.008
+*worse* locally and **essentially identical publicly** (predicted 0.000–0.002 better). Removing
+the leak is roughly board-neutral. The leak explains why we *mis-tuned* and *wasted
+submissions* — not why we are behind.
+
+## Reflection
+
+The docstring was true and the code was fold-aware, so every reading of it passed. What nobody
+checked was **when the function is called relative to the CV loop**. A correct function invoked
+at the wrong point is invisible to code review and to per-fold diagnostics alike. The only
+thing that caught it was building an isomorphic honest arm with matched support and comparing.
+
+---
+
+# Iteration 49–51 — matrix factorization, and the random-rotation result that wasn't
+
+`experiments/iter49_matfact/`, `iter51_encablation/`
+
+**Hypothesis.** Factorization had never been tried in this repo — no SVD, PCA, NMF anywhere.
+Two mechanisms were pre-registered: *rotation* (xgboost splits axis-aligned, so oblique
+boundaries are expensive in a sparse one-hot basis) and *dense re-coding* of the 92 attribute
+level-dummies.
+
+**Screen (1 seed, plain OOF, base 1.13761):**
+
+| config | OOF | vs base |
+|---|---|---|
+| demographic PCA, k = 4 | 1.14987 | **+0.0123** |
+| demographic PCA, k = 8 | 1.15574 | **+0.0181** |
+| PCA replacing raw demographics | 1.16506 | +0.0275 |
+| design SVD, k = 8 | 1.13369 | −0.0039 |
+| design SVD, k = 32 | 1.12655 | −0.0111 |
+
+**Demographic PCA is actively harmful, and the mechanism is worth recording.** Raw demographics
+are coarse ordinals with few levels, which limits memorisation. Rotating them into real-valued
+components makes each respondent nearly unique, so the tree **fingerprints individuals** inside
+the fold. Folds are respondent-grouped, so that buys nothing on held-out people. It degrades
+monotonically with more components — exactly as fingerprinting predicts.
+
+**The design-side SVD looked spectacular.** Iteration 51's ablation found `dsvd72` at 1.11868
+against raw one-hot dummies at 1.13663 — **identical column space, rank 71, same information,
+different basis** — a gap of 0.018. Iteration 54 then found a **random orthonormal rotation
+beat the SVD** (1.11515 vs 1.11861), which killed the factorization interpretation: the
+principal directions were not doing the work, any dense rotation was.
+
+**A correctness check I specified wrongly, recorded because the error is instructive.** The
+script asserted `dsvd72` must land within one seed sd of `onehot`, reasoning that identical
+column spans imply identical models. **That is true for a linear model and false for a tree** —
+tree fits are not rotation-invariant, which is the entire mechanism under test. The check
+contradicted the hypothesis it was meant to protect, and fired FAIL on a real effect.
+
+---
+
+# ⛔ Iteration 54–59 — the rotation was a LEAK AMPLIFIER. Submitted, scored **1.205**.
+
+`experiments/iter54_rotverify/`, `iter57_foldsb/`, `iter59_rotnoenc/`
+
+**It passed five gates and was still wrong.** Recorded in full because the gates' failure is
+more useful than the result.
+
+| gate | bar | result | |
+|---|---|---|---|
+| 10-seed member gain | > 0.00283 | −0.02192, **10/10 wins**, sd 0.00180 | ✅ |
+| nested basis (not transduction) | survives | −0.00007 vs transductive | ✅ |
+| segment-reweighted retention | ≥ 90% | **105%** | ✅ |
+| blend gate | > 0.00048 | −0.01609 = **33.5 blend sd** | ✅ |
+| folds_b replication | ≥ 60% | **91%**, 3/3 | ✅ |
+
+Nested blend **1.11210** against production 1.12819. Predicted public 1.187 (band 1.179–1.188).
+**Actual public: 1.205.** A sign flip of 0.008 against a prediction that was 0.018 out.
+
+**The ablation that should have been run first** (`iter59`, 4 arms × 3 seeds, one factor at a
+time):
+
+```
+            base       rot        gain
+WITH  enc   1.13746    1.11561    −0.02185
+NO    enc   1.15925    1.17396    +0.01470
+SURVIVAL RATIO  −67%
+```
+
+**Remove the encoding and the rotation flips sign.** It does not merely stop helping — it hurts
+by +0.015 (71 dense columns diluting `colsample_bytree` and fitting noise). So the −0.022 was
+**100% leak amplification on top of an intrinsically harmful feature block**. `rot_noenc`
+(1.17396) does not even beat the honest production member (~1.1359).
+
+## Why every gate was blind to it
+
+- **folds_b re-runs the same one-shot encoding**, so it replicates the leak rather than testing
+  it. 91% retention was 91% retention *of the leak*.
+- **Segment reweighting is blind** — the leak is population-independent, so it inflates plain
+  and reweighted alike. 105% retention meant nothing.
+- **The per-fold heuristic is blind** — structural leaks are uniform across folds.
+- **The blend gate is blind** — both members were scored on the same contaminated OOF.
+
+**The rule that would have caught it, and now must be applied:** *a contrast is only valid if
+leak exposure is matched on both sides.* The rotation changed **capacity**, which changes leak
+exposure, so the contrast was contaminated even though both arms used identical features. By
+the same rule, iteration 39's carve removal **is** valid — it changes *data* (recovering 114
+respondents), not capacity, and its `ENC_COLS` exposure is byte-identical across arms.
+
+## Reflection
+
+Iteration 49's own header pre-registered *"monotone-in-k ⇒ treat as noise"*, and the gain **was**
+monotone in k. That flag was overturned on the strength of iteration 51's encoding ablation —
+which tested the wrong alternative hypothesis. The leak hypothesis was never tested until after
+the slot was spent. **Ruling out one alternative explanation is not the same as ruling out the
+alternative that matters.**
+
+---
+
+# Iterations 50, 53, 61 — three honest nulls
+
+| iter | idea | result |
+|---|---|---|
+| **50** | reduced-rank demographic × attribute interaction, `u = x'β + z'Cx` with `C = ΓV'` | rank curve unimodal at F = 1 (1.17462 → 1.16649, 2.87 sd), then reverting at F = 2 and F = 4. **Earns weight 0.000 in the blend.** Fully absorbed by the incumbents. |
+| **53** | low-df GAM outside-option head on our blend, share chosen by inner CV | nested −0.00074 (1.54 blend sd) on plain OOF, but **+0.00009 on the segment-reweighted metric — ~0% retention.** Same failure mode that killed the design encoding (77%) and a fatigue term (64%). Margin-only property verified at 1.1e-16. |
+| **61** | synthesis model: no encoding, one-hot, depth swept, MF cold-start features, segment importance weighting | **fails the blend gate.** SEG 1.20104 vs production 1.19610. |
+
+**Iteration 61's stage detail**, all judged on the segment-reweighted metric (ESS 3,946):
+
+| stage | SEG |
+|---|---|
+| honest baseline, depth 3 / 4 / 5 / 6 | 1.25077 / 1.23800 / 1.23405 / 1.23172 |
+| + MF cold-start features | 1.23138 (**−0.00034 — noise**) |
+| + segment importance weighting, τ = 0.25 / 0.50 / 1.00 | 1.23332 / 1.23275 / 1.23156 (**null**) |
+
+**A limitation of that τ sweep, stated so it is not over-read.** The team's second track uses an
+importance-weight *exponent* of 0.05–0.10. This sweep started at τ = 0.25 — **2.5× the largest
+value in use** — so it tested only heavy reweighting. The correct conclusion is *heavy
+reweighting is null on this stack*; light reweighting remains untested.
+
+**Iteration 61's one genuinely useful output:** the blend gave the honest tree weight **0.278**,
+against production's 0.528 for the leaky one. Iteration 48 independently predicted the honest
+weight at **0.194–0.243**. Two unrelated constructions agreeing that the live blend
+over-weights its tree by ~2× is the strongest evidence in this file for acting on it.
+
+---
+
+# Member scores on the metric that actually predicts the board
+
+Segment-reweighted nested OOF (unclipped `p_test/p_train` by `segmentind`). The production
+blend reads **1.19610** here against an actual public of **1.197** — it closes **98.7%** of the
++0.069 offset, where plain OOF is off by the full amount.
+
+| member | plain | **segment-reweighted** | encoding |
+|---|---|---|---|
+| `lcmnl3_both` | 1.13863 | **1.20493** | clean |
+| `mnl_pw` | 1.15686 | 1.21199 | clean |
+| `xgb_lw2bag` | 1.13682 | 1.21516 | **leaky** |
+| `xgb_syn` (iter 61) | 1.15396 | 1.23138 | clean |
+| **production blend** | 1.12819 | **1.19610** | — |
+
+**`lcmnl3_both` is our best single component on the graded population** — ahead of the tree it
+is out-weighted by. It is also completely clean of the encoding.
+
+**Caveat on the metric.** It has two calibration points: production blend 1.19610 → 1.197
+(hit to 0.001), and the rotation blend 1.18596 → 1.205 (**missed by 0.019**, because the leak
+inflates plain and reweighted equally). It is the best forecaster available and it is **not** a
+law. It is a veto and a rough forecast — **never a fitting objective** (iterations 07, 46).
+
+---
+
+# ⛔ THE ⛔ TABLE, UPDATED
+
+| idea | killed by | number |
+|---|---|---|
+| design-share encoding as a *source of gain* | iteration 48 | honest value **−0.00596**, z −3.53 |
+| depth > 6 on the tree | iteration 48 | honest curve monotonically worse; optimum 4–5 |
+| iteration 47's 27-config sweep | iteration 48 | ranked on contaminated OOF; honest ranking reverses |
+| random/SVD rotation of the one-hot basis | iteration 59 | survival ratio **−67%** without the encoding |
+| demographic PCA as tree features | iteration 49 | +0.0123 to +0.0275 (respondent fingerprinting) |
+| reduced-rank demographic × attribute | iteration 50 | blend weight **0.000** |
+| GAM outside-option head on our blend | iteration 53 | ~0% retention under reweighting |
+| heavy segment importance weighting (τ ≥ 0.25) | iteration 61 | null at every τ tested |
+| MF cold-start features on our stack | iteration 61 | −0.00034 against a 0.003 noise floor |
+| plain nested OOF as a decision metric | iteration 48 | off by **0.069**; use segment-reweighted |
+
+---
+
+# The submission record these iterations produced
+
+| file | local | public | what it taught |
+|---|---|---|---|
+| `sub_20260726_2328.csv` | 1.12819 | **1.197** | the 2-member blend baseline |
+| `sub_20260727_2200_free5cal85.csv` | 1.12341 | 1.209 | free-sign control variates need matched regimes |
+| `sub_20260727_1420.csv` | 1.12341 | 1.211 | predicted 1.211 exactly, pre-registered |
+| `sub_20260729_rotblend_cal85.csv` | 1.11210 | **1.205** | the leak, confirmed on the board |
+| `sub_20260729_nnblend.csv` | — | **1.194** | best entry; see `experiments/iter62_nnblend/` |
+
+**Since 1.197, every local improvement produced a public regression** — until the entry that
+was not selected on local OOF at all. The correlation between our plain local metric and the
+board went *negative*, which is the single clearest statement of what iteration 48 found.

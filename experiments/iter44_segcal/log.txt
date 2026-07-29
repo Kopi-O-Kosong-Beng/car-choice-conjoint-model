@@ -1,0 +1,114 @@
+=================================================================
+ITERATION 44 -- nested segment-conditional p4 calibration
+=================================================================
+
+STEP 1 -- segment mask lux = segmentind in {3,5}
+  train luxury rows: 2033 / 21565  (9.43%)
+  test  luxury rows: 3439 / 4997  (68.82%)
+  reweight multipliers: lux x 7.3002 | non x 0.34424  (mean weight 1.000000)
+
+STEP 2 -- calibration operator assertions
+  sd of logit shift within segment : 1.827e-16  (< 1e-12 required)
+  max |within-buy share change|    : 2.220e-16  (< 1e-12 required)
+  max |rowSums - 1|                : 4.441e-16
+  PASS
+
+STEP 0 -- HARNESS CHECK (must reproduce 1.12341 / 1.19285)
+  nested plain            : 1.12341   (target 1.12341)
+  nested segment-reweighted: 1.19285   (target 1.19285)
+  PASS  ( 141 s )
+
+STEP 3 -- nested loop, folds.rds (production fold structure)
+  ( 69 s )
+    fold     n base_plain cal_plain  d_plain base_segrw cal_segrw  d_segrw
+   <int> <int>      <num>     <num>    <num>      <num>     <num>    <num>
+1:     1  4313    1.13861   1.14260 -0.00398    1.31039   1.34754 -0.03715
+2:     2  4313    1.10686   1.10617  0.00069    1.15813   1.14820  0.00993
+3:     3  4313    1.11484   1.11467  0.00017    1.08955   1.08480  0.00474
+4:     4  4313    1.13554   1.13432  0.00122    1.15913   1.14816  0.01097
+5:     5  4313    1.12121   1.12003  0.00118    1.29174   1.28047  0.01127
+
+  NESTED plain  : 1.12341 -> 1.12356   delta -0.00015
+  NESTED segrw  : 1.19285 -> 1.19150   delta +0.00134
+  paired respondent-clustered (segrw): +0.00134  SE 0.00525  z 0.26  (n=1135)
+  paired respondent-clustered (plain): -0.00015  SE 0.00076  z -0.19
+
+  selected lambda per member per outer fold (folds.rds):
+Key: <member>
+        member     1     2     3     4     5
+        <char> <num> <num> <num> <num> <num>
+1: lcmnl3_both  0.75  0.00  0.00  0.00  0.00
+2:  xgb_2stage  1.00  0.75  0.75  0.75  0.75
+3:    xgb_long  1.00  0.75  0.75  0.75  0.75
+4:  xgb_lw2bag  1.00  0.75  0.75  0.75  0.75
+5:    xgb_wide  1.00  0.75  0.75  0.75  0.75
+  lambda_pool (median over members) per outer fold: 1 0.75 0.75 0.75 0.75 
+  folds with lambda_pool == 0: 0 of 5   (>= 3 REJECTS)
+
+CONTROL C1 -- GLOBAL (non-segment) nested shift, the already-dead object
+  nested plain : 1.12341 -> 1.12353   delta -0.00012
+  nested segrw : 1.19285 -> 1.19140   delta +0.00144
+
+STEP 3b -- replication under folds_b.rds (independent respondent grouping)
+  CAVEAT: the member OOF predictions were themselves produced under
+  folds.rds, so this tests the CALIBRATION + COMBINER fitting on an
+  independent split, not the members. Stated so it is not over-read.
+  NESTED plain  : 1.12349 -> 1.12434   delta -0.00084
+  NESTED segrw  : 1.19303 -> 1.19595   delta -0.00292
+    fold     n  d_plain  d_segrw
+   <int> <int>    <num>    <num>
+1:     1  4313 -0.00025  0.00656
+2:     2  4313  0.00176  0.01232
+3:     3  4313 -0.00006  0.00337
+4:     4  4313 -0.00628 -0.04085
+5:     5  4313  0.00061  0.00653
+
+=================== PRE-REGISTERED GATES ===================
+  P1 segrw delta >= 0.00200            : +0.00134  FAIL
+  P2 folds_b segrw delta >= 0.00160    : -0.00292  FAIL
+  P3 all 5 folds improve (segrw)       : 4 of 5   FAIL
+  GUARD plain degrades <= 0.00048      : +0.00015  PASS
+  LAMBDA lambda_pool==0 in < 3 folds   : 0 of 5   PASS
+  >>> VERDICT: REJECT
+============================================================
+
+STEP 4 -- full-data refit and test artifacts
+  lambda (full training, LOO-selected): xgb_lw2bag=1  lcmnl3_both=0  xgb_long=1  xgb_wide=1  xgb_2stage=1 
+  training none-rate targets: all 0.30230 | lux 0.15986 | non 0.31712
+             d_glob d_lux_raw d_non_raw d_lux_shr d_non_shr
+xgb_lw2bag  -0.0263   -0.6801    0.0264   -0.6801    0.0264
+lcmnl3_both -0.0104   -0.1787    0.0016   -0.0104   -0.0104
+xgb_long    -0.0235   -0.6833    0.0295   -0.6833    0.0295
+xgb_wide    -0.0001   -0.6560    0.0528   -0.6560    0.0528
+xgb_2stage   0.0257   -0.6412    0.0795   -0.6412    0.0795
+
+  (a) FREE-SIGN POOL WEIGHTS
+        member incumbent before_refit after_calibration  change
+        <char>     <num>        <num>             <num>   <num>
+1:  xgb_lw2bag     1.151       1.1513            1.1510 -0.0004
+2: lcmnl3_both     0.606       0.6056            0.5710 -0.0347
+3:    xgb_long    -0.348      -0.3480           -0.3169  0.0311
+4:    xgb_wide    -0.189      -0.1889           -0.1857  0.0032
+5:  xgb_2stage    -0.237      -0.2372           -0.2379 -0.0006
+  eps: before 0.00926  after 0.00667
+  sum|negative weights|: before 0.7742  after 0.7405  (H2: should shrink)
+  n negative weights   : before 3  after 3
+
+  (b) SHIPPED TEST p4
+                                   all    lux    non
+free5 uncalibrated (refit)      0.2377 0.2096 0.2996
+iter44 segcal5 (no level shift) 0.2113 0.1722 0.2976
+iter44 segcal5 + level shift    0.2622 0.2178 0.3602
+file1 freepool5_cal             0.2622 0.2325 0.3277
+file2 freepool5_segA            0.2622 0.2092 0.3792
+  measured public r* = 0.26652 (band [0.2661, 0.2670])
+
+STEP 5 -- writing artifacts (LAST act), names grep-verified absent
+  collision check oof_segcal5.rds    : 0 match(es)
+  collision check test_segcal5.rds   : 0 match(es)
+  wrote model/artifacts/oof_segcal5.rds, model/artifacts/test_segcal5.rds
+  wrote foldwise.csv, lambda_sel.csv, weights.csv
+
+NOTHING WAS UPLOADED. No production file was opened for writing.
+FINAL VERDICT: REJECT
+OK

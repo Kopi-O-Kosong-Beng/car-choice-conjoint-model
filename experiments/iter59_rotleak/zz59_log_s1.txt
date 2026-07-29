@@ -1,0 +1,40 @@
+
+==============================================================================
+2x2 (+1) ABLATION -- seeds 1
+==============================================================================
+  seed 1  base_enc    OOF 1.13761   (0.9 min)
+  seed 1  base_noenc  OOF 1.15879   (0.9 min)
+  seed 1  rot_enc     OOF 1.11515   (1.9 min)
+  seed 1  rot_noenc   OOF 1.17405   (1.8 min)
+  seed 1  oh_noenc    OOF 1.15736   (1.2 min)
+
+==============================================================================
+PER-SEED CONTRASTS
+==============================================================================
+Key: <seed>
+    seed base_enc base_noenc oh_noenc rot_enc rot_noenc
+   <int>    <num>      <num>    <num>   <num>     <num>
+1:     1 1.137606   1.158789 1.157358 1.11515  1.174054
+
+Key: <seed>
+    seed       G_enc    G_noenc leak_base  leak_rot
+   <int>       <num>      <num>     <num>     <num>
+1:     1 -0.02245607 0.01526473 0.0211829 0.0589037
+
+==============================================================================
+VERDICT
+==============================================================================
+  advertised gain  G_enc   = -0.02246  (rotation, WITH the leaky encoding)
+  honest gain      G_noenc = +0.01526  (rotation, encoding REMOVED)
+  share of the headline that is leak amplification: 168%
+  leak extracted by BASE tree = +0.02118 ; by ROT tree = +0.05890  (ratio 2.78x)
+
+  PRE-REGISTERED VERDICT -> C: THE ENTIRE GAIN IS LEAK AMPLIFICATION -- DO NOT UPLOAD the rotblend CSV
+
+  mechanism check: rot_noenc 1.17405 vs oh_noenc 1.15736  (diff +0.01670, one seed sd 0.00283)
+  -> sparse dummies BEAT the rotation
+
+  wrote experiments/iter59_rotleak/zz59_arms.csv and zz59_contrasts.csv
+  model/artifacts NOT written. members.txt / blend.rds / folds*.rds untouched.
+
+done

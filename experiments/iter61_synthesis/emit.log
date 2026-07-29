@@ -1,0 +1,15 @@
+  seed  1 done (OOF 1.15430)
+  seed  2 done (OOF 1.15603)
+  seed  3 done (OOF 1.15478)
+  seed  4 done (OOF 1.15417)
+  seed  5 done (OOF 1.15535)
+  seed  6 done (OOF 1.15462)
+  seed  7 done (OOF 1.15584)
+  seed  8 done (OOF 1.15595)
+  seed  9 done (OOF 1.15395)
+  seed 10 done (OOF 1.15564)
+
+  xgb_syn 10-seed OOF 1.15361   shipped mean p4 0.28325
+  wrote oof_xgb_syn.rds / test_xgb_syn.rds
+
+  NEXT: BLEND_MEMBERS='xgb_syn lcmnl3_both' -> compare SEG against 1.19610

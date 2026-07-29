@@ -1,0 +1,129 @@
+=== ARM prod_d4_m20_e003_n540_s123 ===
+  fold 1 done (0.2 min)
+  fold 2 done (0.4 min)
+  fold 3 done (0.5 min)
+  fold 4 done (0.7 min)
+  fold 5 done (0.9 min)
+>>> prod_d4_m20_e003_n540_s123  OOF 1.15678
+ARM_DONE prod_d4_m20_e003_n540_s123 1.15678
+=== ARM noenc_d4_m20_e003_n540_s123 ===
+  fold 1 done (0.2 min)
+  fold 2 done (0.4 min)
+  fold 3 done (0.6 min)
+  fold 4 done (0.7 min)
+  fold 5 done (0.9 min)
+>>> noenc_d4_m20_e003_n540_s123  OOF 1.15640
+ARM_DONE noenc_d4_m20_e003_n540_s123 1.15640
+=== ARM honest_d4_m20_e003_n540_s123 ===
+  fold 1 done (0.2 min)
+  fold 2 done (0.4 min)
+  fold 3 done (0.5 min)
+  fold 4 done (0.7 min)
+  fold 5 done (0.9 min)
+>>> honest_d4_m20_e003_n540_s123  OOF 1.15975
+ARM_DONE honest_d4_m20_e003_n540_s123 1.15975
+=== ARM leaky_d4_m20_e003_n540_s123 ===
+  fold 1 done (0.2 min)
+  fold 2 done (0.4 min)
+  fold 3 done (0.6 min)
+  fold 4 done (0.8 min)
+  fold 5 done (1.0 min)
+>>> leaky_d4_m20_e003_n540_s123  OOF 1.15747
+ARM_DONE leaky_d4_m20_e003_n540_s123 1.15747
+=== ARM prod_d6_m20_e003_n540_s123 ===
+  fold 1 done (0.2 min)
+  fold 2 done (0.4 min)
+  fold 3 done (0.7 min)
+  fold 4 done (0.8 min)
+  fold 5 done (1.0 min)
+>>> prod_d6_m20_e003_n540_s123  OOF 1.14597
+ARM_DONE prod_d6_m20_e003_n540_s123 1.14597
+=== ARM noenc_d6_m20_e003_n540_s123 ===
+  fold 1 done (0.2 min)
+  fold 2 done (0.3 min)
+  fold 3 done (0.5 min)
+  fold 4 done (0.7 min)
+  fold 5 done (0.8 min)
+>>> noenc_d6_m20_e003_n540_s123  OOF 1.15259
+ARM_DONE noenc_d6_m20_e003_n540_s123 1.15259
+=== ARM honest_d6_m20_e003_n540_s123 ===
+  fold 1 done (0.2 min)
+  fold 2 done (0.4 min)
+  fold 3 done (0.5 min)
+  fold 4 done (0.7 min)
+  fold 5 done (0.9 min)
+>>> honest_d6_m20_e003_n540_s123  OOF 1.15808
+ARM_DONE honest_d6_m20_e003_n540_s123 1.15808
+=== ARM leaky_d6_m20_e003_n540_s123 ===
+  fold 1 done (0.2 min)
+  fold 2 done (0.4 min)
+  fold 3 done (0.6 min)
+  fold 4 done (0.8 min)
+  fold 5 done (1.0 min)
+>>> leaky_d6_m20_e003_n540_s123  OOF 1.15009
+ARM_DONE leaky_d6_m20_e003_n540_s123 1.15009
+=== ARM prod_d8_m20_e003_n540_s123 ===
+  fold 1 done (0.2 min)
+  fold 2 done (0.4 min)
+  fold 3 done (0.6 min)
+  fold 4 done (0.9 min)
+  fold 5 done (1.2 min)
+>>> prod_d8_m20_e003_n540_s123  OOF 1.13673
+ARM_DONE prod_d8_m20_e003_n540_s123 1.13673
+=== ARM noenc_d8_m20_e003_n540_s123 ===
+  fold 1 done (0.2 min)
+  fold 2 done (0.4 min)
+  fold 3 done (0.7 min)
+  fold 4 done (0.9 min)
+  fold 5 done (1.1 min)
+>>> noenc_d8_m20_e003_n540_s123  OOF 1.15910
+ARM_DONE noenc_d8_m20_e003_n540_s123 1.15910
+=== ARM honest_d8_m20_e003_n540_s123 ===
+  fold 1 done (0.2 min)
+  fold 2 done (0.5 min)
+  fold 3 done (0.7 min)
+  fold 4 done (1.0 min)
+  fold 5 done (1.2 min)
+>>> honest_d8_m20_e003_n540_s123  OOF 1.16461
+ARM_DONE honest_d8_m20_e003_n540_s123 1.16461
+=== ARM leaky_d8_m20_e003_n540_s123 ===
+  fold 1 done (0.2 min)
+  fold 2 done (0.5 min)
+  fold 3 done (0.7 min)
+  fold 4 done (0.9 min)
+  fold 5 done (1.2 min)
+>>> leaky_d8_m20_e003_n540_s123  OOF 1.14720
+ARM_DONE leaky_d8_m20_e003_n540_s123 1.14720
+=== ARM prod_d10_m20_e003_n540_s123 ===
+  fold 1 done (0.3 min)
+  fold 2 done (0.5 min)
+  fold 3 done (0.8 min)
+  fold 4 done (1.1 min)
+  fold 5 done (1.4 min)
+>>> prod_d10_m20_e003_n540_s123  OOF 1.12855
+ARM_DONE prod_d10_m20_e003_n540_s123 1.12855
+=== ARM noenc_d10_m20_e003_n540_s123 ===
+  fold 1 done (0.3 min)
+  fold 2 done (0.5 min)
+  fold 3 done (0.8 min)
+  fold 4 done (1.0 min)
+  fold 5 done (1.2 min)
+>>> noenc_d10_m20_e003_n540_s123  OOF 1.16793
+ARM_DONE noenc_d10_m20_e003_n540_s123 1.16793
+=== ARM honest_d10_m20_e003_n540_s123 ===
+  fold 1 done (0.2 min)
+  fold 2 done (0.5 min)
+  fold 3 done (0.7 min)
+  fold 4 done (1.0 min)
+  fold 5 done (1.2 min)
+>>> honest_d10_m20_e003_n540_s123  OOF 1.17589
+ARM_DONE honest_d10_m20_e003_n540_s123 1.17589
+=== ARM leaky_d10_m20_e003_n540_s123 ===
+  fold 1 done (0.3 min)
+  fold 2 done (0.5 min)
+  fold 3 done (0.8 min)
+  fold 4 done (1.0 min)
+  fold 5 done (1.2 min)
+>>> leaky_d10_m20_e003_n540_s123  OOF 1.14679
+ARM_DONE leaky_d10_m20_e003_n540_s123 1.14679
+DRIVER_A_DONE

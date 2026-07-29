@@ -1,0 +1,70 @@
+
+==============================================================================
+SECTION 1 -- DATA, exactly as iteration 47 builds it
+==============================================================================
+  trl 86260 rows (21565 tasks)   tel 19988 rows (4997 tasks)   base features 70
+
+==============================================================================
+SECTION 2 -- MF BLOCK A: demographic PCA (fold-nested, unsupervised)
+==============================================================================
+  respondents: train 1135  test 263   demographic columns 15
+  variance explained by PC1..PC8: 0.179 0.135 0.104 0.094 0.075 0.069 0.067 0.066
+  cumulative at k=4: 0.512   at k=8: 0.790
+
+==============================================================================
+SECTION 3 -- MF BLOCK B: truncated SVD of the one-hot attribute matrix
+==============================================================================
+  unique alternative profiles: 17044   (of 106248 rows)
+  level counts: CC=4 GN=3 NS=6 BU=7 FA=3 LD=4 BZ=4 FC=3 FP=5 RP=3 PP=4 KA=3 SC=5 TS=4 NV=4 MA=5 LB=5 AF=4 HU=3 Price=13
+  indicator matrix: 17044 profiles x 92 dummies
+  spectrum (first 12): 0.030 0.030 0.030 0.030 0.030 0.029 0.027 0.027 0.027 0.027 0.027 0.027
+  cumulative at k=8: 0.233  k=16: 0.441  k=32: 0.694
+
+==============================================================================
+SECTION 4 -- SCREEN
+==============================================================================
+  9 configs, 1 seed, fixed 540 rounds
+  incumbent xgb_lw2fr10 1-seed equivalent = 1.13740
+  NOTE 'base' here is the SAME feature set as the incumbent, so base's own
+  number is the honest within-run control -- compare challengers to IT, not
+  to 1.13740, which came from a different machine and BLAS.
+
+  base             nfeat  70  OOF 1.13761   (1.0 min)
+  demoPC4          nfeat  74  OOF 1.14987   (1.1 min)
+  demoPC8          nfeat  78  OOF 1.15574   (1.2 min)
+  demoPC8_noraw    nfeat  63  OOF 1.16506   (1.1 min)
+  dsvd8            nfeat  78  OOF 1.13369   (1.4 min)
+  dsvd16           nfeat  86  OOF 1.13082   (1.7 min)
+  dsvd32           nfeat 102  OOF 1.12655   (1.8 min)
+  demoPC4_dsvd8    nfeat  82  OOF 1.14701   (1.6 min)
+  demoPC8_dsvd16   nfeat  94  OOF 1.14983   (1.6 min)
+
+==============================================================================
+SCREEN RESULT (1 seed -- ranking only, NOT evidence)
+==============================================================================
+              cfg nfeat      oof     mins
+           <char> <int>    <num>    <num>
+1:         dsvd32   102 1.126547 1.799748
+2:         dsvd16    86 1.130820 1.668370
+3:          dsvd8    78 1.133691 1.397575
+4:           base    70 1.137606 1.031017
+5:  demoPC4_dsvd8    82 1.147011 1.590324
+6: demoPC8_dsvd16    94 1.149825 1.552846
+7:        demoPC4    74 1.149870 1.112992
+8:        demoPC8    78 1.155738 1.177564
+9:  demoPC8_noraw    63 1.165064 1.134147
+
+  within-run control 'base' = 1.13761
+  best config: dsvd32           1.12655   (delta vs base -0.01106)
+  configs beating base: 3 of 9
+  model-level seed sd is 0.00283 -- a delta smaller than that is NOTHING.
+  |delta| of best vs base as a multiple of seed sd: 3.91
+
+  DIRECTIONAL CHECK (gain must not grow monotonically with k):
+    dsvd8 1.13369  dsvd16 1.13082  dsvd32 1.12655
+    monotone-in-k? YES  -- pre-registered as NOISE, not a win
+
+  NEXT (only if a config beats base by > 1 seed sd): confirm at 10 seeds,
+  then compare.R, then the blend gate, then shift_audit.R, then folds_b.
+
+  wrote experiments/iter49_matfact/screen_full.rds 
