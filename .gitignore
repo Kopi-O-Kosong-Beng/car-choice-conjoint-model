@@ -19,12 +19,11 @@
 Thumbs.db
 desktop.ini
 
-# Second-track working folders — kept locally, never committed.
-# Anything from that track that we actually rely on gets copied into
-# experiments/iterNN_*/ as a proper iteration, and THAT is what is tracked.
+# Second-track working folders — kept locally, never committed. Anything from
+# that track we actually rely on is copied into experiments/iterNN_*/ as a
+# proper iteration, and THAT is what is tracked.
 ZF */
 ZF_*/
-TEAM11*
 SUBMIT_*_CODE_AND_CSV*
 probe_calibration*
 experiments.zip
