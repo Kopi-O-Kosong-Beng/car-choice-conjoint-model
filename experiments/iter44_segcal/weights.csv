@@ -1,0 +1,6 @@
+member,incumbent,before_refit,after_calibration,change
+xgb_lw2bag,1.151,1.1513,1.151,-4e-04
+lcmnl3_both,0.606,0.6056,0.571,-0.0347
+xgb_long,-0.348,-0.348,-0.3169,0.0311
+xgb_wide,-0.189,-0.1889,-0.1857,0.0032
+xgb_2stage,-0.237,-0.2372,-0.2379,-6e-04

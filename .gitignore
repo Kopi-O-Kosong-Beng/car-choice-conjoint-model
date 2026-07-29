@@ -21,3 +21,20 @@ desktop.ini
 
 # Local Git worktrees
 .worktrees/
+# Second-track working folders — kept locally, never committed. Anything from
+# that track we actually rely on is copied into experiments/iterNN_*/ as a
+# proper iteration, and THAT is what is tracked.
+ZF */
+ZF_*/
+SUBMIT_*_CODE_AND_CSV*
+probe_calibration*
+experiments.zip
+
+# Bulk experiment intermediates from the encoding-leak harness and the
+# factorization sweeps. Reproducible from the run.R in each folder; the
+# scripts, logs and result tables ARE tracked.
+experiments/iter48_encleak/*.rds
+experiments/iter49_matfact/*.rds
+experiments/iter50_lowrank/*.rds
+experiments/iter53_p4head/*.rds
+experiments/iter57_deploytrim/*.rds

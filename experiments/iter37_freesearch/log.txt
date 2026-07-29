@@ -1,0 +1,26 @@
+
+==============================================================================
+SETUP
+==============================================================================
+  candidate pool: 38 artifacts (after exclusions)
+  base: xgb_lw2bag + lcmnl3_both
+  cap: 6 members | min gain per step: 0.00100
+
+  2-member base   1.12819
+  iter35 greedy-5 1.12341
+
+==============================================================================
+FORWARD SELECTION
+==============================================================================
+  round 1: best add = xgb_long         nested 1.12521  gain +0.00298  ACCEPT
+  round 2: best add = xgb_2stage       nested 1.12393  gain +0.00127  ACCEPT
+  round 3: best add = xgb_mono         nested 1.12325  gain +0.00069  STOP (below min gain)
+
+==============================================================================
+SELECTED SET
+==============================================================================
+   xgb_lw2bag + lcmnl3_both + xgb_long + xgb_2stage 
+  nested 1.12393   vs greedy-5 1.12341   delta -0.00052
+  nested evaluations so far: 115
+
+  wrote search.rds + trace.csv (checkpoint before validation)

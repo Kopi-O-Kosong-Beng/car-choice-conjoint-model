@@ -10,21 +10,34 @@ Kaggle competition for SUTD's *The Analytics Edge* (2026), graded coursework. Pr
 of 4 car safety-feature bundles a respondent picks. Metric: mean multiclass logloss.
 **R only** — hard competition rule, never propose Python.
 
-**State (29 Jul 2026):** nested blend **1.12819**, public **1.197**, ~12th in a field whose
-top twelve span 0.011 (leader 1.186). Benchmark 1.38629. Production blend is **two members**:
-`xgb_lw2bag` 0.528 + `lcmnl3_both` 0.472. Kaggle closes **1 Aug**, report due **10 Aug**.
+**State (29 Jul 2026):** best public **1.194** (`sub_20260729_nnblend.csv`, from the second
+modelling track — see `experiments/iter62_nnblend/`), auto-selected for private scoring, 10th
+of ~40. Benchmark 1.38629. The `model/` blend here reads nested 1.12819 / public 1.197.
+Kaggle closes **1 Aug**, report due **10 Aug**.
 
-**⚠️ Our OOF is an anti-signal below ~1.128.** Six measured (local, public) pairs now exist.
-The four inside the established model family transfer at ~37%. The two that departed from it
-both failed badly: free-sign blend weights (1.12341 → **1.211**) and demographic feature
-ablation (1.09690 → **1.265**). The second passed 5/5 folds, three out-of-population holdouts,
-and a breadth test before scoring 0.068 worse. **A better local score is not evidence.**
+> ⛔ **ITERATION 48 CHANGES HOW YOU READ EVERY NUMBER ABOVE THIS LINE.** The design-share
+> encoding leaks: `apply_design_encoding()` is called ONCE, before the CV loop, so training
+> rows are encoded from a set containing the scored fold. Its honest value is **−0.00596**,
+> not the +0.0218 it appears to be worth. **Nested OOF 1.12819 is inflated by ~0.0077**
+> (honest ≈ 1.1359), `w_tree = 0.528` should be **0.194–0.243**, and iteration 47's
+> hyperparameter sweep is void — the honest depth optimum is **4–5**, we ship 8.
+> Read `EXPERIMENTS.md` iteration 48 before quoting any plain-OOF figure.
 
-**The one durable gain of round 4 was measured, not fitted.** The alt-4 probe — a constant
+**⚠️ Corroborating this from the other track: our OOF is an anti-signal below ~1.128.** Six
+measured (local, public) pairs exist. The four inside the established model family transfer at
+~37%. Everything that departed from it failed: free-sign weights (1.12341 → **1.209/1.211**),
+rotation blend (1.11210 → **1.205**), and demographic feature ablation (1.09690 → **1.265**).
+That last one passed 5/5 folds, three out-of-population holdouts and a breadth test — and is
+now explained by iteration 48: dropping demographics made the model lean harder on the leaky
+encoding. **A better local score is not evidence.**
+
+**The one durable gain that is not fitted at all.** The alt-4 probe — a constant
 `(1/6,1/6,1/6,1/2)` submission — scored 1.499, and `r = (log6 − score)/log3` gives the test
 none-rate **0.26648** exactly. Correcting the shipped marginal to it is worth **+0.00104** and
-transfers at ~100%. See `EXPERIMENTS.md` "Round 4" for the three mechanisms that were
-confidently argued and then refuted in the same round.
+transfers at ~100%, because it is *measured on the test set* rather than fitted on our folds.
+See `EXPERIMENTS.md` "Round 4" for three mechanisms that were confidently argued and refuted
+in the same round — including an encoding-leak test whose instrument (an AUC contrast) could
+not detect a *structural* leak, which iteration 48 then found by the capacity test.
 
 ---
 
@@ -100,6 +113,20 @@ Conflating the first two is exactly how iteration 08's monotone price constraint
 survived eighteen iterations before being retracted. **Anything quoted below 0.003 on a
 single model, from any iteration before 26, is unresolved.**
 
+**AND THE FLOOR IS NOT THE HARD PART — THE METRIC IS.** Plain nested OOF is a *poor* predictor
+of the board and since 1.197 has been an *inverted* one: every local improvement produced a
+public regression (1.12341 → 1.209, 1.12341 → 1.211, 1.11210 → 1.205). Use the
+**segment-reweighted nested OOF** — reweight training respondents by
+`p_test(segmentind) / p_train(segmentind)`, unclipped. It reads **1.19610** for the production
+blend against an actual public of **1.197**, closing 98.7% of the +0.069 offset.
+
+Two cautions on it, both measured:
+- It is **noisy** — ESS ≈ 3,900 of 21,565. A difference under ~0.003 on it is nothing.
+- It is **blind to the encoding leak**, which is population-independent and inflates plain and
+  reweighted alike. It predicted the rotation blend at 1.187; the board said 1.205.
+- **Judge with it, never fit on it** (iterations 07 and 46 both refuted fitting on a reweighted
+  objective — reweighting cuts effective sample, and variance beats bias).
+
 Then apply, in order:
 
 - **× 0.8** — measured replication on an independent fold structure (iteration 21: member
@@ -137,7 +164,21 @@ Then apply, in order:
 - **Long jobs must write their own assembled artifacts as their last act.** Two experiments
   looked like failures for hours when they had in fact finished, because the caller died
   before assembling them.
-- **Leak signature:** a real gain appears in *every* fold; a leak concentrates in one. Check
+- ⛔ **THE OLD LEAK HEURISTIC IS WRONG AND COST US THREE SUBMISSIONS.** This file used to say
+  "a leak concentrates in one fold." That is true only of *accidental* leaks. A **structural**
+  leak — one baked into how a feature is constructed — appears **uniformly in every fold**.
+  Iteration 48's encoding leak wins 5/5 folds at every depth and every seed, which is exactly
+  why per-fold checking never flagged it. **Per-fold consistency is not evidence of honesty.**
+  The tests that do work: (a) build an *isomorphic honest arm* with matched support and compare;
+  (b) check whether the gain **grows monotonically with model capacity** — real effects
+  saturate, leaks do not (this one went −0.0004 at depth 4 to +0.0777 at depth 10/1400r);
+  (c) ablate the suspect feature entirely and see if the gain survives.
+- **A contrast is only valid if leak exposure is MATCHED on both sides.** Changing *capacity*
+  changes leak exposure, so a capacity comparison on leaked features is contaminated even when
+  both arms use identical features (iteration 54–59, which passed five gates and scored 1.205).
+  Changing *data* does not — iteration 39's carve removal is a valid contrast for that reason.
+- **Old wording, retained so the failure is legible:** a real gain appears in *every* fold; a
+  leak concentrates in one. Check
   per-fold before believing anything.
 
 ## If the user re-opens the freeze
@@ -172,3 +213,21 @@ Then apply, in order:
   paired and ~0.006–0.012.
 - ~~"bundle-level encoding is the next idea"~~ — structurally impossible (bijection),
   iteration 16.
+- ~~"the design-share encoding is worth +0.0218"~~ — **retracted, iteration 48.** Honest value
+  **−0.00596** (z −3.53), confirmed by a second independent construction at −0.00440 (z −3.45).
+  All of the apparent gain is the leave-own-fold-out complement identity.
+- ~~"depth 8 / the iteration-47 hyperparameter ranking"~~ — **retracted, iteration 48.** That
+  sweep ranked 27 configs on contaminated OOF; the honest ranking is the reverse and the honest
+  depth optimum is **4–5**.
+- ~~"nested blend OOF 1.12819 is the decision number"~~ — it is inflated by ~0.0077 (honest
+  ≈ 1.1359) and, worse, it is the wrong *metric*. Use the segment-reweighted OOF to judge.
+- ~~"w_tree = 0.528"~~ — fitted on leaked OOF. Honest weight is **0.194–0.243** (iteration 48),
+  independently corroborated at **0.278** by iteration 61. **The live blend over-weights its
+  tree by roughly 2×. This is an uncorrected defect in the shipped model.**
+- ~~"a leak concentrates in one fold"~~ — **false for structural leaks**, see Known traps.
+
+## Open, and the best-evidenced thing left to do
+
+**Refit the blend weight honestly.** Two unrelated constructions agree the tree should carry
+~0.20–0.28, not 0.528. That is a correction to a mis-specified fit, not a search for a new
+gain, so it does not spend the replication budget. Nothing else in the ⛔ table comes close.

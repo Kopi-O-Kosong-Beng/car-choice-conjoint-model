@@ -1,0 +1,40 @@
+
+==============================================================================
+SECTION 1 -- BUILD BOTH ENCODINGS FROM ONE INDICATOR MATRIX
+==============================================================================
+  dummies 92 over 20 attributes -> predicted rank 72, measured rank 71
+  one-hot block 92 cols   svd block 71 cols
+
+==============================================================================
+SECTION 2 -- ABLATION
+==============================================================================
+  base             nfeat  70  OOF 1.13761   (1.1 min)
+  onehot           nfeat 162  OOF 1.13663   (1.5 min)
+  onehot_nonum     nfeat 122  OOF 1.14401   (1.2 min)
+  dsvd32           nfeat 102  OOF 1.12655   (1.4 min)
+  dsvd72           nfeat 141  OOF 1.11868   (1.8 min)
+  onehot_dsvd32    nfeat 194  OOF 1.12738   (1.8 min)
+
+==============================================================================
+VERDICT
+==============================================================================
+             cfg nfeat      oof     mins
+          <char> <int>    <num>    <num>
+1:        dsvd72   141 1.118681 1.833347
+2:        dsvd32   102 1.126547 1.363340
+3: onehot_dsvd32   194 1.127382 1.824834
+4:        onehot   162 1.136632 1.456318
+5:          base    70 1.137606 1.136629
+6:  onehot_nonum   122 1.144007 1.176733
+
+  base            1.13761
+  onehot   (B)    1.13663
+  dsvd32   (C)    1.12655
+  B - C = +0.01009   (one model-level seed sd = 0.00283)
+
+  CORRECTNESS CHECK  |dsvd72 - onehot| = 0.01795  -> FAIL -- script bug, all numbers void
+
+  PRE-REGISTERED VERDICT: ROTATION SURVIVES -- the SVD beats the raw dummies. Go to 10 seeds.
+
+  Whatever wins still faces: 10 seeds -> compare.R -> BLEND GATE (>0.00048)
+  -> shift_audit.R -> folds_b. Member gains do not automatically reach the blend.

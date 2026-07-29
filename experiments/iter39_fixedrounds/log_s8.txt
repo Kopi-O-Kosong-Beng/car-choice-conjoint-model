@@ -1,0 +1,8 @@
+  seed 8 fold 1 best_iter 
+  seed 8 fold 2 best_iter 
+  seed 8 fold 3 best_iter 
+  seed 8 fold 4 best_iter 
+  seed 8 fold 5 best_iter 
+>>> seed 8 OOF: 1.13807
+seed 8 done in 2.0 min -> experiments/iter39_fixedrounds/fr_lw2_008.rds
+OK

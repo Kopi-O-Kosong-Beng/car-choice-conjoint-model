@@ -1,0 +1,13 @@
+=== VERIFY the sweep winner: eta 0.02, depth 10, mcw 10, 1400 rounds ===
+  sweep reported 1.11980 in 2.6 min for the whole 5-fold set
+
+    fold 1: 1400 trees, 347.5 s, pred length 17252 (expect 17252)
+    fold 2: 1400 trees, 53.8 s, pred length 17252 (expect 17252)
+    fold 3: 1400 trees, 164.2 s, pred length 17252 (expect 17252)
+    fold 4: 1400 trees, 50.0 s, pred length 17252 (expect 17252)
+    fold 5: 1400 trees, 50.4 s, pred length 17252 (expect 17252)
+
+  INDEPENDENT re-fit OOF: 1.11981
+  sweep claimed        : 1.11980
+  incumbent 1-seed     : 1.13740
+  our 2-member BLEND   : 1.12741  <- a single model beating this is the red flag

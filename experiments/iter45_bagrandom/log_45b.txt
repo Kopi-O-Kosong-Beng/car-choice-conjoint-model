@@ -1,0 +1,14 @@
+=== 45b: does LESS randomness beat 0.8/0.8? (baseline 1.13604) ===
+  sub 0.9 col 0.9 -> OOF 1.13711   (2.6 min)
+  sub 0.9 col 1.0 -> OOF 1.13797   (2.6 min)
+  sub 1.0 col 0.9 -> OOF 1.14091   (2.5 min)
+  sub 1.0 col 1.0 -> OOF 1.14554   (2.6 min)
+     sub   col      oof
+   <num> <num>    <num>
+1:   0.9   0.9 1.137108
+2:   0.9   1.0 1.137965
+3:   1.0   0.9 1.140915
+4:   1.0   1.0 1.145545
+
+  best 45b: 1.13711  |  incumbent 0.8/0.8: 1.13606  |  baseline: 1.13604
+  beats baseline by more than the seed sd 0.00283? NO -- null

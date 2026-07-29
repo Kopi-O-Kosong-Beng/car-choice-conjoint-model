@@ -1,0 +1,137 @@
+
+==============================================================================
+B1 -- FIXED CLIP CURVES  (zero fitted parameters: every point is honest)
+==============================================================================
+baseline nested OOF 1.12819 | OOF P range [0.00468, 0.90915]
+the blend's own uniform-eps term is 0.00511, i.e. a HARD FLOOR of 0.00128
+
+FLOOR  (clip up, then renormalise)
+  floor     cells hit     nested      delta
+  0.0010            0    1.12819   +0.00000
+  0.0020            0    1.12819   +0.00000
+  0.0050            1    1.12819   -0.00000
+  0.0075           13    1.12819   -0.00000
+  0.0100           54    1.12819   -0.00000
+  0.0150          261    1.12822   -0.00003
+  0.0200          730    1.12827   -0.00008
+  0.0300         2251    1.12840   -0.00021
+  0.0500         6956    1.12942   -0.00123
+  0.0800        15429    1.13385   -0.00566
+
+CEILING  (winsorise down, then renormalise)
+  ceiling   cells hit     nested      delta
+  0.9900            0    1.12819   +0.00000
+  0.9500            0    1.12819   +0.00000
+  0.9000            1    1.12819   -0.00000
+  0.8500           23    1.12819   -0.00000
+  0.8000          193    1.12816   +0.00003
+  0.7500          678    1.12811   +0.00008
+  0.7000         1661    1.12807   +0.00012
+  0.6500         3095    1.12807   +0.00012
+  0.6000         5024    1.12822   -0.00003
+  0.5000        10501    1.12988   -0.00169
+
+EXTRA UNIFORM MIX   P' = (1-a)P + a/4
+  a=0.005     1.12820   -0.00001
+  a=0.010     1.12823   -0.00004
+  a=0.020     1.12836   -0.00017
+  a=0.050     1.12926   -0.00107
+  a=0.100     1.13219   -0.00400
+  a=0.200     1.14235   -0.01416
+
+TEMPERATURE   P' propto P^(1/T)
+  T=0.90      1.13063   -0.00245
+  T=0.95      1.12877   -0.00058
+  T=0.98      1.12829   -0.00010
+  T=1.00      1.12819   +0.00000
+  T=1.02      1.12825   -0.00006
+  T=1.05      1.12860   -0.00041
+  T=1.10      1.12978   -0.00159
+  T=1.20      1.13379   -0.00560
+
+SHRINK TOWARD THE TRAIN MARGINAL   P' = (1-a)P + a*m
+  a=0.010     1.12823   -0.00004
+  a=0.020     1.12835   -0.00016
+  a=0.050     1.12919   -0.00100
+  a=0.100     1.13193   -0.00374
+  a=0.200     1.14148   -0.01329
+  a=0.400     1.17381   -0.04562
+
+==============================================================================
+B2 -- WHY THE CLIP CURVES ARE FLAT: there is nothing in the tails
+==============================================================================
+  86,260 (row,alt) cells.  below 0.005: 1   below 0.01: 54   below 0.02: 730
+                          above 0.80 : 193   above 0.85: 23   above 0.90: 1
+  rows whose CHOSEN alternative got < 0.02: 10 of 21565, carrying 0.17% of total loss
+  rows whose CHOSEN alternative got > 0.80: 147 of 21565, carrying 0.11% of total loss
+
+  ORACLE BOUND on trimming the low tail: replace every chosen-prob below t by
+  the value that a clairvoyant would choose. Even with perfect hindsight:
+    t=0.01  0 rows  oracle nested >= 1.12819  (max possible gain -0.00000)
+    t=0.02  10 rows  oracle nested >= 1.12813  (max possible gain +0.00006)
+    t=0.05  246 rows  oracle nested >= 1.12453  (max possible gain +0.00366)
+
+==============================================================================
+B3 -- THE 'TWO SYSTEM' READING: arithmetic vs log-opinion pool, 0 fitted par
+==============================================================================
+  member  xgb_lw2bag    plain OOF 1.13682
+  member  lcmnl3_both   plain OOF 1.13863
+  ARITHMETIC pool at production weights, plain OOF   1.12821
+  LOG-OPINION pool at production weights, plain OOF  1.12778
+  (nested production number, for scale: 1.12819)
+
+  A trimmed/arithmetic mean of the two systems is BLUNTER than the log pool.
+  Whichever wins here is the same question the temperature curve answers.
+
+==============================================================================
+B4 -- REPLICATION 1: the fr10 base (the best built-but-unsent blend)
+==============================================================================
+  baseline nested 1.12741
+  floor 0.005   +0.00000
+  floor 0.010   -0.00000
+  floor 0.020   -0.00010
+  ceil  0.850   +0.00000
+  ceil  0.750   +0.00008
+  ceil  0.650   +0.00014
+  unif  0.010   -0.00003
+  unif  0.050   -0.00106
+  pooled  isotonic nested 1.12889  (-0.00149)
+  per-alt isotonic nested 1.13258  (-0.00518)
+
+==============================================================================
+B5 -- REPLICATION 2: an INDEPENDENT respondent grouping (folds_b, seed 43)
+==============================================================================
+  members xgb_lw2bag3_b + lcmnl3_both_b | nested OOF on folds_b = 1.13105
+  floor 0.005   -0.00000
+  floor 0.010   -0.00000
+  floor 0.020   -0.00000
+  ceil  0.850   +0.00000
+  ceil  0.750   +0.00007
+  ceil  0.650   +0.00015
+  unif  0.010   -0.00003
+  unif  0.050   -0.00101
+  pooled  isotonic nested -0.00186
+  per-alt isotonic nested -0.00499
+
+==============================================================================
+B6 -- SHRINK-TO-MARGINAL CANNOT REACH THE ANCHORED TARGET
+==============================================================================
+  shipped p4 0.24800, measured target 0.26652
+  P' = (1-a)P + a*m has mean p4 = (1-a)*q0 + a*m4, so hitting the target needs
+  a*(m4 - 0.24800) = 0.01852. With m4 = the test marginal itself (0.26652) that
+  requires a = 1.000 -- every row replaced by the marginal, all information gone.
+
+  a         needed m4      comment
+  1.00        0.26652 blunts as a side effect
+  0.50        0.28504 blunts as a side effect
+  0.20        0.34061 blunts as a side effect
+  0.10        0.43323 blunts as a side effect
+  0.05        0.61846 blunts as a side effect
+
+  The alt-4 utility shift reaches the SAME anchored target while leaving the
+  within-buy conditional distribution exactly unchanged (iteration 36 gate 4).
+  Shrink-to-marginal is therefore strictly dominated for this purpose: it buys
+  the same margin correction and pays for it with blunting the curve above
+  says is worthless.
+
+OK

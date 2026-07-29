@@ -1,0 +1,13 @@
+
+### ITERATION 34 -- freepool3 ###
+run at: 2026-07-27 02:58:19 
+
+================ 06_blend.R [free] xgb_lw2bag + lcmnl3_both + xgb_long -> blend_freepool3================
+NOT in blend (absent from members.txt): glmnet_pw, glmnet, hbmnl_nod, hbmnl, lcmnl, lcmnl1, lcmnl2, lcmnl3_bag, lcmnl3_both_b, lcmnl3_drift, lcmnl3_none_b, lcmnl3_sm, lcmnl3_tilt, lcmnl3, lcmnl3b, lcmnl3p, lcmnl3x, lcmnl4, lcmnl5, mixl, mixl2, mnl_pw_b, mnl_pw, mnl, nlogit, xgb_2stage, xgb_bagA, xgb_bagB, xgb_bagC, xgb_de, xgb_lw, xgb_lw2_b, xgb_lw2, xgb_lw2bag3_b, xgb_lw2bag3, xgb_lw3, xgb_mono_b, xgb_mono, xgb_mono2, xgb_monobag, xgb_monoc, xgb_monor, xgb_pt, xgb_resenc3, xgb_wide 
+members: xgb_lw2bag, lcmnl3_both, xgb_long 
+fold 1 held-out blend logloss: 1.14014 
+fold 2 held-out blend logloss: 1.10628 
+fold 3 held-out blend logloss: 1.11806 
+fold 4 held-out blend logloss: 1.13762 
+fold 5 held-out blend logloss: 1.12394 
+>>> NESTED blend OOF (decision number): 1.12521 +- 0.01404 

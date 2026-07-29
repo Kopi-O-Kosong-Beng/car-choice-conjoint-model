@@ -1,0 +1,22 @@
+  with encoding 70 features | without 66 (dropped: share_a1, share_a5, share_a20, design_n)
+
+==============================================================================
+FOUR ARMS x 3 SEEDS -- one factor at a time
+==============================================================================
+  seed 1 | ENC base 1.13761 rot 1.11515 (gain -0.02246) | NOENC base 1.15879 rot 1.17405 (gain +0.01526)
+  seed 2 | ENC base 1.13756 rot 1.11557 (gain -0.02199) | NOENC base 1.15963 rot 1.17450 (gain +0.01488)
+  seed 3 | ENC base 1.13722 rot 1.11610 (gain -0.02112) | NOENC base 1.15934 rot 1.17331 (gain +0.01397)
+
+==============================================================================
+VERDICT
+==============================================================================
+  mean base_enc   1.13746   mean rot_enc   1.11561   G_enc   -0.02185
+  mean base_noenc 1.15925   mean rot_noenc 1.17396   G_noenc +0.01470
+
+  SURVIVAL RATIO G_noenc / G_enc = -67%
+  -> LEAK AMPLIFIER -- REJECT. Iterations 54-58 measured the leak, not a model.
+
+  Absolute check: rot_noenc 1.17396 vs production's HONEST member ~1.1359
+  -> rot_noenc does NOT beat the honest production member -- nothing here
+
+done

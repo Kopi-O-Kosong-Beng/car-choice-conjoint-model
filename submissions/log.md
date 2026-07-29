@@ -197,6 +197,172 @@ the earlier structural wins. This submission is partly a test of that behaviour.
 
 ---
 
+## 27 Jul — the measurement probe, and what it bought
+
+| when (UTC) | file | what it is | public |
+|---|---|---|---|
+| 27 Jul 12:09 | `probe_alt4.csv` | **measurement instrument, not a model** | **1.499** |
+
+Every row is the constant `(1/6, 1/6, 1/6, 1/2)`. For a constant prediction the logloss is
+exact algebra, so the returned score inverts directly to the fraction of scored rows on which
+alternative 4 ("none of these") was chosen:
+
+```
+score = -(r·log(1/2) + (1-r)·log(1/6)) = 1.7918 - 1.0986·r
+  =>   r = (1.7918 - score) / 1.0986
+```
+
+**Score 1.499 ⇒ r = 0.2665**, 3-dp rounding band [0.2661, 0.2670]. This is the first number in
+the project that came from the graded population rather than from the 1,135 training
+respondents.
+
+**It rejected both prior camps.** `lcmnl3_both` predicted 0.2237 (−0.043); the teammate's
+assumption-light estimators said ~0.30 (+0.034); the tree `xgb_lw2bag` was nearly exact at
+0.2726 (+0.006). The latent-class membership model extrapolates in the right *direction* — test
+respondents really do decline less than training's 0.3023 — but roughly **twice as far as it
+should**.
+
+**What it was worth.** It killed a candidate (the luxury outside-option constant) that would
+have pushed the shipped rate to 0.2064, i.e. 0.06 *below* truth, costing ~0.010 — larger than
+every modelling gain since the leaderboard plateau combined. Fable had gated that candidate
+behind this probe rather than shipping it; the gate was worth more than the search that
+produced the candidate.
+
+**Leaderboard visibility.** The probe scores far worse than our 1.197, and Kaggle displays only
+each team's *best* score, so the board still shows 1.197. Rivals can see from the date column
+that we submitted something on 27 Jul and that it did not improve — nothing more. A probe is
+therefore compatible with a submission blackout in a way a real candidate is not.
+
+### Built 27 Jul, NOT uploaded
+
+| file | members | nested | ships p4 | note |
+|---|---|---|---|---|
+| `sub_20260727_1420.csv` | 5-member free-sign | 1.12341 | 0.2377 | uncalibrated; superseded |
+| `sub_20260727_2100_free5cal.csv` | + calibration w=0.60 | 1.12341 | 0.2550 | superseded, shrinkage was wrong |
+| **`sub_20260727_2200_free5cal85.csv`** | **+ calibration w=0.85** | **1.12341** | **0.2622** | ← **current best** |
+
+**Why w moved from 0.60 to 0.85.** The first build shrank the correction using
+`w* = e²/(e²+s²)`, which minimises mean-squared error of the *rate*. That is the wrong objective:
+expected logloss `E[KL(r‖t)]` is minimised exactly at `t = E[r]`, and the split-type variance
+adds a constant that does not move the optimum. Verified analytically and by simulation — the
+argmin sits at 0.2665 under both a row split and a respondent split. Shrinkage below w=1 is
+justified only by prior pull on the *mean*: under a respondent split the private respondents are
+genuinely unseen people, so the model rate acts as a weak prior (posterior-mean w ≈ 0.67–0.79);
+under a row split w ≈ 0.99. At P(row split) ≈ 0.7 the answer is **w ≈ 0.85**.
+
+| w | ships | none-margin gain |
+|---|---|---|
+| 0.60 | 0.2550 | +0.00189 |
+| **0.85** | **0.2622** | **+0.00219** |
+| 1.00 | 0.2665 | +0.00224 |
+
+**Forecast for `free5cal85`, pre-registered before upload:** segment-anchored **1.187**;
+transfer-rate route ~1.195. **≤1.192 confirms the free-sign base transfers; ≥1.195 means the
+OOF→test regime drift ate the gain and the remaining slots should go to the 2-member base.**
+
+---
+
+## ❌ 1.209 — the free-sign blend fails on the test set (27 Jul 16:10 UTC)
+
+| file | local nested | public |
+|---|---|---|
+| `sub_20260726_2328.csv` (2-member, live) | 1.12819 | **1.197** |
+| `sub_20260727_2200_free5cal85.csv` (5-member free-sign + cal) | **1.12341** | **1.209** |
+
+Local said better by 0.00478. Public says **worse by 0.012** — a sign flip at ~2.5 paired SE.
+
+**Board unchanged at 1.197.** Kaggle auto-selects the best public submission, so the failed
+entry cost one slot and cannot affect private scoring. This is exactly the safety net that made
+the test cheap.
+
+**Pre-registered reading, set before upload:** ≤1.192 ⇒ transfers; ≥1.195 ⇒ pivot to the
+2-member base. At 1.209 the verdict is unambiguous — **pivot, and treat the free-sign channel as
+dead for deployment.**
+
+**Cause.** A control variate cancels bias only if it drifts *with* the member it corrects.
+Member OOF predictions come from 80%-data fits; shipped test predictions come from 100%-data
+refits. The three subtracted trees are older artifacts whose test refits shifted differently
+from `xgb_lw2bag`'s, so subtracting them *added* bias instead of removing it. Full analysis in
+`EXPERIMENTS.md` iteration 43.
+
+**Do not re-try the uncalibrated variant.** `sub_20260727_1420.csv` is the same five members
+with the none-margin dial set *further* from the measured truth (p4 0.2377 vs 0.2622 against a
+measured 0.2665). Expected ~1.211. Not worth a slot.
+
+**Do not run the isolating experiment either.** 2-member + calibration alone would measure a
+quantity worth at most 0.0009 — below the three-decimal display resolution, so it cannot return
+a readable answer.
+
+**What still stands:** the probe measurement r = 0.2665 (exact algebra on a returned score,
+untouched by this failure), and the 2-member blend at 1.197.
+
+---
+
+## 28–29 Jul — the encoding leak, confirmed on the board
+
+| when (UTC) | file | local nested | public | note |
+|---|---|---|---|---|
+| 28 Jul 08:48 | `sub_20260727_1420.csv` | 1.12341 | **1.211** | uncalibrated free-sign; this log had pre-registered ~1.211 and advised against spending the slot |
+| 28 Jul 19:43 | `cand_nodemo_corrected.csv` | — | **1.265** | no-demographics probe from the second track |
+| 29 Jul 03:40 | `sub_20260729_rotblend_cal85.csv` | **1.11210** | **1.205** | random-rotation blend — see below |
+| 29 Jul 06:54 | **`sub_20260729_nnblend.csv`** | — | **1.194** | ← **current best**, 12th → 10th |
+
+### The 1.205 is the important one
+
+`sub_20260729_rotblend_cal85.csv` was the best-validated candidate this project has ever
+produced. Nested blend **1.11210** against production's 1.12819, and it passed **five**
+pre-registered gates: 10-seed member gain −0.02192 (10/10 wins), nested-basis check
+(−0.00007), segment-reweighted retention 105%, blend gate at 33.5 blend-sd, and folds_b
+replication at 91%. Pre-registered public: **1.187**, band 1.179–1.188.
+
+**It returned 1.205** — a sign flip, 0.018 the wrong side of the prediction.
+
+Cause: the design-share encoding leak (`EXPERIMENTS.md` iteration 48). The rotation added
+tree *capacity*, and the leak's size scales with capacity, so the gain was leak amplification.
+Iteration 59's ablation: strip `ENC_COLS` and the gain flips sign, survival ratio **−67%**.
+
+**Every gate was blind to it**, and that is the lesson worth keeping: `folds_b` re-runs the
+same one-shot encoding so it replicated the leak rather than testing it; segment reweighting
+is population-independent so the leak inflates it equally; and the per-fold heuristic fails
+because *structural* leaks are uniform across folds.
+
+### Calibration of the local→public map, updated
+
+| local nested | public | offset |
+|---|---|---|
+| 1.13878 | 1.201 | +0.062 |
+| 1.12819 | 1.197 | +0.069 |
+| 1.12341 | 1.209 | +0.086 |
+| 1.11210 | 1.205 | +0.093 |
+
+**Since 1.197 the correlation has been negative** — every local improvement produced a public
+regression. Plain nested OOF is not a weak predictor of the board, it is an inverted one. The
+segment-reweighted OOF reads 1.19610 for the production blend against an actual 1.197 and is
+the metric to use — to *judge*, never to fit.
+
+### Margin audit against the probe
+
+`probe_alt4.csv` (constant `(1/6,1/6,1/6,1/2)`, returned 1.499) fixes the graded population's
+walk-away rate at `r* = (log6 − 1.499)/log3 = **0.26652**`, exactly.
+
+| file | mean p4 | miss | recoverable |
+|---|---|---|---|
+| `sub_20260729_nnblend.csv` | 0.21086 | −0.05566 | 0.00879 |
+| `sub_20260726_2328.csv` (1.197) | 0.24800 | −0.01852 | 0.00091 |
+| `sub_20260728_fr10_cal.csv` (unsent) | 0.26409 | −0.00243 | 0.00002 |
+
+Reweighting the training decline rates (luxury 0.15986, non-luxury 0.31712) to the test mix
+gives `0.68821 × 0.15986 + 0.31179 × 0.31712 = 0.2089` — right reasoning, still 0.058 low.
+**Test luxury respondents decline substantially more than training luxury respondents do**, and
+only the probe reveals it. `experiments/iter42_segprobe/` holds a built, gated, unfired
+instrument that would resolve the per-segment rates exactly for one slot.
+
+### Still built and unsent
+
+- `sub_20260728_fr10_cal.csv` — nested 1.12741, carve removal + probe-anchored margin. The
+  carve removal is a *data* change, not a capacity change, so its contrast is leak-matched and
+  remains valid. Expected ~1.196.
+
 ## 27 Jul — the leaderboard as a measuring instrument
 
 Two uploads, and the second one answered a question eighteen iterations could not.

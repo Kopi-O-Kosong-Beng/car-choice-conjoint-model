@@ -1,0 +1,8 @@
+  seed 5 fold 1 best_iter 
+  seed 5 fold 2 best_iter 
+  seed 5 fold 3 best_iter 
+  seed 5 fold 4 best_iter 
+  seed 5 fold 5 best_iter 
+>>> seed 5 OOF: 1.13774
+seed 5 done in 2.0 min -> experiments/iter39_fixedrounds/fr_lw2_005.rds
+OK

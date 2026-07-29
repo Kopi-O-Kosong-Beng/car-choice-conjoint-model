@@ -1,0 +1,27 @@
+
+==============================================================================
+SETUP
+==============================================================================
+  members in the pool: 41
+  lambda grid: 0, 1e-04, 3e-04, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1
+  inner CV folds (respondent-grouped, inside each outer fold): 3
+
+==============================================================================
+NESTED FIT (lambda chosen by inner CV, never by the outer number)
+==============================================================================
+  fold 1: lambda 0.001    held-out 1.14165   (inner curve min at position 4 of 10)
+  fold 2: lambda 0.003    held-out 1.10840   (inner curve min at position 5 of 10)
+  fold 3: lambda 0.001    held-out 1.11595   (inner curve min at position 4 of 10)
+  fold 4: lambda 0.003    held-out 1.13237   (inner curve min at position 5 of 10)
+  fold 5: lambda 0.003    held-out 1.11864   (inner curve min at position 5 of 10)
+
+==============================================================================
+RESULT
+==============================================================================
+  ridge pool nested        1.12340
+  iteration 35 5-member    1.12341
+  delta                    +0.00001
+  lambdas selected         0.001, 0.003, 0.001, 0.003, 0.003
+  gate 5 (lambda interior in a majority of folds): PASS (100%)
+
+  wrote result.rds

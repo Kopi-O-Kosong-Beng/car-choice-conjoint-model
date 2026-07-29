@@ -1,0 +1,43 @@
+
+==============================================================================
+CHECKS A + B  (1 seed each -- ranking only)
+==============================================================================
+  base    OOF 1.13761   (1.0 min)
+  trans   OOF 1.11868   (1.9 min)
+  nested  OOF 1.11861   (1.9 min)
+  rand    OOF 1.11515   (1.9 min)
+
+==============================================================================
+VERDICT ON A AND B
+==============================================================================
+  base                 1.13761
+  transductive basis   1.11868  (delta -0.01892)
+  NESTED basis         1.11861  (delta -0.01899)   <- check A
+  RANDOM rotation      1.11515  (delta -0.02246)   <- check B
+
+  A: nested vs transductive = -0.00007  -> SURVIVES nesting -- not a transduction artifact
+  B: random vs nested       = -0.00346  -> random BEATS svd -- report honestly; the basis choice is not what matters
+
+==============================================================================
+CHECK C -- 10 SEEDS on the best surviving mode, paired by respondent
+==============================================================================
+  carrying forward: rand
+    seed  1  base 1.13761  rot 1.11515  (delta -0.02246)
+    seed  2  base 1.13756  rot 1.11557  (delta -0.02199)
+    seed  3  base 1.13722  rot 1.11610  (delta -0.02112)
+    seed  4  base 1.13727  rot 1.11932  (delta -0.01796)
+    seed  5  base 1.13774  rot 1.11891  (delta -0.01884)
+    seed  6  base 1.13745  rot 1.11737  (delta -0.02008)
+    seed  7  base 1.13686  rot 1.11860  (delta -0.01826)
+    seed  8  base 1.13807  rot 1.11963  (delta -0.01844)
+    seed  9  base 1.13770  rot 1.12035  (delta -0.01736)
+    seed 10  base 1.13692  rot 1.11853  (delta -0.01839)
+
+  10-seed bag   base 1.13555   rot 1.11363   delta -0.02192
+  per-seed paired: mean -0.01949  sd 0.00180  wins 10/10
+
+  wrote oof_xgb_rot.rds / test_xgb_rot.rds
+  NEXT AND DECISIVE: BLEND_MEMBERS='xgb_rot lcmnl3_both' and
+  'xgb_lw2bag lcmnl3_both xgb_rot' through model/06_blend.R, then shift_audit.R, then folds_b.
+
+done

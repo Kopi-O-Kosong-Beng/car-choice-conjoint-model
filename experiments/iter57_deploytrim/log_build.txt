@@ -1,0 +1,19 @@
+=== production 2-member blend ===
+  [prod] fold 1 held-out blend logloss: 1.14250
+  [prod] fold 2 held-out blend logloss: 1.10742
+  [prod] fold 3 held-out blend logloss: 1.12000
+  [prod] fold 4 held-out blend logloss: 1.14231
+  [prod] fold 5 held-out blend logloss: 1.12871
+>>> [prod] NESTED blend OOF: 1.12819  (+- 0.01502)
+    full-fit weights: xgb_lw2bag 0.528 lcmnl3_both 0.472 | T 0.9653 | eps 0.00511
+
+=== fr10 variant (best built-but-unsent base) ===
+  [fr10] fold 1 held-out blend logloss: 1.14240
+  [fr10] fold 2 held-out blend logloss: 1.10655
+  [fr10] fold 3 held-out blend logloss: 1.11955
+  [fr10] fold 4 held-out blend logloss: 1.14071
+  [fr10] fold 5 held-out blend logloss: 1.12783
+>>> [fr10] NESTED blend OOF: 1.12741  (+- 0.01499)
+    full-fit weights: xgb_lw2fr10 0.54 lcmnl3_both 0.46 | T 0.9729 | eps 0.00494
+
+OK

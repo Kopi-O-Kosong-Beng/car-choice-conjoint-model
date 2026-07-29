@@ -1,0 +1,25 @@
+
+==============================================================================
+PRODUCTION FOLDS (folds.rds, seed 42) -- matched 3-seed reference
+==============================================================================
+    seed 1  base 1.13761  rot 1.11515  (delta -0.02246)
+    seed 2  base 1.13756  rot 1.11557  (delta -0.02199)
+    seed 3  base 1.13722  rot 1.11610  (delta -0.02112)
+
+==============================================================================
+INDEPENDENT FOLDS (folds_b.rds, seed 43) -- the replication
+==============================================================================
+    seed 1  base 1.13761  rot 1.11747  (delta -0.02014)
+    seed 2  base 1.13690  rot 1.11579  (delta -0.02111)
+    seed 3  base 1.13644  rot 1.11798  (delta -0.01846)
+
+==============================================================================
+VERDICT
+==============================================================================
+  folds   (seed 42)  base 1.13746  rot 1.11561  gain -0.02185  wins 3/3
+  folds_b (seed 43)  base 1.13698  rot 1.11708  gain -0.01990  wins 3/3
+
+  REPLICATION RETENTION 91%  -> REPLICATES -- clear to build a candidate
+  (iteration 21 measured the historical norm at member 79%, blend 81%)
+
+done
