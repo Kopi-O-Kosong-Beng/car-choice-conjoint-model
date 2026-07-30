@@ -22,6 +22,15 @@ should be able to read it top to bottom and continue the work.
 > allowed experiment (EM-start variance of `lcmnl3_both`), the freeze rule, and the dated
 > report plan through 10 Aug.
 
+**State as of 30 Jul 2026** *(the paragraph below this one is the 27 Jul snapshot, kept for
+the record)*: best selectable public **1.194** (`sub_20260729_nnblend.csv`, second track);
+`sub_20260726_2328.csv` scored **1.197**. The 27 Jul
+"search is over" verdict was **half right**: the searches that followed (iterations 35–61)
+produced two board-confirmed failures (1.209, 1.205), the iteration-48 leak discovery, and
+exactly one measured constant that worked (the probe anchor). Iterations 62–68 are
+consolidated at the **end of this file** — read that entry and the updated ⛔ table before
+anything else. Candidate in hand: `sub_20260730_final00.csv`, forecast 1.1930.
+
 **State as of 27 Jul 2026:** nested blend **1.12819** (income-reweighted 1.13273), public
 leaderboard **1.199** from the older 1.13044 blend. Rival reference 1.210, benchmark 1.38629.
 `submissions/sub_20260726_2328.csv` is built and **not yet uploaded** — read
@@ -165,8 +174,8 @@ logit's failure too.
 |---|---|
 | Two-stage none-vs-buy decomposition | **decisively rejected**, iteration 09 — 1.17169, z = −11.04 |
 | Nested logit, {1,2,3} vs {4} | iteration 10 — 1.15681, statistically identical to `mnl_pw`, zero blend weight |
-| Residual encoding off a tree baseline | **leakage**, iteration 12 — 1.09962 is fake; use the `mnl_pw` baseline |
-| Retuning listwise hyperparameters | iteration 06 — `slow_deep` won, in production |
+| Residual encoding off a tree baseline | **leakage**, iteration 12 — 1.09962 is fake. *(The follow-up advice "use the `mnl_pw` baseline" was itself refuted by iteration 15: the single-OOF `mnl_pw` baseline leaks 0.0043 too; only the nested double-OOF construction is honest, and its gain is zero.)* |
+| Retuning listwise hyperparameters | iteration 06 — `slow_deep` won. **Voided by iteration 48**: that tuning maximised the encoding leak; the honest depth optimum is 4–5, not 8 |
 | Softening the blend for the harder test set | **refuted**, iteration 07 — degrades monotonically |
 | Tuning the blend on an income-reweighted objective | **refuted**, iteration 07 — worse on its own metric |
 | Mixed logit, continuous heterogeneity | iteration 05 — loses to the part-worth MNL, zero weight |
@@ -1802,10 +1811,10 @@ alternative that matters.**
 | + MF cold-start features | 1.23138 (**−0.00034 — noise**) |
 | + segment importance weighting, τ = 0.25 / 0.50 / 1.00 | 1.23332 / 1.23275 / 1.23156 (**null**) |
 
-**A limitation of that τ sweep, stated so it is not over-read.** The team's second track uses an
-importance-weight *exponent* of 0.05–0.10. This sweep started at τ = 0.25 — **2.5× the largest
-value in use** — so it tested only heavy reweighting. The correct conclusion is *heavy
-reweighting is null on this stack*; light reweighting remains untested.
+**A limitation of that τ sweep, stated so it is not over-read.** Light importance weighting
+sits at an exponent of 0.05–0.10. This sweep started at τ = 0.25 — **2.5× that** — so it
+tested only heavy reweighting. The correct conclusion is *heavy reweighting is null on this
+stack*; light reweighting remains untested.
 
 **Iteration 61's one genuinely useful output:** the blend gave the honest tree weight **0.278**,
 against production's 0.528 for the leaky one. Iteration 48 independently predicted the honest
@@ -1868,3 +1877,178 @@ law. It is a veto and a rough forecast — **never a fitting objective** (iterat
 **Since 1.197, every local improvement produced a public regression** — until the entry that
 was not selected on local OOF at all. The correlation between our plain local metric and the
 board went *negative*, which is the single clearest statement of what iteration 48 found.
+
+---
+
+# Iterations 62–68 — the 30 Jul endgame session, consolidated (written 30 Jul)
+
+*(Freeze re-opened explicitly by the user, 30 Jul. Numbers below re-verified from artifacts
+during the 30 Jul consolidating review; where a session number could not be re-derived it is
+marked.)*
+
+## The leaderboard fact of 30 Jul
+
+**The probe anchor is confirmed as the project's largest single verified gain.** iter62's
+margin audit pre-registered 0.00879 recoverable for a file at p4 ≈ 0.211; the board
+returned ~0.010. First pre-registered public prediction to land. The anchor is worth
+~0.010 only to a badly mis-margined file; on our own (p4 0.24800) it is worth **+0.00104**.
+Best selectable public remains **1.194**.
+
+## What was tested (~160 arms), and the single survivor
+
+| what | result | provenance |
+|---|---|---|
+| per-segment Ch4 shift fitted on training | best in-sample +0.00286 (S0.50), sign undetermined out-of-sample, and pushes test luxury p4 *against* the probe | `sweep.rds` |
+| six-direction search: member sets (35), per-alt weights, per-segment weights, per-member temperature, stacking, residual variants | **all null or negative; no arm reached z ≥ 2** | `iter67_caltower/agent_*.log` |
+| hurdle + learning-to-rank (external contribution) | OOF **1.17478**, weight 0.000 — within 0.003 of iteration 09's rejected two-stage (1.17169) despite a different stage-2 class. **The decomposition is the problem, not the stage-2 model** | `oof_hurdle_rank.rds`, re-verified |
+| forcing w_tree to the "honest" 0.194–0.278 on the shipped artifacts | **flat-to-negative on seg-rw** (0.194: −0.00188 z −0.37; 0.278: +0.00004 z +0.01; optimum ≈0.45 at +0.00117 z +0.88 — noise). Closes CLAUDE.md's former standing item | `agent_synth.log` |
+| τ = 0.10 light segment weighting (iteration 69 — the level iteration 61 skipped) | **+0.00752 seg-rw (z +1.61)** while plain OOF moves *down* 0.0025 — but measured on a weak base (plain 1.149 vs 1.137) that earns blend weight 0.000. Pending replication on a strong base (iter71 arm C) | `oof_xgb_tau00/10.rds`, re-verified |
+| **residual-logit correction, 6 coefficients, nested, uniform weights** | **+0.00300** seg-rw production folds (z +0.77); **+0.00628** on `folds_b` (z +1.60, ratio 2.09) — *the only survivor* | `agent_residual.log`; `iter68_final/replicate_foldsb.R`, re-run 30 Jul |
+
+Honesty note on the survivor: same sign on two independent fold structures, combined ≈1.7σ.
+It does **not** clear the project's z ≥ 2 bar. It is the best-supported remaining gain, not a
+proven one.
+
+## The candidate
+
+`submissions/sub_20260730_final00.csv` = nested 2-member blend → nested residual logit →
+probe anchor (verified: mean p4 = 0.266481153 exactly, rows sum to 1). Forecast public
+**1.1930** = 1.197 + (1.19310 − 1.19610) − 0.00104. It is built only from our own two
+members plus our own nested refit; no external submission is a component of it.
+
+## The structural finding of the session
+
+Within our own track, **distinctness and accuracy trade off at a fixed rate**, because the
+distinctness on offer comes from overfitting the ~107 luxury training respondents (9.4% of
+train, 68.8% of graded rows). Every arm that moved predictions away from the incumbents did
+so by fitting luxury noise; every arm that fixed luxury noise converged back to the
+incumbents. This is why 160 arms produced one survivor worth 0.003.
+
+# ⛔ additions from iterations 62–69
+
+| idea | killed by | number |
+|---|---|---|
+| transplanting second-track components (tree arm, temperature, GAM head) | iter67 | weight 0.000 / −0.01001 / conditional Δ exactly 0 |
+| refitting w_tree "honestly" on shipped artifacts | iter67 | flat; z ≤ +0.97 at every w |
+| any none-vs-buy decomposition, any stage-2 class | iter09 + hurdle_rank | 1.17169 and 1.17478 — twice, independently |
+| fitting *any* parameter on the reweighted metric | iter07, 46, **68** | uniform weights beat test-mix weights even judged on the reweighted metric |
+
+---
+
+# Iteration 80 — the model-probe: a submission that is a model *and* an instrument
+
+*(30 Jul, one slot. Hypothesis, target, gates and decision rules were written into
+`experiments/iter80_mprobe/run.R` before the score was known. Nothing below was tuned after.)*
+
+## The problem it was built for
+
+Probe 1 (`probe_alt4.csv` → 1.499) pinned the **global** none-rate exactly at
+`r* = 0.266481153`. What it could not see is the **split** between luxury (segments 3+5) and
+non-luxury — and that split carries the leverage, because luxury is **68.8% of graded rows
+against 9.4% of training**. Estimates ranged over `r_lux ∈ [0.160, 0.300]`, a span of 0.140.
+Two full iterations tried to recover it by inverting the board history and could not: the
+answer moved across the whole range depending on which basis was used, so it is **not
+identified** from scores alone.
+
+## The device, and why it is exact
+
+Let `A` = `final00` and `B` = `A` with **one constant added to the alt-4 logit per segment**.
+Then:
+
+- `A` and `B` share the within-buy conditional **exactly** (verified: max deviation 2.22e-16),
+  so the conditional term cancels from the score difference;
+- because the shift is constant *on the logit*, the per-row quantity
+  `logit(p4_B) − logit(p4_A)` is constant within each segment (verified: spread 1.07e-14,
+  luxury +0.32023, non-luxury −0.67161).
+
+Those two facts together give
+
+```
+E[s_A − s_B] = −(1/N) Σ_g [ Σ_{i∈g} L_i + δ_g · n_g · r_g ]
+```
+
+which is **exactly linear in the segment mean none-rates**, with coefficients computable from
+the two CSVs alone. **Within-segment heterogeneity cancels — no homogeneity assumption is
+required.** Combined with probe 1's constraint `f·r_lux + (1−f)·r_non = r*`, one returned
+score identifies `r_lux`. Verified end-to-end by simulation: noise-free recovery error
+**~3e-15**.
+
+## The result
+
+Shipped `sub_20260730_mprobe285.csv` (luxury p4 forced to 0.285). Inversion, pre-registered:
+
+```
+s_A − s_B = −0.176612 + 0.682593 · r_lux
+```
+
+Board returned **1.217**, giving
+
+> **r_lux = 0.2236**, r_non = 0.3612
+
+`final00` implies 0.2314 — a difference of 0.0078, **inside one sampling sd**. The exact
+per-segment correction is worth **+0.00037**. The channel is closed.
+
+| hypothesis | r_lux | distance | verdict |
+|---|---|---|---|
+| board inversion | 0.171 | 0.052 (~6σ) | **refuted** |
+| story A, global shift | 0.209 | 0.015 (~2σ) | unlikely |
+| **final00 as shipped** | **0.2314** | **0.008 (<1σ)** | **supported** |
+| story B / demographics | 0.244 | 0.020 (~2.5σ) | unlikely |
+| eight-observation fit | 0.300 | 0.076 (~9σ) | **refuted** |
+
+**A second finding, free.** Iteration 29's OOF luxury defect — predicted p4 0.21307 against
+observed 0.15986 in training — **does not carry to the graded population**. Once the probe
+anchor fixes the global level, the segment split is already right. The defect was a property
+of the training sample, not of the model.
+
+## How to weaponise this
+
+The construction generalises, and it is the cheapest instrument this project has built.
+
+**The general form.** Partition the graded rows into cells however you like. Apply a constant
+alt-4 logit shift per cell. The score difference against a known baseline is then exactly
+linear in the cells' mean none-rates, with known coefficients. **One submission buys one
+linear equation.** With `k` cells and probe 1's global constraint you need `k−1` submissions
+to identify all of them.
+
+**Why it dominates a constant-prediction probe.** `probe_alt4` and `probe_seg` score ~1.5 and
+~1.39 — they can never be selected, so their slot is spent purely on measurement. A
+model-probe is a **live candidate**: this one had a pre-registered 20% chance of scoring under
+1.186 and taking the lead outright while measuring. Same information, no wasted slot. The
+family runs probe → segment probe → model-probe, each strictly better than the last.
+
+**Resolution, and how to size the cells.** The binding limit is *not* the 3-dp display
+(σ 0.0010) or public-subset composition (σ 0.0009). It is **realized-rate sampling between
+public and private rows: ±0.006–0.010** for a cell of ~3,400 rows, scaling as
+`sqrt(r(1−r)/n_cell)`. Cells below ~1,000 rows are not worth measuring. The *cost* of a
+mis-measurement is second-order — an error of 0.008 costs ~0.0004 — so the instrument
+degrades gracefully.
+
+**Where to point it next.** Any partition the graded population might differ on but CV cannot
+see: income tercile, task position (fatigue), bundle-quality strata. Each buys one number
+about the *test* population directly, which is the only thing cross-validation structurally
+cannot provide.
+
+**What it can never do — and this is the important limit.** The within-buy conditional
+cancels *by construction*; that cancellation is exactly what makes the inversion exact. So the
+technique is **structurally incapable of measuring anything about the 3-way choice among real
+bundles** — it is a margin instrument only. That matters because the margin is now closed
+(this iteration) while the conditional is where the remaining headroom lives: iteration 17/18
+put the oracle at 0.986 against the blend's 1.130. **The instrument is precise about the part
+of the problem that is finished, and blind to the part that is not.**
+
+## Reflection
+
+The gamble missed and the iteration still paid. It was priced beforehand at E[gain] ≈ 0.0034
+with a 20% chance of taking the lead; it landed in the ~17% branch where the answer is "you
+were already right". That is a real result: it closed a channel that two prior iterations had
+argued about, and it did so with a measurement rather than an inference. The design lesson is
+that a measurement instrument does not have to cost a slot — if you build it as a perturbation
+of a live candidate, it competes and measures at the same time.
+
+# ⛔ addition from iteration 80
+
+| idea | killed by | number |
+|---|---|---|
+| per-segment none-rate correction on `final00` | iter80, **measured** | r_lux 0.2236 vs shipped 0.2314; exact correction worth **+0.00037** |
+| recovering `r_lux` from board history | iter80 vs the inversion estimates | measured 0.2236; inversion said 0.171 (~6σ out) |

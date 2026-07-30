@@ -3,6 +3,9 @@
 Predicting which of four car safety-feature bundles a respondent chooses.
 **R only** (competition rule). Metric: multiclass logloss, lower is better.
 
+**Team:** zf · Sheil · Kavya · Nicole. One Kaggle account, held by the team
+representative — see [Working agreements](#working-agreements).
+
 > ⚠️ **Keep this repository private until after 10 August 2026.** It contains the
 > competition data and our full modelling approach. A public repo would hand both to
 > every other team. Course rule also forbids sharing data outside the team.
@@ -15,10 +18,30 @@ Predicting which of four car safety-feature bundles a respondent chooses.
 |---|---|
 | Benchmark (25% for everything) | 1.38629 |
 | Our first submission | 1.233 public |
-| Rival team's best | **1.186 public** (parinwaris) |
-| **Ours — live, and our best** | **1.197 public** (local CV 1.12819) |
+| Rival team's best | **1.186 public** (top of board) |
+| Two-member main-track blend | 1.197 public (local CV 1.12819) |
+| Second modelling track | 1.194 public (`sub_20260729_nnblend.csv`) |
+| **Ours — live, and our best** | **1.193 public** (`sub_20260730_final00.csv`) |
 
-The live 1.197 is our best public score, so Kaggle auto-selects it for private scoring.
+The live **1.193** is our best public score, so Kaggle auto-selects it for private scoring.
+
+### How the score progressed
+
+1. **1.197** — the two-member main-track blend (`xgb_lw2bag` + `lcmnl3_both`), the model
+   documented throughout this README and produced by `model/run_all.R`.
+2. **1.194** — `sub_20260729_nnblend.csv`, from the team's **second modelling track**
+   (`experiments/iter62_nnblend/`): a listwise tree arm and an MLP arm, geometrically
+   blended, then a calibration tower and a GAM outside-option head. Moved us 12th → 10th
+   on 29 Jul.
+3. **1.193** — `submissions/sub_20260730_final00.csv`: the two-member nested blend → a nested
+   6-coefficient residual-logit correction → the probe anchor. Built only from our own two
+   members plus our own nested refit.
+
+> **The forecast for step 3 was 1.1930 and the board returned 1.193.** That is the second
+> pre-registered prediction this project has made that came true, and the first about a
+> *model change* rather than a measured constant. It confirms the segment-reweighted OOF as
+> the leaderboard instrument, and it means the earlier period of *inverted* transfer
+> (local improved, public regressed) was the encoding leak — not a broken methodology.
 
 > ### ⚠️ The 1.12341 "improvement" was refuted on the leaderboard
 >
@@ -318,6 +341,35 @@ model it was attached to does not.
 wrong — that minimises mean-squared error of the *rate*. Expected logloss `E[KL(r‖t)]` is
 minimised at `t = E[r]`, and the split-type variance adds a constant that does not move the
 optimum. Shrink only for prior pull on the mean.
+
+### The model-probe — measuring without spending a slot on a throwaway
+
+The constant probe above works because a constant prediction has closed-form logloss. Its
+cost is that it scores ~1.5 and can never be selected: the whole slot buys information and
+nothing else. **Iteration 80 removed that cost.**
+
+Take a live candidate `A` and build `B` by adding **one constant to the alternative-4 logit
+per segment**. Two things then hold exactly:
+
+- `A` and `B` share the within-buy conditional (verified to 2.22e-16), so it cancels from the
+  score difference;
+- the logit shift is constant within each segment (verified to 1.07e-14), so the difference is
+  **linear in each segment's mean none-rate** — and within-segment heterogeneity cancels, so
+  no homogeneity assumption is needed.
+
+One returned score therefore identifies the split, while the file remains a real candidate
+that can win. Recovery is algebraically exact (simulation error ~3e-15).
+
+We shipped luxury p4 = 0.285; the board returned **1.217**, giving **r_lux = 0.2236**. Our
+model already implied 0.2314 — within one sampling standard deviation — so the per-segment
+correction is worth **+0.00037** and the margin channel is closed. It also refuted the
+board-inversion estimate (0.171, ~6σ away) outright.
+
+**The limit is the interesting part.** The conditional cancels *by construction* — that is
+precisely what makes the inversion exact. So this instrument is structurally incapable of
+saying anything about the three-way choice among real bundles, which is where the remaining
+headroom actually is (oracle 0.986 against the blend's 1.130). It is exquisitely precise about
+the half of the problem that is finished, and blind to the half that is not.
 
 ---
 

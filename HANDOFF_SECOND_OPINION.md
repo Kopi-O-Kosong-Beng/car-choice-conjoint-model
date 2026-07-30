@@ -80,7 +80,7 @@ These exist because violating them has produced retracted results here before.
 | live on Kaggle (2-member blend) | 1.12819 | **1.197** |
 | **best candidate, built, not uploaded** | **1.12341** + calibration | forecast 1.187–1.195 |
 
-Public leaderboard: parinwaris **1.186** | jarren_ng 1.190 | lianne 1.193 | **us 1.197** |
+Public leaderboard: top of board **1.186** | 2nd 1.190 | 3rd 1.193 | **us 1.197** |
 Zhi_Heng 1.197. Paired team-vs-team SE is **0.0047** public (~3,500 rows) and **0.0072**
 private (~1,500 rows). Kaggle auto-selects your best *public* submission for private scoring,
 so a worse submission costs a slot and nothing else.
