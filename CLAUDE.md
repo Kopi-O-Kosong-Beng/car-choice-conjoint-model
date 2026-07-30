@@ -10,8 +10,14 @@ Kaggle competition for SUTD's *The Analytics Edge* (2026), graded coursework. Pr
 of 4 car safety-feature bundles a respondent picks. Metric: mean multiclass logloss.
 **R only** — hard competition rule, never propose Python.
 
-**State (30 Jul 2026, late):** best public **1.193** (`sub_20260730_final00.csv`), auto-selected
-for private scoring; its forecast was 1.1930, so the segment-reweighted anchor landed exactly.
+**State (30 Jul 2026, late):** best public **1.193** (`sub_20260730_final00.csv`), **11th of ~40**
+in a three-way tie; top of board is **1.183**. Its forecast was 1.1930, so the
+segment-reweighted anchor landed exactly.
+⚠️ **The public board is ~70% of the test set; the grade is the other ~30% (~1,499 rows).**
+Sixteen teams sit inside 0.013, which is about one paired ranking SE (0.006–0.012) — public
+rank is nearly uninformative about final rank. **Only ONE submission counts**; select
+`final00` explicitly rather than trusting auto-select. Note `r*` was measured on the *public*
+rows, so the probe anchor's +0.00104 is a public-set figure.
 Previous best was 1.194 (`sub_20260729_nnblend.csv`, second modelling track —
 `experiments/iter62_nnblend/`). **Iteration 80 measured the luxury none-rate directly:
 r_lux = 0.2236, against final00's implied 0.2314 — inside one sampling sd, so the
@@ -138,7 +144,10 @@ Then apply, in order:
 - **Alternative 4 is the all-zero "none of these" option**, chosen 30.2% of the time. Its
   `Price` is 0, so it is always the cheapest alternative present — this is *why* rising price
   sensitivity produces a rising decline rate (iteration 25).
-- Train: 1,135 respondents × 19 tasks. Test: 263 *different* respondents × 19 tasks.
+- Train: 1,135 respondents × 19 tasks. Test: 263 *different* respondents × 19 tasks (4,997 rows).
+  **The public leaderboard scores ~70% of those rows (~3,498); the private/graded score is the
+  other ~30% (~1,499).** Every score we have ever read — including the probe measurements — is
+  a statement about the public 70% only.
 - Attributes are ordinal tiers, 3–7 levels (Price has 12). **Code as part-worths, not
   numbers** — worth 0.020.
 

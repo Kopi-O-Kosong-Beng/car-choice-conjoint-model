@@ -440,3 +440,28 @@ and story B (0.244), essentially where our own models had it.
 **Also settled:** iteration 29's OOF luxury defect (predicted p4 0.21307 vs observed 0.15986
 in training) does **not** carry to the graded population. Once the probe anchor fixes the
 global level, the segment split is right on its own.
+
+### Leaderboard snapshot, 30 Jul (verified from the board)
+
+| # | team | score |
+|---|---|---|
+| 1 | 4Chuds_Team34 | 1.183 |
+| 2 | arman_parkash_team_11 | 1.184 |
+| 3–4 | parinwaris_33 / [Deleted] | 1.186 |
+| 5 | daniel_napitu_team_5 | 1.188 |
+| 6–7 | jarren_ng_28 / Farid_19 | 1.190 |
+| 8 | Randy_Team_15 | 1.192 |
+| 9–11 | lianne_8 / Santhoshram_32 / **us** | **1.193** |
+| 12 | someone_in_team_26 | 1.194 |
+
+**We are 11th of ~40**, last of a three-way tie on tiebreak. Sixteen teams inside 0.013.
+
+⚠️ **The board is ~70% of the test rows; the grade is the other ~30% (~1,499 rows).** At a
+paired ranking SE of 0.006–0.012 the whole top-16 spread is about **one SE** — public rank
+says very little about final rank. **Only ONE submission counts for the final score**; if
+none is selected Kaggle auto-selects the best public. Select `sub_20260730_final00.csv`
+explicitly.
+
+Consequence for our own instruments: every probe measurement — `r*` included — is a statement
+about the public 70%. The private 30% has its own draw (sd ≈ 0.011 on the none-rate), so the
+probe anchor's +0.00104 is a public-set figure that will not transfer exactly.

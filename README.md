@@ -18,12 +18,34 @@ representative — see [Working agreements](#working-agreements).
 |---|---|
 | Benchmark (25% for everything) | 1.38629 |
 | Our first submission | 1.233 public |
-| Rival team's best | **1.186 public** (top of board) |
+| Top of board | **1.183 public** |
 | Two-member main-track blend | 1.197 public (local CV 1.12819) |
 | Second modelling track | 1.194 public (`sub_20260729_nnblend.csv`) |
 | **Ours — live, and our best** | **1.193 public** (`sub_20260730_final00.csv`) |
 
-The live **1.193** is our best public score, so Kaggle auto-selects it for private scoring.
+**11th of ~40** as of 30 Jul, in a three-way tie at 1.193. The board reads
+1.183 / 1.184 / 1.186 / 1.186 / 1.188 / 1.190 / 1.190 / 1.192 / 1.193 ×3 — **sixteen teams
+inside 0.013**.
+
+> ### ⚠️ The public board is 70% of the test set. The grade is the other 30%.
+>
+> Kaggle states it plainly: *"This leaderboard is calculated with approximately 70% of the
+> test data. The final results will be based on the other 30%."* So the private set is
+> **~1,499 rows**, and the paired respondent-clustered ranking SE on that is **0.006–0.012**
+> (`STRATEGY_REVIEW.md` Part II.1).
+>
+> **The entire top-16 spread is about one standard error.** Public rank is close to
+> uninformative about final rank — we could plausibly finish anywhere from 2nd to 20th
+> without anything changing. Do not read the public ordering as standings.
+>
+> **Only ONE submission counts for the final score.** If none is selected, Kaggle
+> auto-selects the best public. Select `sub_20260730_final00.csv` explicitly rather than
+> relying on that.
+>
+> One consequence for our own calibration: `r* = 0.266481153` was measured from
+> `probe_alt4`'s **public** score, so it is the none-rate of the 70%. The private 30% has its
+> own draw, sd ≈ `sqrt(0.2665·0.7335/1499)` ≈ **0.011**. The probe anchor's +0.00104 is a
+> public-set figure and will not transfer exactly.
 
 ### How the score progressed
 
