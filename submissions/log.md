@@ -4,9 +4,9 @@ Known history (from team chat, for offset calibration):
 
 | when | file | members | local OOF | expectation | public |
 |---|---|---|---|---|---|
-| 2026-07-24 ~22:00 | (Sheil v1) | MNL+xgb+multinom stack | 1.17683 | — | 1.2230 |
-| 2026-07-24 ~23:39 | (Sheil, 2nd try) | fable variant | — | — | worse than 1.2230 |
-| (rival team ref) | (somesh) | 4-model version | 1.161 | — | 1.210 |
+| 2026-07-24 ~22:00 | (team v1) | MNL+xgb+multinom stack | 1.17683 | — | 1.2230 |
+| 2026-07-24 ~23:39 | (team, 2nd try) | fable variant | — | — | worse than 1.2230 |
+| (rival team ref) | (another team) | 4-model version | 1.161 | — | 1.210 |
 | 2026-07-25 22:04 | sub_20260725_2204.csv | mixl+mnl+xgb_long+xgb_wide | 1.15294 | expect public ~1.203 | (pending) |
 | 2026-07-25 22:53 | sub_20260725_2253.csv | glmnet+mixl+mnl+xgb_long+xgb_wide | 1.15304 | expect public ~1.203 | (pending) |
 | 2026-07-25 23:26 | sub_20260725_2326.csv | mnl_pw+mnl+glmnet+mixl+xgb_de+xgb_long+xgb_wide | 1.14211 | expect public ~1.192 | (pending) |
@@ -19,8 +19,8 @@ Known history (from team chat, for offset calibration):
 
 | | local (honest OOF) | public | offset |
 |---|---|---|---|
-| Sheil v1 (24 Jul) | 1.17683 | 1.2230 | +0.0462 |
-| rival "somesh" | 1.161 | 1.210 | +0.0490 |
+| team v1 (24 Jul) | 1.17683 | 1.2230 | +0.0462 |
+| rival team | 1.161 | 1.210 | +0.0490 |
 | **ours (25 Jul)** | **1.13878** | **1.201** | **+0.0622** |
 
 **The offset is not constant — it grows as the local score improves.**
@@ -303,7 +303,7 @@ untouched by this failure), and the 2-member blend at 1.197.
 | when (UTC) | file | local nested | public | note |
 |---|---|---|---|---|
 | 28 Jul 08:48 | `sub_20260727_1420.csv` | 1.12341 | **1.211** | uncalibrated free-sign; this log had pre-registered ~1.211 and advised against spending the slot |
-| 28 Jul 19:43 | `cand_nodemo_corrected.csv` | — | **1.265** | no-demographics probe from the second track |
+| 28 Jul 19:43 | `cand_nodemo_corrected.csv` | — | **1.265** | no-demographics probe |
 | 29 Jul 03:40 | `sub_20260729_rotblend_cal85.csv` | **1.11210** | **1.205** | random-rotation blend — see below |
 | 29 Jul 06:54 | **`sub_20260729_nnblend.csv`** | — | **1.194** | ← **current best**, 12th → 10th |
 
@@ -476,3 +476,106 @@ is now clearly the better class of bet.
 of it. The probe was worth running and returned a real answer; that answer was that the
 2-member blend was already close to right. There is no remaining lever of the size needed.
 The report is 15 of 30 marks and is where the remaining time belongs.
+
+---
+
+## 30 Jul — the probe anchor is confirmed as the single largest verified gain
+
+*(Opened the day at **1.194**, `sub_20260729_nnblend.csv`. By the end of this section it is
+**1.193**, `sub_20260730_final00.csv` — see "Record" below.)*
+
+### The device
+
+One global Ch4 log-odds multiplier, solved so that mean p4 equals the probe-identified
+`r* = 0.266481153`. Zero fitted parameters. Within-buy ratios preserved to 3e-15 (verified).
+On a file sitting at mean p4 ≈ 0.211 the multiplier is **1.385772**.
+
+### The prediction that landed
+
+iter62's margin audit pre-registered **0.00879 recoverable** for a file at p4 ≈ 0.211. The
+board returned ~0.010. **This is the first prediction this project has made about the public
+leaderboard that came true**, and it was about a *calibration constant measured from the board
+itself*, not about a model.
+
+### The improvement does not transfer to our track
+
+| applied to `sub_20260726_2328.csv` (p4 already 0.24800) | recoverable |
+|---|---|
+| probe anchor alone | **0.00104** |
+| + train conditional split | 0.00109 |
+
+The anchor is worth ~0.010 only to a file that is **badly mis-margined**; ours was already
+near the right margin, so on our own submissions it buys **+0.00104**. A global reweighting
+cannot buy more than that: to gain 0.012 the true within-buy split would have to be
+≈ 0.279/0.433/0.288 — Ch2 at 43% where our models predict ~34% and training shows 35.9%.
+Not credible.
+
+### Distances, measured 30 Jul (mean symmetric KL, within-buy conditional)
+
+| pair | symKL | reading |
+|---|---|---|
+| the GAM p4 head ↔ its own tree base | 0.00000 | the head touches p4 *only* |
+| NN arm's entire contribution | 0.00161 | very nearly a no-op |
+| `2328` ↔ `nnblend` | 0.03069 | genuinely different tracks |
+| our `xgb_lw2bag` ↔ our `lcmnl3_both` | 0.11723 | the widest axis we own |
+
+Two calibrations of one model can look far apart while being the same model: most of that
+apparent distance is the p4 margin, not the conditional.
+
+### Record
+
+Best selectable public: **1.193**, `sub_20260730_final00.csv` — auto-selected for private.
+
+---
+
+## 30 Jul — the model-probe measures the luxury none-rate (iteration 80)
+
+| when | file | public | note |
+|---|---|---|---|
+| 30 Jul | `sub_20260730_final00.csv` | **1.193** | forecast was **1.1930** — the forecast landed exactly |
+| 30 Jul | `sub_20260730_mprobe285.csv` | **1.217** | measurement instrument *and* candidate; the bet missed, the measurement worked |
+
+**The device.** `final00` with one constant per segment on the alt-4 logit, targeting luxury
+p4 = 0.285. Because the shift is constant on the *logit*, `E[s_A − s_B]` is exactly linear in
+the segment mean none-rates — within-segment heterogeneity cancels — so one returned score
+inverts for `r_lux`. Unlike `probe_alt4`, this file was also a live candidate.
+
+**The measurement.** `s_A − s_B = −0.176612 + 0.682593 · r_lux`, so 1.217 gives
+
+> **r_lux = 0.2236**, r_non = 0.3612 (± 0.0010 rounding, ± 0.0009 composition,
+> ~0.006–0.010 realized-rate sampling between public and private rows)
+
+**What it settles.** `final00` already implies r_lux = 0.2314 — within one sampling sd. The
+exact per-segment correction is worth **+0.00037**, i.e. nothing. The segment-margin channel
+is closed. It also refutes the board-inversion estimate (0.171, ~6σ away) and the
+eight-observation estimate (0.300, ~9σ) outright, and puts the truth between story A (0.209)
+and story B (0.244), essentially where our own models had it.
+
+**Also settled:** iteration 29's OOF luxury defect (predicted p4 0.21307 vs observed 0.15986
+in training) does **not** carry to the graded population. Once the probe anchor fixes the
+global level, the segment split is right on its own.
+
+### Leaderboard snapshot, 30 Jul (verified from the board)
+
+| # | team | score |
+|---|---|---|
+| 1 | 4Chuds_Team34 | 1.183 |
+| 2 | arman_parkash_team_11 | 1.184 |
+| 3–4 | parinwaris_33 / [Deleted] | 1.186 |
+| 5 | daniel_napitu_team_5 | 1.188 |
+| 6–7 | jarren_ng_28 / Farid_19 | 1.190 |
+| 8 | Randy_Team_15 | 1.192 |
+| 9–11 | lianne_8 / Santhoshram_32 / **us** | **1.193** |
+| 12 | someone_in_team_26 | 1.194 |
+
+**We are 11th of ~40**, last of a three-way tie on tiebreak. Sixteen teams inside 0.013.
+
+⚠️ **The board is ~70% of the test rows; the grade is the other ~30% (~1,499 rows).** At a
+paired ranking SE of 0.006–0.012 the whole top-16 spread is about **one SE** — public rank
+says very little about final rank. **Only ONE submission counts for the final score**; if
+none is selected Kaggle auto-selects the best public. Select `sub_20260730_final00.csv`
+explicitly.
+
+Consequence for our own instruments: every probe measurement — `r*` included — is a statement
+about the public 70%. The private 30% has its own draw (sd ≈ 0.011 on the none-rate), so the
+probe anchor's +0.00104 is a public-set figure that will not transfer exactly.

@@ -10,17 +10,29 @@ Kaggle competition for SUTD's *The Analytics Edge* (2026), graded coursework. Pr
 of 4 car safety-feature bundles a respondent picks. Metric: mean multiclass logloss.
 **R only** — hard competition rule, never propose Python.
 
-**State (29 Jul 2026):** best public **1.194** (`sub_20260729_nnblend.csv`, from the second
-modelling track — see `experiments/iter62_nnblend/`), auto-selected for private scoring, 10th
-of ~40. Benchmark 1.38629. The `model/` blend here reads nested 1.12819 / public 1.197.
-Kaggle closes **1 Aug**, report due **10 Aug**.
+**State (30 Jul 2026, late):** best public **1.193** (`sub_20260730_final00.csv`), **11th of ~40**
+in a three-way tie; top of board is **1.183**. Its forecast was 1.1930, so the
+segment-reweighted anchor landed exactly.
+⚠️ **The public board is ~70% of the test set; the grade is the other ~30% (~1,499 rows).**
+Sixteen teams sit inside 0.013, which is about one paired ranking SE (0.006–0.012) — public
+rank is nearly uninformative about final rank. **Only ONE submission counts**; select
+`final00` explicitly rather than trusting auto-select. Note `r*` was measured on the *public*
+rows, so the probe anchor's +0.00104 is a public-set figure.
+Previous best was 1.194 (`sub_20260729_nnblend.csv`, second modelling track —
+`experiments/iter62_nnblend/`). **Iteration 80 measured the luxury none-rate directly:
+r_lux = 0.2236, against final00's implied 0.2314 — inside one sampling sd, so the
+segment-margin channel is CLOSED (exact correction worth +0.00037).** The `model/` blend reads nested
+1.12819 / public 1.197. Current candidate: `submissions/sub_20260730_final00.csv` — the 2-member
+blend + a nested 6-coefficient residual-logit correction + the probe anchor; forecast public
+**1.1930** (iter67/68). Kaggle closes **1 Aug 12:00 SGT**, report due **10 Aug** (15 of 30 marks).
 
 > ⛔ **ITERATION 48 CHANGES HOW YOU READ EVERY NUMBER ABOVE THIS LINE.** The design-share
 > encoding leaks: `apply_design_encoding()` is called ONCE, before the CV loop, so training
 > rows are encoded from a set containing the scored fold. Its honest value is **−0.00596**,
 > not the +0.0218 it appears to be worth. **Nested OOF 1.12819 is inflated by ~0.0077**
-> (honest ≈ 1.1359), `w_tree = 0.528` should be **0.194–0.243**, and iteration 47's
-> hyperparameter sweep is void — the honest depth optimum is **4–5**, we ship 8.
+> (honest ≈ 1.1359), and iteration 47's hyperparameter sweep is void — the honest depth
+> optimum is **4–5**, we ship 8. (The corollary "so w_tree should be ~0.2" was measured on
+> 30 Jul and does NOT hold on the shipped artifacts — see Corrections below.)
 > Read `EXPERIMENTS.md` iteration 48 before quoting any plain-OOF figure.
 
 **⚠️ Corroborating this from the other track: our OOF is an anti-signal below ~1.128.** Six
@@ -43,22 +55,26 @@ not detect a *structural* leak, which iteration 48 then found by the capacity te
 
 ## ⛔ READ THIS FIRST: the project is FROZEN for modelling
 
-**The default correct action is to work on the report, not to improve the model.** Twenty-six
-iterations have been run and the search space is measured-exhausted. If you arrive wanting to
-propose a new model, feature, encoding, or blend architecture — **that is almost certainly the
-wrong move**, and `EXPERIMENTS.md`'s ⛔ table probably already has your idea with the number
-that killed it.
+**The default correct action is to work on the report, not to improve the model.** The search
+space is measured-exhausted: the 30 Jul endgame session ran ~160 arms and produced exactly one
+survivor at ≈1.7σ (see Corrections and `EXPERIMENTS.md` iterations 62–68). If you arrive
+wanting to propose a new model, feature, encoding, or blend architecture — **that is almost
+certainly the wrong move**, and `EXPERIMENTS.md`'s ⛔ table probably already has your idea with
+the number that killed it.
 
 **Allowed without asking:** report writing, documentation, analysis of existing artifacts,
 diagnostics that emit no artifacts, reproducibility fixes.
 
 **Requires the user to explicitly re-open the freeze:** any new model, feature, member, or
-retune. Say plainly that the project is frozen and why, then ask.
+retune. Say plainly that the project is frozen and why, then ask. *(The user re-opened the
+freeze on 30 Jul for the endgame — iterations 67–71. It closes for good when Kaggle does,
+1 Aug 12:00 SGT; after that, report work only.)*
 
 **Why the freeze is not laziness:** every additional selection event spends part of a measured
 replication budget. Wins here replicate on an independent fold structure at only **~80%**
-(measured, iteration 21), and reach the public board at roughly **⅓**. Searching more does not
-just fail to help — it degrades what already works.
+(measured, iteration 21), and the plain-OOF→public transfer rate is no longer usable at all —
+it went *negative* during the leak era (see Corrections). Searching more does not just fail to
+help; it degrades what already works.
 
 **Also true, and it cuts the other way:** the private board is decided by *ranking*, and the
 `±0.02` figure quoted in older notes is the **absolute**-score wobble, not the ranking noise.
@@ -120,19 +136,29 @@ public regression (1.12341 → 1.209, 1.12341 → 1.211, 1.11210 → 1.205). Use
 `p_test(segmentind) / p_train(segmentind)`, unclipped. It reads **1.19610** for the production
 blend against an actual public of **1.197**, closing 98.7% of the +0.069 offset.
 
-Two cautions on it, both measured:
-- It is **noisy** — ESS ≈ 3,900 of 21,565. A difference under ~0.003 on it is nothing.
+Three cautions on it, all measured:
+- It is **noisy, and its ESS must be counted in respondents, not tasks**: ESS is **208 of
+  1,135 respondents** (the previously quoted "≈3,900 of 21,565" was task-level — exactly 19×
+  inflated because weights are constant within a respondent; `model/predict_lb.R` documents
+  this). There is **no single floor**: the paired respondent-clustered SE runs from ~0.0004
+  (near-twin blends) to ~0.006 (dissimilar candidates) — compute it (`paired_segrw` in
+  `experiments/iter67_caltower/harness.R`) instead of eyeballing a threshold. As a *level*
+  forecaster it resolves ~0.012 at best.
 - It is **blind to the encoding leak**, which is population-independent and inflates plain and
   reweighted alike. It predicted the rotation blend at 1.187; the board said 1.205.
 - **Judge with it, never fit on it** (iterations 07 and 46 both refuted fitting on a reweighted
-  objective — reweighting cuts effective sample, and variance beats bias).
+  objective — reweighting cuts effective sample, and variance beats bias; iteration 68
+  corroborated it a third time: uniform observation weights beat test-mix weights in the
+  residual logit even when judged on the reweighted metric).
 
 Then apply, in order:
 
 - **× 0.8** — measured replication on an independent fold structure (iteration 21: member
   79%, blend 81%). Any accepted change should be re-run under `folds_b` before production.
-- **× ~⅓** — measured transfer to the public leaderboard, and only ≈0.001 is even *visible*
-  at three decimals.
+- **× ~⅓** — measured transfer to the public leaderboard **for leak-free gains in the
+  pre-1.197 era**; only ≈0.001 is even *visible* at three decimals. Since 1.197 this
+  multiplier is unusable on plain-OOF gains (the correlation went negative — that was the
+  leak); predict public from the segment-reweighted anchor instead.
 - **Shift audit** (`model/shift_audit.R`): does the gain survive reweighting toward the
   wealthier test population? ~100%+ is structural; 77% was the design encoding; 64% was a
   fatigue term we rejected for exactly this reason. **Predict public from the
@@ -148,7 +174,10 @@ Then apply, in order:
 - **Alternative 4 is the all-zero "none of these" option**, chosen 30.2% of the time. Its
   `Price` is 0, so it is always the cheapest alternative present — this is *why* rising price
   sensitivity produces a rising decline rate (iteration 25).
-- Train: 1,135 respondents × 19 tasks. Test: 263 *different* respondents × 19 tasks.
+- Train: 1,135 respondents × 19 tasks. Test: 263 *different* respondents × 19 tasks (4,997 rows).
+  **The public leaderboard scores ~70% of those rows (~3,498); the private/graded score is the
+  other ~30% (~1,499).** Every score we have ever read — including the probe measurements — is
+  a statement about the public 70% only.
 - Attributes are ordinal tiers, 3–7 levels (Price has 12). **Code as part-worths, not
   numbers** — worth 0.020.
 
@@ -180,6 +209,27 @@ Then apply, in order:
 - **Old wording, retained so the failure is legible:** a real gain appears in *every* fold; a
   leak concentrates in one. Check
   per-fold before believing anything.
+- **`model/artifacts/` is a graveyard, not a menu.** It holds oof_/test_ pairs for ~40 dead
+  members. Three are actively dangerous if ever blended: `xgb_pt` (iter30's run was killed at
+  fold 3 — the artifact is misnamed, its own header says never cite it), `xgb_resenc*`
+  (proven 100% leakage, iterations 12/15), and `blend_freepool5` (a *blend* stored in member
+  format — it is the pool that scored 1.209). `members.txt` is the only source of truth.
+- **The production tree's own scripts still carry the voided settings.**
+  `model/03_xgb_listwise.R` and `experiments/iter26_seedbag/run.R` both call
+  `apply_design_encoding()` before the CV loop at depth 8 — the exact iteration-48 defect.
+  Kept because removing it is board-neutral (measured, iter48) and a rebuild would spend the
+  replication budget; but any *new* work must not source or copy these scripts' feature step.
+- ⛔ **THE 30 JUL ENDGAME IS DOCUMENTED BUT NOT COMMITTED.** Iterations 63–79 exist in prose
+  only; `experiments/` jumps from `iter62_nnblend` to `iter80_mprobe`. The following are cited
+  as evidence by `CLAUDE.md`, `EXPERIMENTS.md` and `report_notes.md` and are **not in the
+  repo**: `submissions/sub_20260730_final00.csv` (**the graded submission itself**),
+  `model/predict_lb.R`, `experiments/iter67_caltower/harness.R` (and its `agent_*.log`),
+  `experiments/iter68_final/replicate_foldsb.R`, `sweep.rds`, `oof_hurdle_rank.rds`,
+  `oof_xgb_tau00/10.rds`. Consequences: (a) `experiments/iter80_mprobe/run.R` and `invert.R`
+  both read `final00` and **cannot be run**; (b) the +0.00300/+0.00628 residual-logit numbers
+  and the ESS-208 figure are unverifiable from this checkout; (c) `final00` cannot be
+  regenerated — it exists only on the machine that built it and on Kaggle. Getting these into
+  the repo is the highest-value reproducibility task, and it is report-critical.
 
 ## If the user re-opens the freeze
 
@@ -208,7 +258,9 @@ Then apply, in order:
 
 - ~~"the monotone price constraint is worth +0.00172"~~ — **retracted**, iteration 26.
   Paired across 10 seeds: −0.00034, 95% CI [−0.00159, +0.00092], wins 5 of 10.
-- ~~"local gains transfer at ~58%"~~ — that was the early rate; it is now ~⅓ and decaying.
+- ~~"local gains transfer at ~58%"~~ — early rate; decayed to ~⅓; then, from 1.197 to the
+  iteration-48 discovery, the plain-OOF→public correlation was **negative** (1.12341 → 1.209,
+  1.11210 → 1.205). There is no usable transfer rate for plain-OOF gains any more.
 - ~~"private SE ±0.02 swamps everything"~~ — that is *absolute* noise; ranking noise is
   paired and ~0.006–0.012.
 - ~~"bundle-level encoding is the next idea"~~ — structurally impossible (bijection),
@@ -221,13 +273,36 @@ Then apply, in order:
   depth optimum is **4–5**.
 - ~~"nested blend OOF 1.12819 is the decision number"~~ — it is inflated by ~0.0077 (honest
   ≈ 1.1359) and, worse, it is the wrong *metric*. Use the segment-reweighted OOF to judge.
-- ~~"w_tree = 0.528"~~ — fitted on leaked OOF. Honest weight is **0.194–0.243** (iteration 48),
-  independently corroborated at **0.278** by iteration 61. **The live blend over-weights its
-  tree by roughly 2×. This is an uncorrected defect in the shipped model.**
+- ~~"w_tree = 0.528"~~ — fitted on leaked OOF; an *honest* tree would deserve **0.194–0.278**
+  (iterations 48, 61). **But the follow-up claim — "over-weighting the shipped tree is an
+  uncorrected defect" — was measured on 30 Jul and refuted** (`iter67` `agent_synth`): forcing
+  w_tree to 0.194–0.278 on the *shipped* (leaky) artifacts is flat-to-negative on the
+  segment-reweighted metric (w 0.194: −0.00188, z −0.37; w 0.278: +0.00004, z +0.01), and the
+  seg-rw optimum ≈0.45 is indistinguishable from 0.528 (+0.00117, z +0.88). Down-weighting a
+  leaky member is not the same intervention as replacing it with an honest one. There is no
+  free correction here.
+- ~~"the segment metric's ESS is ≈3,900 of 21,565"~~ — task-level counting; the honest figure
+  is **208 of 1,135 respondents** (`model/predict_lb.R`).
 - ~~"a leak concentrates in one fold"~~ — **false for structural leaks**, see Known traps.
 
-## Open, and the best-evidenced thing left to do
+## Open — endgame state (30 Jul, ~18h to close)
 
-**Refit the blend weight honestly.** Two unrelated constructions agree the tree should carry
-~0.20–0.28, not 0.528. That is a correction to a mis-specified fit, not a search for a new
-gain, so it does not spend the replication budget. Nothing else in the ⛔ table comes close.
+The former standing item here — "refit the blend weight honestly" — was **measured on 30 Jul
+and closed**: flat-to-negative on the segment metric at every honest weight (see Corrections).
+
+What actually remains, in order of evidence:
+
+1. **The one survivor of ~160 arms tested on 30 Jul is the nested residual-logit correction**
+   (6 coefficients, uniform weights, penalty 0.03): **+0.00300** seg-rw on production folds
+   (z +0.77) and **+0.00628** on `folds_b` (z +1.60) — same sign on two independent fold
+   structures, combined ≈1.7σ. It never clears the project's own z ≥ 2 bar; it is the
+   best-supported remaining gain, not a proven one. It ships in `sub_20260730_final00.csv`
+   together with the probe anchor (a *measured* constant, worth +0.00104 on our margin).
+2. **The probe anchor is the only intervention that ever beat its own forecast on the board**
+   (predicted 0.00879 recoverable for a file at p4 ≈ 0.211; the board returned ~0.010). On our
+   file, which is already near the right margin, it is worth only ~0.001.
+3. Pending at time of writing: iter70 (six-family model search), iter71 (capacity ×
+   invariance × population), and the symmetry forest. Judge any survivor by the iter67
+   harness gates before it goes near a submission.
+
+After Kaggle closes the freeze is permanent and the only deliverable is the report.

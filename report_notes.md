@@ -4,6 +4,37 @@ Rubric: (i) best model description **5** · (ii) public vs private fit **2** ·
 (iii) insights & limitations **5** · (iv) overall quality **3** — **15 of 30 marks total.**
 Full experiment history with reflections: `EXPERIMENTS.md`. Scores: `submissions/log.md`.
 
+> ## ⚠️ CORRECTIONS REQUIRED BEFORE DRAFTING (30 Jul review — this file predates iteration 48)
+>
+> Everything below was written in the 1.199/1.201 era. Five things changed and **must not be
+> copied into the report as written**:
+>
+> 1. **Section (i) describes the wrong model.** The graded submission is whichever file is
+>    selected at close — currently `sub_20260730_final00.csv` at **1.193** (the 2-member
+>    nested blend → nested 6-coefficient residual logit → probe anchor), which superseded
+>    `sub_20260729_nnblend.csv` at 1.194. Rewrite (i) around the final selected file after
+>    1 Aug. The three-ideas list (part-worths, listwise objective, latent class) survives.
+> 2. **Insight 3 (design-share encoding, "+0.005, z 2.9") is RETRACTED** — iteration 48
+>    proved it a structural CV leak; honest value −0.00596 (z −3.53), and the honest
+>    design-level signal caps at ~+0.001. Do not present it as a gain. Present it as the
+>    project's central methodological finding instead (see EXPERIMENTS.md iterations 48 and
+>    54–59): a *structural* leak is uniform across folds, scales with capacity, and passed
+>    five independent gates including folds_b replication and segment reweighting.
+> 3. **The shift-audit row "design-share encoding 77%" describes a leak decaying, not a gain
+>    decaying.** Reframe or cut.
+> 4. **Section (ii)'s calibration table is 4 points; there are now 8**, including two public
+>    *sign flips* (1.12341 → 1.209, 1.11210 → 1.205), the probe measurement (r* = 0.26648,
+>    exact algebra on a returned score), and the anchor prediction that landed (predicted
+>    0.00879, board returned ~0.010). See `submissions/log.md` 28–30 Jul. Also fix
+>    Limitation 2: ±0.02 is *absolute* noise; ranking noise is paired, ~0.006–0.012
+>    (STRATEGY_REVIEW Part II.1).
+> 5. **The monotone-constraint numbers here are the interim 6-seed run.** The final
+>    10-seed numbers (iteration 26, `members.txt`): −0.00034, 95% CI [−0.00159, +0.00092],
+>    wins 5 of 10. Use those.
+>
+> The consolidated evidence table at the **end of this file** is the verified backbone for
+> "what failed and why that is informative".
+
 ---
 
 ## (i) The model — what we submitted and why
@@ -430,3 +461,55 @@ the segment structure reflects real behaviour rather than in-sample fitting.
   second dependency (`HU_L2`) that hand-reasoning missed.
 - Anything constant within a choice set is unidentified in a conditional logit; the demeaned
   rank check is the correct general test.
+
+---
+
+# Consolidated evidence table (30 Jul review — verified against artifacts)
+
+Everything this project actually knows, with the number and where it came from. This is the
+backbone for sections (ii) and (iii). ✅ = re-verified from artifacts on 30 Jul.
+
+## What worked (all pre-registered, all replicated or board-confirmed)
+
+| finding | number | provenance |
+|---|---|---|
+| Part-worth coding of attribute levels | +0.020, z 11.8; 101% shift retention | iter02 |
+| Listwise softmax objective (train the metric) | +0.006, z 4.3; 112% retention | iter03 |
+| Latent-class heterogeneity, demographic membership | 1.15686 → 1.14396, z 3.77; demographics = 93% of the gain | iter11 |
+| Task-position terms in the LC utility (price-tilt mechanism) | +0.00534 z 6.26; folds_b +0.00422 z 4.70; 119% retention; tilt alone reproduces 105% of the none-rate drift while pure scale drift is ~0 (Swait–Louviere identification) | iter25 |
+| Seed bagging | model-level −0.006; **blend-level only +0.00029** — bagging and blending are substitutes | iter26 |
+| **The probe**: constant `(1/6,1/6,1/6,1/2)` inverted to the graded none-rate | r* = 0.266481153 exactly; killed a candidate that would have cost ~0.010; anchor confirmed on the board (predicted 0.00879 recoverable, returned ~0.010) ✅ | 27–30 Jul, `submissions/log.md` |
+| Residual-logit correction (6 coef, nested) | +0.00300 seg-rw (z 0.77) and +0.00628 on folds_b (z 1.60); combined ≈1.7σ — sole survivor of ~160 arms ✅ | iter67/68 |
+
+## The measured instruments (quote these, not folklore)
+
+| instrument | number | provenance |
+|---|---|---|
+| single-model seed sd / blend seed sd / fold SD | 0.00283 / 0.00048 / 0.013 | iter26 |
+| replication on an independent fold structure | member 79%, blend 81% | iter21 |
+| segment-reweighted OOF | ESS **208 of 1,135 respondents**; tracked the board to 0.001 when leak-free; missed by 0.019 on the leaky rotation ✅ | predict_lb.R, iter48 |
+| public transfer of local gains | 58% (early) → ~⅓ → **negative** during the leak era | `submissions/log.md` |
+
+## What failed, and why that is informative (the insight marks live here)
+
+| failure | number | what it teaches | provenance |
+|---|---|---|---|
+| Hierarchical Bayes | 1.23703; own-β 0.352 vs population-averaged 1.229 | the 0.877 gap is the cold-start problem stated numerically — individual-level learning is structurally unavailable for 263 strangers | iter17 |
+| Mixed logit (continuous heterogeneity) | 1.17281, weight 0 | heterogeneity is only usable in discrete, demographic-routable form | iter05 |
+| Two-stage none-vs-buy — **refuted twice, independently** | 1.17169 (z −11) and hurdle+rank 1.17478 ✅ | the decomposition is wrong, not the stage-2 model class: opting out shares the bundles' utility scale | iter09; 30 Jul |
+| Nested logit on {bundles} vs {none} | 1.15681 ≈ MNL | IIA is not the binding constraint; heterogeneity is | iter10 |
+| Bundle-level encoding | max diff 0.000e+00 | killed by counting (bijection) before any fit — structure-first triage | iter16 |
+| Residual design encoding | 1.09962 fake; nested double-OOF gain −0.00430, z −4.54 | fold-honest reference *sets* are insufficient; every derived quantity must be honest w.r.t. the scored fold | iter12/15 |
+| **Design-share encoding** — in production 47 iterations | apparent +0.0218; honest **−0.00596** (z −3.53); leak scales d4 −0.0004 → d10 +0.078 | a *structural* leak is uniform across folds and monotone in capacity; per-fold consistency proves nothing | iter48 |
+| Random-rotation member — passed **five** pre-registered gates, submitted | local −0.02192 (10/10 seeds); public **1.205**; survival without the encoding **−67%** | every gate was computed on (reweightings of) contaminated OOF; a contrast is only valid if leak exposure is matched | iter54–59 |
+| Free-sign blend — passed six checks, submitted | local −0.00478; public **1.209** | N tests sharing one assumption are one test; OOF fits and shipped refits are different regimes | iter35/43 |
+| Fitting anything on the reweighted objective — refuted **three times** | worse on its own metric each time | reweighting collapses ESS (208 respondents); variance beats bias | iter07, 46, 68 |
+| Ensemble-randomness retune, both directions | 16-point surface unimodal at the incumbent 0.8/0.8 | derived hypotheses are still hypotheses | iter45 |
+| Demographic PCA features | +0.0123 to +0.0275 (worse) | dense rotations of coarse ordinals let trees fingerprint respondents | iter49 |
+| "Refit w_tree honestly" (the former standing item) | flat: z ≤ +0.97 at every w in [0.10, 0.528] ✅ | down-weighting a leaky member ≠ replacing it with an honest one | iter67 |
+| The ceiling | oracle 0.986 vs blend 1.130; ~89% of none-propensity unobservable; design-only predictor 1.307 | the remaining loss is measured, and it is not reachable | iter17/18 |
+
+**The one-line synthesis for the report:** the project's accuracy came from three structural
+choices made in week one; everything afterwards that *looked* like a gain and wasn't was
+caught by exactly one habit — building the honest twin of every construction and comparing —
+and the two times that habit was skipped, the leaderboard caught it instead (1.209, 1.205).

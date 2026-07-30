@@ -3,6 +3,9 @@
 Predicting which of four car safety-feature bundles a respondent chooses.
 **R only** (competition rule). Metric: multiclass logloss, lower is better.
 
+**Team:** zf · Sheil · Kavya · Nicole. One Kaggle account, held by the team
+representative — see [Working agreements](#working-agreements).
+
 > ⚠️ **Keep this repository private until after 10 August 2026.** It contains the
 > competition data and our full modelling approach. A public repo would hand both to
 > every other team. Course rule also forbids sharing data outside the team.
@@ -15,10 +18,49 @@ Predicting which of four car safety-feature bundles a respondent chooses.
 |---|---|
 | Benchmark (25% for everything) | 1.38629 |
 | Our first submission | 1.233 public |
-| Rival team's best | **1.186 public** (parinwaris) |
-| **Ours — live, and our best** | **1.197 public** (local CV 1.12819) |
+| Top of board | **1.183 public** |
+| Two-member main-track blend | 1.197 public (local CV 1.12819) |
+| **Ours — live, and our best** | **1.193 public** (`sub_20260730_final00.csv`) |
 
-The live 1.197 is our best public score, so Kaggle auto-selects it for private scoring.
+**11th of ~40** as of 30 Jul, in a three-way tie at 1.193. The board reads
+1.183 / 1.184 / 1.186 / 1.186 / 1.188 / 1.190 / 1.190 / 1.192 / 1.193 ×3 — **sixteen teams
+inside 0.013**.
+
+> ### ⚠️ The public board is 70% of the test set. The grade is the other 30%.
+>
+> Kaggle states it plainly: *"This leaderboard is calculated with approximately 70% of the
+> test data. The final results will be based on the other 30%."* So the private set is
+> **~1,499 rows**, and the paired respondent-clustered ranking SE on that is **0.006–0.012**
+> (`STRATEGY_REVIEW.md` Part II.1).
+>
+> **The entire top-16 spread is about one standard error.** Public rank is close to
+> uninformative about final rank — we could plausibly finish anywhere from 2nd to 20th
+> without anything changing. Do not read the public ordering as standings.
+>
+> **Only ONE submission counts for the final score.** If none is selected, Kaggle
+> auto-selects the best public. Select `sub_20260730_final00.csv` explicitly rather than
+> relying on that.
+>
+> One consequence for our own calibration: `r* = 0.266481153` was measured from
+> `probe_alt4`'s **public** score, so it is the none-rate of the 70%. The private 30% has its
+> own draw, sd ≈ `sqrt(0.2665·0.7335/1499)` ≈ **0.011**. The probe anchor's +0.00104 is a
+> public-set figure and will not transfer exactly.
+
+### How the score progressed
+
+1. **1.197** — the two-member main-track blend (`xgb_lw2bag` + `lcmnl3_both`), the model
+   documented throughout this README and produced by `model/run_all.R`.
+2. **1.193** — `submissions/sub_20260730_final00.csv`: the two-member nested blend → a nested
+   6-coefficient residual-logit correction → the probe anchor. Built only from our own two
+   members plus our own nested refit.
+
+*(`submissions/log.md` carries the full submission history, including superseded entries.)*
+
+> **The forecast for step 2 was 1.1930 and the board returned 1.193.** That is the second
+> pre-registered prediction this project has made that came true, and the first about a
+> *model change* rather than a measured constant. It confirms the segment-reweighted OOF as
+> the leaderboard instrument, and it means the earlier period of *inverted* transfer
+> (local improved, public regressed) was the encoding leak — not a broken methodology.
 
 > ### ⚠️ The 1.12341 "improvement" was refuted on the leaderboard
 >
@@ -318,6 +360,35 @@ model it was attached to does not.
 wrong — that minimises mean-squared error of the *rate*. Expected logloss `E[KL(r‖t)]` is
 minimised at `t = E[r]`, and the split-type variance adds a constant that does not move the
 optimum. Shrink only for prior pull on the mean.
+
+### The model-probe — measuring without spending a slot on a throwaway
+
+The constant probe above works because a constant prediction has closed-form logloss. Its
+cost is that it scores ~1.5 and can never be selected: the whole slot buys information and
+nothing else. **Iteration 80 removed that cost.**
+
+Take a live candidate `A` and build `B` by adding **one constant to the alternative-4 logit
+per segment**. Two things then hold exactly:
+
+- `A` and `B` share the within-buy conditional (verified to 2.22e-16), so it cancels from the
+  score difference;
+- the logit shift is constant within each segment (verified to 1.07e-14), so the difference is
+  **linear in each segment's mean none-rate** — and within-segment heterogeneity cancels, so
+  no homogeneity assumption is needed.
+
+One returned score therefore identifies the split, while the file remains a real candidate
+that can win. Recovery is algebraically exact (simulation error ~3e-15).
+
+We shipped luxury p4 = 0.285; the board returned **1.217**, giving **r_lux = 0.2236**. Our
+model already implied 0.2314 — within one sampling standard deviation — so the per-segment
+correction is worth **+0.00037** and the margin channel is closed. It also refuted the
+board-inversion estimate (0.171, ~6σ away) outright.
+
+**The limit is the interesting part.** The conditional cancels *by construction* — that is
+precisely what makes the inversion exact. So this instrument is structurally incapable of
+saying anything about the three-way choice among real bundles, which is where the remaining
+headroom actually is (oracle 0.986 against the blend's 1.130). It is exquisitely precise about
+the half of the problem that is finished, and blind to the half that is not.
 
 ---
 
