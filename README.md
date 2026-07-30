@@ -20,7 +20,6 @@ representative — see [Working agreements](#working-agreements).
 | Our first submission | 1.233 public |
 | Top of board | **1.183 public** |
 | Two-member main-track blend | 1.197 public (local CV 1.12819) |
-| Second modelling track | 1.194 public (`sub_20260729_nnblend.csv`) |
 | **Ours — live, and our best** | **1.193 public** (`sub_20260730_final00.csv`) |
 
 **11th of ~40** as of 30 Jul, in a three-way tie at 1.193. The board reads
@@ -51,15 +50,13 @@ inside 0.013**.
 
 1. **1.197** — the two-member main-track blend (`xgb_lw2bag` + `lcmnl3_both`), the model
    documented throughout this README and produced by `model/run_all.R`.
-2. **1.194** — `sub_20260729_nnblend.csv`, from the team's **second modelling track**
-   (`experiments/iter62_nnblend/`): a listwise tree arm and an MLP arm, geometrically
-   blended, then a calibration tower and a GAM outside-option head. Moved us 12th → 10th
-   on 29 Jul.
-3. **1.193** — `submissions/sub_20260730_final00.csv`: the two-member nested blend → a nested
+2. **1.193** — `submissions/sub_20260730_final00.csv`: the two-member nested blend → a nested
    6-coefficient residual-logit correction → the probe anchor. Built only from our own two
    members plus our own nested refit.
 
-> **The forecast for step 3 was 1.1930 and the board returned 1.193.** That is the second
+*(`submissions/log.md` carries the full submission history, including superseded entries.)*
+
+> **The forecast for step 2 was 1.1930 and the board returned 1.193.** That is the second
 > pre-registered prediction this project has made that came true, and the first about a
 > *model change* rather than a measured constant. It confirms the segment-reweighted OOF as
 > the leaderboard instrument, and it means the earlier period of *inverted* transfer
