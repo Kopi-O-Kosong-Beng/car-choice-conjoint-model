@@ -1,0 +1,50 @@
+Warning messages:
+1: package 'data.table' was built under R version 4.6.1 
+2: package 'xgboost' was built under R version 4.6.1 
+[noenc4 seed 1] fold 1 best_iter 1371
+[noenc4 seed 1] fold 2 best_iter 783
+[noenc4 seed 1] fold 3 best_iter 1286
+[noenc4 seed 1] fold 4 best_iter 1462
+[noenc4 seed 1] fold 5 best_iter 546
+[noenc4 seed 1] plain OOF 1.15312
+[noenc4 seed 1] done in 56.3 min  (mean p4 test 0.26869)
+Warning messages:
+1: package 'data.table' was built under R version 4.6.1 
+2: package 'xgboost' was built under R version 4.6.1 
+[noenc4 seed 2] fold 1 best_iter 836
+[noenc4 seed 2] fold 2 best_iter 567
+[noenc4 seed 2] fold 3 best_iter 612
+[noenc4 seed 2] fold 4 best_iter 1025
+[noenc4 seed 2] fold 5 best_iter 1047
+[noenc4 seed 2] plain OOF 1.15378
+[noenc4 seed 2] done in 43.0 min  (mean p4 test 0.27321)
+Warning messages:
+1: package 'data.table' was built under R version 4.6.1 
+2: package 'xgboost' was built under R version 4.6.1 
+[noenc4 seed 3] fold 1 best_iter 1408
+[noenc4 seed 3] fold 2 best_iter 1131
+[noenc4 seed 3] fold 3 best_iter 1070
+[noenc4 seed 3] fold 4 best_iter 1273
+[noenc4 seed 3] fold 5 best_iter 993
+[noenc4 seed 3] plain OOF 1.15023
+[noenc4 seed 3] done in 43.5 min  (mean p4 test 0.28037)
+Warning messages:
+1: package 'data.table' was built under R version 4.6.1 
+2: package 'xgboost' was built under R version 4.6.1 
+[noenc4 seed 4] fold 1 best_iter 2108
+[noenc4 seed 4] fold 2 best_iter 898
+[noenc4 seed 4] fold 3 best_iter 917
+[noenc4 seed 4] fold 4 best_iter 787
+[noenc4 seed 4] fold 5 best_iter 1090
+[noenc4 seed 4] plain OOF 1.15165
+[noenc4 seed 4] done in 35.1 min  (mean p4 test 0.27371)
+Warning messages:
+1: package 'data.table' was built under R version 4.6.1 
+2: package 'xgboost' was built under R version 4.6.1 
+combining arm noenc4 over 4 seeds: 1,2,3,4
+  single-seed OOF: 1.15312 1.15378 1.15023 1.15165
+  mean 1.15220   sd 0.00158
+  BAGGED plain OOF 1.15002   (gain vs mean single -0.00217)
+  wrote model/artifacts/{oof,test}_xgbh_noenc4.rds   test mean p4 0.27392
+done
+ARM noenc4 COMPLETE

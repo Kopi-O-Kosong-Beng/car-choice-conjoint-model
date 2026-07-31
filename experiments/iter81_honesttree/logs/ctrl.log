@@ -1,0 +1,50 @@
+Warning messages:
+1: package 'data.table' was built under R version 4.6.1 
+2: package 'xgboost' was built under R version 4.6.1 
+[ctrl seed 1] fold 1 best_iter 1090
+[ctrl seed 1] fold 2 best_iter 403
+[ctrl seed 1] fold 3 best_iter 716
+[ctrl seed 1] fold 4 best_iter 387
+[ctrl seed 1] fold 5 best_iter 493
+[ctrl seed 1] plain OOF 1.14206
+[ctrl seed 1] done in 38.6 min  (mean p4 test 0.26854)
+Warning messages:
+1: package 'data.table' was built under R version 4.6.1 
+2: package 'xgboost' was built under R version 4.6.1 
+[ctrl seed 2] fold 1 best_iter 107
+[ctrl seed 2] fold 2 best_iter 363
+[ctrl seed 2] fold 3 best_iter 170
+[ctrl seed 2] fold 4 best_iter 372
+[ctrl seed 2] fold 5 best_iter 548
+[ctrl seed 2] plain OOF 1.15175
+[ctrl seed 2] done in 46.9 min  (mean p4 test 0.26827)
+Warning messages:
+1: package 'data.table' was built under R version 4.6.1 
+2: package 'xgboost' was built under R version 4.6.1 
+[ctrl seed 3] fold 1 best_iter 395
+[ctrl seed 3] fold 2 best_iter 956
+[ctrl seed 3] fold 3 best_iter 468
+[ctrl seed 3] fold 4 best_iter 779
+[ctrl seed 3] fold 5 best_iter 629
+[ctrl seed 3] plain OOF 1.14163
+[ctrl seed 3] done in 32.2 min  (mean p4 test 0.27568)
+Warning messages:
+1: package 'data.table' was built under R version 4.6.1 
+2: package 'xgboost' was built under R version 4.6.1 
+[ctrl seed 4] fold 1 best_iter 820
+[ctrl seed 4] fold 2 best_iter 387
+[ctrl seed 4] fold 3 best_iter 562
+[ctrl seed 4] fold 4 best_iter 592
+[ctrl seed 4] fold 5 best_iter 758
+[ctrl seed 4] plain OOF 1.14166
+[ctrl seed 4] done in 37.0 min  (mean p4 test 0.26604)
+Warning messages:
+1: package 'data.table' was built under R version 4.6.1 
+2: package 'xgboost' was built under R version 4.6.1 
+combining arm ctrl over 4 seeds: 1,2,3,4
+  single-seed OOF: 1.14206 1.15175 1.14163 1.14166
+  mean 1.14427   sd 0.00499
+  BAGGED plain OOF 1.13794   (gain vs mean single -0.00634)
+  wrote model/artifacts/{oof,test}_xgbh_ctrl.rds   test mean p4 0.26937
+done
+ARM ctrl COMPLETE

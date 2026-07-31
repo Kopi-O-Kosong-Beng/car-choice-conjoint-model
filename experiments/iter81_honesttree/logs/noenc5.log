@@ -1,0 +1,50 @@
+Warning messages:
+1: package 'data.table' was built under R version 4.6.1 
+2: package 'xgboost' was built under R version 4.6.1 
+[noenc5 seed 1] fold 1 best_iter 1193
+[noenc5 seed 1] fold 2 best_iter 496
+[noenc5 seed 1] fold 3 best_iter 917
+[noenc5 seed 1] fold 4 best_iter 656
+[noenc5 seed 1] fold 5 best_iter 547
+[noenc5 seed 1] plain OOF 1.15333
+[noenc5 seed 1] done in 43.2 min  (mean p4 test 0.26578)
+Warning messages:
+1: package 'data.table' was built under R version 4.6.1 
+2: package 'xgboost' was built under R version 4.6.1 
+[noenc5 seed 2] fold 1 best_iter 744
+[noenc5 seed 2] fold 2 best_iter 589
+[noenc5 seed 2] fold 3 best_iter 645
+[noenc5 seed 2] fold 4 best_iter 700
+[noenc5 seed 2] fold 5 best_iter 845
+[noenc5 seed 2] plain OOF 1.15258
+[noenc5 seed 2] done in 33.2 min  (mean p4 test 0.27637)
+Warning messages:
+1: package 'data.table' was built under R version 4.6.1 
+2: package 'xgboost' was built under R version 4.6.1 
+[noenc5 seed 3] fold 1 best_iter 910
+[noenc5 seed 3] fold 2 best_iter 1069
+[noenc5 seed 3] fold 3 best_iter 624
+[noenc5 seed 3] fold 4 best_iter 1028
+[noenc5 seed 3] fold 5 best_iter 829
+[noenc5 seed 3] plain OOF 1.15211
+[noenc5 seed 3] done in 36.0 min  (mean p4 test 0.27520)
+Warning messages:
+1: package 'data.table' was built under R version 4.6.1 
+2: package 'xgboost' was built under R version 4.6.1 
+[noenc5 seed 4] fold 1 best_iter 1033
+[noenc5 seed 4] fold 2 best_iter 511
+[noenc5 seed 4] fold 3 best_iter 607
+[noenc5 seed 4] fold 4 best_iter 593
+[noenc5 seed 4] fold 5 best_iter 865
+[noenc5 seed 4] plain OOF 1.15183
+[noenc5 seed 4] done in 33.1 min  (mean p4 test 0.27198)
+Warning messages:
+1: package 'data.table' was built under R version 4.6.1 
+2: package 'xgboost' was built under R version 4.6.1 
+combining arm noenc5 over 4 seeds: 1,2,3,4
+  single-seed OOF: 1.15333 1.15258 1.15211 1.15183
+  mean 1.15246   sd 0.00066
+  BAGGED plain OOF 1.15012   (gain vs mean single -0.00234)
+  wrote model/artifacts/{oof,test}_xgbh_noenc5.rds   test mean p4 0.27224
+done
+ARM noenc5 COMPLETE

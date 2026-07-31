@@ -1,0 +1,50 @@
+Warning messages:
+1: package 'data.table' was built under R version 4.6.1 
+2: package 'xgboost' was built under R version 4.6.1 
+[noenc8 seed 1] fold 1 best_iter 352
+[noenc8 seed 1] fold 2 best_iter 285
+[noenc8 seed 1] fold 3 best_iter 399
+[noenc8 seed 1] fold 4 best_iter 329
+[noenc8 seed 1] fold 5 best_iter 303
+[noenc8 seed 1] plain OOF 1.15778
+[noenc8 seed 1] done in 18.1 min  (mean p4 test 0.26810)
+Warning messages:
+1: package 'data.table' was built under R version 4.6.1 
+2: package 'xgboost' was built under R version 4.6.1 
+[noenc8 seed 2] fold 1 best_iter 95
+[noenc8 seed 2] fold 2 best_iter 204
+[noenc8 seed 2] fold 3 best_iter 174
+[noenc8 seed 2] fold 4 best_iter 321
+[noenc8 seed 2] fold 5 best_iter 315
+[noenc8 seed 2] plain OOF 1.16475
+[noenc8 seed 2] done in 12.1 min  (mean p4 test 0.27133)
+Warning messages:
+1: package 'data.table' was built under R version 4.6.1 
+2: package 'xgboost' was built under R version 4.6.1 
+[noenc8 seed 3] fold 1 best_iter 287
+[noenc8 seed 3] fold 2 best_iter 459
+[noenc8 seed 3] fold 3 best_iter 325
+[noenc8 seed 3] fold 4 best_iter 436
+[noenc8 seed 3] fold 5 best_iter 349
+[noenc8 seed 3] plain OOF 1.15902
+[noenc8 seed 3] done in 17.7 min  (mean p4 test 0.27305)
+Warning messages:
+1: package 'data.table' was built under R version 4.6.1 
+2: package 'xgboost' was built under R version 4.6.1 
+[noenc8 seed 4] fold 1 best_iter 625
+[noenc8 seed 4] fold 2 best_iter 273
+[noenc8 seed 4] fold 3 best_iter 334
+[noenc8 seed 4] fold 4 best_iter 272
+[noenc8 seed 4] fold 5 best_iter 497
+[noenc8 seed 4] plain OOF 1.16005
+[noenc8 seed 4] done in 21.5 min  (mean p4 test 0.27319)
+Warning messages:
+1: package 'data.table' was built under R version 4.6.1 
+2: package 'xgboost' was built under R version 4.6.1 
+combining arm noenc8 over 4 seeds: 1,2,3,4
+  single-seed OOF: 1.15778 1.16475 1.15902 1.16005
+  mean 1.16040   sd 0.00304
+  BAGGED plain OOF 1.15599   (gain vs mean single -0.00441)
+  wrote model/artifacts/{oof,test}_xgbh_noenc8.rds   test mean p4 0.27138
+done
+ARM noenc8 COMPLETE

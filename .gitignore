@@ -38,3 +38,6 @@ experiments/iter49_matfact/*.rds
 experiments/iter50_lowrank/*.rds
 experiments/iter53_p4head/*.rds
 experiments/iter57_deploytrim/*.rds
+# iter81's per-seed arms (32 files, ~14 MB). The four bagged members it assembles
+# ARE tracked, as model/artifacts/{oof,test}_xgbh_*.rds.
+experiments/iter81_honesttree/*.rds
