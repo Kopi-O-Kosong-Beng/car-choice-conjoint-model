@@ -1,8 +1,8 @@
 ﻿Screenshots for the README.
 
-## vault-graph.png (referenced by README.md, not yet added)
+## vault-graph.png (referenced by README.md — present, updated 1 Aug 2026)
 
-To capture it:
+To re-capture it:
 1. Open the REPOSITORY ROOT as an Obsidian vault (File > Open folder as vault).
 2. Press Ctrl+G for graph view.
 3. Optional, makes it far more readable:

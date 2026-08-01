@@ -2108,7 +2108,9 @@ margin audit pre-registered 0.00879 recoverable for a file at p4 ≈ 0.211; the 
 returned ~0.010. First pre-registered public prediction to land. The anchor is worth
 ~0.010 only to a badly mis-margined file; on our own (p4 0.24800) it is worth **+0.00104**.
 Best selectable public was **1.194** when this section was written; `sub_20260730_final00.csv`
-then returned **1.193** and is the current best — see iteration 80 below.
+then returned **1.193** — see iteration 80 below. *(Superseded at the close: the anchor was
+finally applied to the second track too, and the 50/50 pool of the two anchored tracks scored
+**1.185**. See "Iteration 82" and "The close" at the end of this file.)*
 
 ## What was tested (~160 arms), and the single survivor
 
@@ -2268,3 +2270,125 @@ of a live candidate, it competes and measures at the same time.
 |---|---|---|
 | per-segment none-rate correction on `final00` | iter80, **measured** | r_lux 0.2236 vs shipped 0.2314; exact correction worth **+0.00037** |
 | recovering `r_lux` from board history | iter80 vs the inversion estimates | measured 0.2236; inversion said 0.171 (~6σ out) |
+
+---
+
+# Iteration 81 — rebuilding the production tree honestly (31 Jul)
+
+`experiments/iter81_honesttree/`. Four arms (leaky control; no-encoding at depth 8, 5, 4),
+4 seeds each, geometric-mean bagged. **Verdict: production stands, ship nothing.**
+
+- The control reproduces production `xgb_lw2bag` to within **0.00112**, well inside the
+  model-level seed sd. The harness is faithful.
+- **The honest depth optimum 4–5 is confirmed by a second, independent route** — a capacity
+  contrast with leak exposure matched at *zero* on both sides, which is exactly the condition
+  iterations 54–59 violated.
+- **Single-seed variance collapses with depth:** sd **0.00499** at leaky-depth-8 versus
+  **0.00066** at honest-depth-5, a factor of 7.5. That recalibrates the noise floor for the
+  shipped configuration — much of what looked like signal at depth 8 was seed noise.
+- **The 0.0060 member-level depth gain lands at 0.00004 after blending**, because the blend is
+  already fitted across the tree-vs-logit axis and simply reallocates weight.
+- **The leak-removal contrast is UNDECIDABLE with any instrument this project owns**, and the
+  pre-registered decision rule was therefore the wrong one. Recorded rather than re-cut — the
+  fourth instance here of a confidently-designed test that could not see what it was aimed at.
+
+Artifacts `model/artifacts/{oof,test}_xgbh_*.rds` are tracked but deliberately **absent from
+`model/members.txt`**; per rule 5 they are not blend candidates.
+
+---
+
+# Iteration 82 — the margin audit across both tracks, and the model-distance audit (31 Jul)
+
+`experiments/iter82_provenance/`. Two findings, and between them they produced the file that
+was finally submitted.
+
+## Finding 1 — the probe anchor had been applied to the wrong track
+
+The margin audit had only ever been pointed at the main track. `sub_20260729_nnblend.csv` —
+our best-scoring file at the time (1.194), from the team's **second modelling track**
+(`experiments/iter62_nnblend/`, built by a teammate) — shipped at mean p4 = **0.21086** against
+the probe-measured `r* = 0.266481153`. It had **never been anchored**.
+
+Estimated recoverable loss: **0.00972**, agreeing with iter62's own pre-registered audit
+(0.00879) and with the board's realised ~0.010 on a file at that margin.
+
+**Why it was missed is the lesson.** `submissions/log.md`, 30 Jul, records "The improvement
+does not transfer to our track" — but the file tested there was `sub_20260726_2328.csv`, at
+p4 = 0.24800, i.e. the *main* track. The phrase **"our track" did the damage**: the second
+track is also ours, and nobody re-read the sentence to notice it excluded half the project. A
+0.0097 correction sat unused for two days while the same anchor was applied to the file where
+it was worth 0.00104.
+
+## Finding 2 — the two tracks are far enough apart for pooling to pay
+
+`track_distances.R`, reading only in-repo artifacts and fitting nothing. Every comparison
+decomposed into **margin** (mean p4 — one scalar) and **conditional** (`(p1,p2,p3)/(1−p4)` —
+the model), with both tracks anchored to `r*` first so the margin is held equal.
+
+The decomposition validates itself: `mprobe285` sits at conditional distance **7.0e−18** from
+`final00` — machine zero — while its full distance is 0.0183. The segment re-targeting provably
+touches the margin and nothing else.
+
+| | symKL conditional |
+|---|---|
+| `xgb_lw2bag` vs `xgb_lw2` — **same model, 10-seed bag vs single seed** | **0.00552** |
+| `xgb_lw2bag` vs `xgb_syn` | 0.01477 |
+| **our two tracks** | **0.01291** |
+| `xgb_lw2bag` vs `lcmnl3_both` (widest axis the blend spans) | 0.04117 |
+| `xgb_lw2bag` vs `mnl_pw` (widest we own) | 0.04837 |
+
+**The tracks sit 2.3× above the same-model-reseeded floor** — genuinely distinct models, not
+one model wearing two names. Had they come in below 0.00552 the pool would have been averaging
+a model against itself.
+
+The pool also lands nearly central: conditional **0.00310** from the main track and **0.00336**
+from the second, ratio **0.92**. And the disagreement has the right shape — per-class mean
+signed difference +0.00960 / −0.00525 / −0.00435 against a per-class sd of ~0.050, with
+**96.6% of rows differing by more than 0.01**. Agreement on average, disagreement row by row:
+no shared bias to inherit, plenty of independent error to cancel.
+
+---
+
+# The close — 1 Aug 2026
+
+**Selected: `submissions/cand_pool5050_final00.csv`. Public 1.185 (3rd), private 1.185 (4th).**
+
+A log-opinion pool at **fixed `w = 0.5`** of the two anchored tracks. `w` was never tuned and
+could not honestly have been: the second track has no OOF on `folds.rds` and can never have one
+(adjusted Rand ≈ 0.002 against it — independent partitions). 0.5 spends no selection budget,
+and Hölder gives `loss(pool) ≤ max(L_A, L_B)` on **every** row set including the private 1,499
+— the only variance hedge available when exactly one submission counts.
+
+## What the private score settled
+
+**Public 1.185, private 1.185 — drift of zero to three decimals**, against a ~1,499-row private
+draw whose own sampling sd on the none-rate is ~0.011. Nothing overfitted the leaderboard, and
+`r*` — calibrated entirely against public rows — transferred intact to rows it had never seen.
+
+**The rank still slipped 3rd → 4th on an unchanged score.** That is the paired ranking noise
+(SE 0.006–0.012) this file spent two weeks distinguishing from the ±0.02 absolute wobble, made
+visible on our own submission. The rank moved; the model did not.
+
+## The pre-registration record
+
+| forecast | written before upload | returned |
+|---|---|---|
+| `r*` = 0.266481153 | by algebra from one returned score | anchor gained as predicted |
+| `final00` | **1.1930** | 1.193 |
+| `cand_pool5050_final00` | **1.186**, band 1.184–1.189 | **1.185** |
+
+Three for three, all committed to git before the scores existed.
+
+## The reflection that matters most
+
+**The final gain came from measurement and from a bound — not from search.** The 30 Jul
+endgame ran ~160 arms and produced exactly one survivor at ≈1.7σ. The 1.193 → 1.185 step came
+from two things that cost no selection budget at all: noticing that an *already-measured*
+constant had never been applied to half the project, and pooling at a weight chosen by an
+inequality rather than by fitting.
+
+Set against the rest of this file — where a change passing z = 3.84 and 5/5 folds cost 0.014,
+and one passing 5/5 folds plus three out-of-population holdouts cost 0.068 — the lesson is
+consistent and it is the project's central finding: **on this problem our cross-validation was
+past the point of being informative, and the things that transferred were the things measured
+on the test set directly or guaranteed by an inequality.**

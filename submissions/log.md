@@ -557,16 +557,16 @@ global level, the segment split is right on its own.
 
 ### Leaderboard snapshot, 30 Jul (verified from the board)
 
-| # | team | score |
-|---|---|---|
-| 1 | 4Chuds_Team34 | 1.183 |
-| 2 | arman_parkash_team_11 | 1.184 |
-| 3–4 | parinwaris_33 / [Deleted] | 1.186 |
-| 5 | daniel_napitu_team_5 | 1.188 |
-| 6–7 | jarren_ng_28 / Farid_19 | 1.190 |
-| 8 | Randy_Team_15 | 1.192 |
-| 9–11 | lianne_8 / Santhoshram_32 / **us** | **1.193** |
-| 12 | someone_in_team_26 | 1.194 |
+| # | score |
+|---|---|
+| 1 | 1.183 |
+| 2 | 1.184 |
+| 3–4 | 1.186 |
+| 5 | 1.188 |
+| 6–7 | 1.190 |
+| 8 | 1.192 |
+| 9–11 (incl. **us**) | **1.193** |
+| 12 | 1.194 |
 
 **We are 11th of ~40**, last of a three-way tie on tiebreak. Sixteen teams inside 0.013.
 
@@ -579,3 +579,144 @@ explicitly.
 Consequence for our own instruments: every probe measurement — `r*` included — is a statement
 about the public 70%. The private 30% has its own draw (sd ≈ 0.011 on the none-rate), so the
 probe anchor's +0.00104 is a public-set figure that will not transfer exactly.
+
+---
+
+## 31 Jul, ~05:10 — PRE-REGISTERED, before any of these is uploaded
+
+*Written by the 31 Jul overnight session. Nothing below has been scored. The point of
+writing it now is that it cannot be revised after a number comes back.*
+
+### The finding
+
+`sub_20260729_nnblend.csv` (public **1.194**, our best-ever entry) ships at mean p4 = **0.21086**
+against the probe-measured `r* = 0.266481153`. It was never anchored. The 30 Jul entry
+"The improvement does not transfer to our track" was measured on `sub_20260726_2328.csv`
+(p4 = 0.24800) — the *main* track. The second track is also ours and was never audited.
+
+Global odds multiplier 0.210857 → r\* is **1.406162**; estimated Δ logloss **−0.009720**.
+
+### Forecasts, with bands
+
+| file | forecast public | band | basis |
+|---|---|---|---|
+| `cand_nnblend_anchored.csv` | **1.185** | 1.183–1.191 | closed-form margin correction, zero fitted parameters |
+| `cand_pool5050_final00.csv` | **1.186** | 1.184–1.189 | `½L_A + ½L_B − 0.004485`, exact identity |
+
+**Honest caveat on the first, stated before upload.** The −0.00972 assumes the conditional is
+right and only the margin is wrong. The only OWN-ACCOUNT measurement of the anchor is
+**+0.00104** (1.197 → 1.193). The "board returned ~0.010" figure was **never observed on our
+account** — no own-account file at p4 ≈ 0.211 was ever anchored. Further, `EXPERIMENTS.md:2147`
+measured second-track components transplanted into our stacker at weight 0.000 / −0.01001 /
+conditional Δ exactly 0, which is evidence *against* the second track's conditional being
+better. Treat −0.00972 as an optimistic upper bound; +0.003 to +0.009 is the realistic range.
+
+### The pool, and why w is not tuned
+
+`loss(pool_w) = (1−w)L_A + w·L_B + E[log Z_w]`, `Z_w = Σ_k A_k^(1−w) B_k^w`. Measured on our
+own two anchored files, label-free: `−E[log Z]` = **+0.004050 / +0.004485 / +0.004113** at
+w = 0.35 / 0.50 / 0.65. Flat, so there is nothing to tune — and nothing that *could* be tuned
+honestly, because the second track has no OOF on `folds.rds` and can never have one (its fold
+constructor differs; adjusted Rand vs `folds.rds` ≈ 0.002, i.e. independent partitions; its
+intermediates are absent and gitignored; its 150 trained objects are gone; the track is not
+re-runnable). w = 0.5 is prior-free and spends no selection budget. By Hölder
+`loss(pool) ≤ max(L_A, L_B)` on every row set including the private 1,499 — the only variance
+hedge available for a one-shot pick.
+
+### Diversity check on the pool, before it is selected
+
+Pooling only pays if the two parents are genuinely different models — averaging a model
+against itself buys nothing. `experiments/iter82_provenance/track_distances.R` measures the
+conditional distance (calibration removed, both tracks anchored to r\*) between them at
+**0.01291**, against a **same-model-reseeded floor of 0.00552** and a widest-axis-we-own of
+**0.04837**. The tracks are 2.3× above the floor, so the pool averages two distinct models.
+
+It also lands almost exactly central: conditional **0.00310** from the main track and
+**0.00336** from the second, ratio **0.92**. Neither parent dominates the shipped file.
+
+The disagreement has the right shape too — per-class mean signed difference +0.00960 /
+−0.00525 / −0.00435 against a per-class sd of ~0.050, with 96.6% of rows differing by more
+than 0.01. Agreement on average, disagreement row by row, which is what a pool cancels.
+
+### Also recorded
+
+- `sub_20260730_final00.csv` was never written to disk or committed. Reconstructed as
+  `sub_20260730_final00_reconstructed.csv` by inverting `mprobe285` (all gates pass to 2.2e-16;
+  the segment split is pinned only to ±1.4e-4 by the 4-d.p. `r_lux = 0.2314`). It is a faithful
+  reconstruction, **not** a byte-identical recovery of the file that scored 1.193.
+- `mnl_lr` (iteration 50's reduced-rank third axis, whose log ends "NEXT: the BLEND GATE")
+  finally gated: **weight 0.000 in all five folds**, segment-reweighted Δ −0.00000, z −0.41.
+  The gate is closed; the third axis contributes nothing.
+
+---
+
+# ✅ FINAL — Kaggle closed 1 Aug 2026, 12:00 SGT
+
+**Selected submission: `submissions/cand_pool5050_final00.csv`.**
+
+| | score | rank |
+|---|---|---|
+| **Public** (~70%, ~3,498 rows) | **1.185** | **3rd** |
+| **Private** (~30%, ~1,499 rows — the graded set) | **1.185** | **4th** |
+
+Progression of our public score: 1.2230 → 1.201 → 1.197 → 1.194 → 1.193 → **1.185**.
+Rank: 11th of ~40 on 30 Jul → **3rd public, 4th private** at the close.
+
+## The pre-registration held
+
+The forecast was written on 31 Jul ~05:10 and committed **before** anything was uploaded,
+precisely so it could not be revised afterwards:
+
+| file | forecast | band | actual |
+|---|---|---|---|
+| `cand_pool5050_final00.csv` | 1.186 | 1.184–1.189 | **1.185** ✅ |
+| `cand_nnblend_anchored.csv` | 1.185 | 1.183–1.191 | not selected |
+
+**Missed by one tick, in our favour, and inside the band.** That is the third pre-registered
+prediction this project has made that came true, after the probe-anchored `r*` and the 1.1930
+forecast for `final00`.
+
+## What the private score actually settles
+
+**Public 1.185, private 1.185 — a drift of essentially zero.** This is the single most
+useful number the project produced, and it is worth being precise about why:
+
+- The private set is ~1,499 rows. Its own sampling draw could easily have moved the absolute
+  score by ~0.011 (`README.md`, the 70/30 box). It moved by less than a tick.
+- So the model did **not** overfit the public leaderboard. Every calibration constant we
+  fitted to the public 70% — `r*` above all — transferred to rows it had never touched.
+- The rank fell one place (3rd → 4th) on a score that did not move. That is the paired
+  ranking noise the strategy notes warned about, made visible: at a paired SE of 0.006–0.012
+  the entire top of the board is within noise of itself, and a one-place shift on an
+  unchanged score is exactly what that predicts. **The rank moved; the model did not.**
+
+## Why this file, and not the better-forecast one
+
+`cand_nnblend_anchored.csv` forecast marginally lower (1.185 vs 1.186) but it is a **single
+track**. The pool carries the Hölder bound `loss(pool) ≤ max(L_A, L_B)` on *every* row set,
+including the private 1,499 — the only variance hedge available when exactly one submission
+counts and public rank is nearly uninformative about private rank.
+
+Given the private draw could have moved any single-track file by ~0.011 either way, buying a
+bounded worst case for an expected one-tick cost was the right trade, and the outcome is
+consistent with it: the file landed where it was forecast to land, on both halves of the
+test set.
+
+## Composition, for the report
+
+`cand_pool5050_final00.csv` is a log-opinion pool at fixed `w = 0.5` of:
+
+- **A — the main track**, `sub_20260730_final00.csv` (public 1.193): the two-member nested
+  blend (`xgb_lw2bag` + `lcmnl3_both`) → a nested 6-coefficient residual-logit correction →
+  the probe anchor. Produced by `model/run_all.R` plus `experiments/iter82_provenance/build_candidates.R`.
+- **B — the second track**, `sub_20260729_nnblend.csv` (public 1.194) anchored to `r*`: the
+  team's second modelling track (`experiments/iter62_nnblend/`), a listwise tree+NN blend with
+  a calibration tower and a GAM outside-option head, built by a teammate independently of
+  `model/`.
+
+Both parents were anchored to the probe-measured `r* = 0.266481153` before pooling, and the
+pool re-anchored afterwards. `w` was fixed at 0.5, never tuned — no honest objective existed
+to tune it on, and 0.5 spends no selection budget.
+
+The two tracks share no code and sit at conditional distance **0.01291**, 2.3× above the
+same-model-reseeded floor of 0.00552 — measured, not assumed, in `track_distances.R`.

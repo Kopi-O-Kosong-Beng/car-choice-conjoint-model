@@ -10,21 +10,41 @@ Kaggle competition for SUTD's *The Analytics Edge* (2026), graded coursework. Pr
 of 4 car safety-feature bundles a respondent picks. Metric: mean multiclass logloss.
 **R only** — hard competition rule, never propose Python.
 
-**State (30 Jul 2026, late):** best public **1.193** (`sub_20260730_final00.csv`), **11th of ~40**
-in a three-way tie; top of board is **1.183**. Its forecast was 1.1930, so the
-segment-reweighted anchor landed exactly.
-⚠️ **The public board is ~70% of the test set; the grade is the other ~30% (~1,499 rows).**
-Sixteen teams sit inside 0.013, which is about one paired ranking SE (0.006–0.012) — public
-rank is nearly uninformative about final rank. **Only ONE submission counts**; select
-`final00` explicitly rather than trusting auto-select. Note `r*` was measured on the *public*
-rows, so the probe anchor's +0.00104 is a public-set figure.
-Previous best was 1.194 (`sub_20260729_nnblend.csv`, second modelling track —
-`experiments/iter62_nnblend/`). **Iteration 80 measured the luxury none-rate directly:
-r_lux = 0.2236, against final00's implied 0.2314 — inside one sampling sd, so the
-segment-margin channel is CLOSED (exact correction worth +0.00037).** The `model/` blend reads nested
-1.12819 / public 1.197. Current candidate: `submissions/sub_20260730_final00.csv` — the 2-member
-blend + a nested 6-coefficient residual-logit correction + the probe anchor; forecast public
-**1.1930** (iter67/68). Kaggle closes **1 Aug 12:00 SGT**, report due **10 Aug** (15 of 30 marks).
+## ✅ FINAL STATE — the competition is over, only the report remains
+
+**Kaggle closed 1 Aug 2026, 12:00 SGT. Selected submission:
+`submissions/cand_pool5050_final00.csv` — public 1.185 (3rd), private 1.185 (4th).**
+
+The graded file is a log-opinion pool at **fixed `w = 0.5`** of our two modelling tracks, both
+anchored to the probe-measured `r* = 0.266481153`:
+
+- **A, main track** — `sub_20260730_final00.csv` (public 1.193): the 2-member nested blend
+  (`xgb_lw2bag` 0.528 + `lcmnl3_both` 0.472) → a nested 6-coefficient residual logit → the anchor.
+- **B, second track** — `sub_20260729_nnblend.csv` (public 1.194) anchored: the team's second
+  modelling track, `experiments/iter62_nnblend/`, built by a teammate and sharing no code with
+  `model/`. Iteration 82 found it had never been anchored (mean p4 0.21086 vs `r*` 0.26648);
+  correcting that is where most of the 1.193 → 1.185 gain came from.
+
+`w` was never tuned and could not honestly have been: the second track has no OOF on
+`folds.rds` and can never have one (adjusted Rand ≈ 0.002 against it — independent partitions).
+0.5 spends no selection budget, and Hölder gives `loss(pool) ≤ max(L_A, L_B)` on every row set.
+`experiments/iter82_provenance/track_distances.R` confirms the pool is buying real diversity:
+the tracks sit at conditional distance **0.01291**, 2.3× above the same-model-reseeded floor
+of 0.00552.
+
+**The result that matters most for the report: public 1.185, private 1.185 — drift of zero to
+three decimals, against a ~1,499-row private draw whose own sd is ~0.011.** Nothing overfitted
+the leaderboard, and every constant calibrated on the public 70% transferred intact. The rank
+still slipped 3rd → 4th on an unchanged score, which is precisely the paired ranking noise
+(SE 0.006–0.012) this project spent two weeks warning about. **The rank moved; the model did not.**
+
+Three pre-registered forecasts, all committed to git before upload, all correct: `r*` by
+algebra; 1.1930 for `final00` (returned 1.193); 1.186 band 1.184–1.189 for the shipped pool
+(returned **1.185**).
+
+**Report due 10 Aug** (15 of 30 marks). `report_notes.md` now carries a drafted "The graded
+model, described" section for rubric item (i), and the post-mortem for item (ii) is at the end
+of `submissions/log.md`.
 
 > ⛔ **ITERATION 48 CHANGES HOW YOU READ EVERY NUMBER ABOVE THIS LINE.** The design-share
 > encoding leaks: `apply_design_encoding()` is called ONCE, before the CV loop, so training
@@ -53,22 +73,24 @@ not detect a *structural* leak, which iteration 48 then found by the capacity te
 
 ---
 
-## ⛔ READ THIS FIRST: the project is FROZEN for modelling
+## ⛔ READ THIS FIRST: the freeze is now PERMANENT — the only deliverable is the report
 
-**The default correct action is to work on the report, not to improve the model.** The search
-space is measured-exhausted: the 30 Jul endgame session ran ~160 arms and produced exactly one
-survivor at ≈1.7σ (see Corrections and `EXPERIMENTS.md` iterations 62–68). If you arrive
-wanting to propose a new model, feature, encoding, or blend architecture — **that is almost
-certainly the wrong move**, and `EXPERIMENTS.md`'s ⛔ table probably already has your idea with
-the number that killed it.
+**Kaggle closed on 1 Aug 2026. There is nothing left to submit and no score left to move.**
+The only remaining deliverable is the 8-page report, due **10 Aug**, worth 15 of 30 marks.
+
+**The correct action is report writing.** If you arrive wanting to propose a new model,
+feature, encoding, or blend architecture — there is no longer any mechanism by which it could
+matter, and `EXPERIMENTS.md`'s ⛔ table probably already has your idea with the number that
+killed it anyway. The search space was measured-exhausted before the close: the 30 Jul endgame
+ran ~160 arms and produced exactly one survivor at ≈1.7σ.
 
 **Allowed without asking:** report writing, documentation, analysis of existing artifacts,
 diagnostics that emit no artifacts, reproducibility fixes.
 
-**Requires the user to explicitly re-open the freeze:** any new model, feature, member, or
-retune. Say plainly that the project is frozen and why, then ask. *(The user re-opened the
-freeze on 30 Jul for the endgame — iterations 67–71. It closes for good when Kaggle does,
-1 Aug 12:00 SGT; after that, report work only.)*
+**Do not do without the user explicitly asking:** any new model, feature, member, or retune.
+Say plainly that the competition is closed and the model is final, then ask what they actually
+want. The one legitimate reason to run a model now is to *produce a figure or number the
+report needs* — and even then, prefer reading an existing artifact.
 
 **Why the freeze is not laziness:** every additional selection event spends part of a measured
 replication budget. Wins here replicate on an independent fold structure at only **~80%**
@@ -219,19 +241,26 @@ Then apply, in order:
   `apply_design_encoding()` before the CV loop at depth 8 — the exact iteration-48 defect.
   Kept because removing it is board-neutral (measured, iter48) and a rebuild would spend the
   replication budget; but any *new* work must not source or copy these scripts' feature step.
-- ⛔ **THE 30 JUL ENDGAME IS DOCUMENTED BUT NOT COMMITTED.** Iterations 63–79 exist in prose
-  only; `experiments/` jumps from `iter62_nnblend` to `iter80_mprobe`. The following are cited
-  as evidence by `CLAUDE.md`, `EXPERIMENTS.md` and `report_notes.md` and are **not in the
-  repo**: `submissions/sub_20260730_final00.csv` (**the graded submission itself**),
+- ⛔ **THE 30 JUL ENDGAME IS DOCUMENTED BUT ONLY PARTLY COMMITTED.** Iterations 63–79 exist in
+  prose only; `experiments/` jumps from `iter62_nnblend` to `iter80_mprobe`. Still **not in the
+  repo**, though cited as evidence by `CLAUDE.md`, `EXPERIMENTS.md` and `report_notes.md`:
   `model/predict_lb.R`, `experiments/iter67_caltower/harness.R` (and its `agent_*.log`),
   `experiments/iter68_final/replicate_foldsb.R`, `sweep.rds`, `oof_hurdle_rank.rds`,
-  `oof_xgb_tau00/10.rds`. Consequences: (a) `experiments/iter80_mprobe/run.R` and `invert.R`
-  both read `final00` and **cannot be run**; (b) the +0.00300/+0.00628 residual-logit numbers
-  and the ESS-208 figure are unverifiable from this checkout; (c) `final00` cannot be
-  regenerated — it exists only on the machine that built it and on Kaggle. Getting these into
-  the repo is the highest-value reproducibility task, and it is report-critical.
+  `oof_xgb_tau00/10.rds`. So the +0.00300/+0.00628 residual-logit numbers and the ESS-208
+  figure **cannot be verified from this checkout** — cite them in the report only as recorded
+  measurements, and say so if precision matters.
+  **Partly resolved:** `sub_20260730_final00.csv` was likewise missing, and
+  `experiments/iter82_provenance/build_candidates.R` now reconstructs it as
+  `sub_20260730_final00_reconstructed.csv` by inverting `mprobe285`. Every within-buy
+  conditional is recovered exactly; the segment split is pinned only to ~1e−4 by the 4-d.p.
+  `r_lux`. It unblocks `iter80_mprobe/run.R` and `invert.R`, and it is what the shipped pool
+  was built from — but it is a **faithful reconstruction, not** the byte-identical file that
+  scored 1.193, and must never be described as such.
 
-## If the user re-opens the freeze
+## If the user asks for a new run anyway (report figures, or curiosity)
+
+*The competition is closed, so nothing here can change a score. Follow it regardless — the
+report's credibility rests on every number in it having been produced this way.*
 
 1. Write it in `experiments/iterNN_<name>/run.R`, hypothesis **and decision rule** in the
    header *before* running.
@@ -247,7 +276,8 @@ Then apply, in order:
 
 | question | file |
 |---|---|
-| **What should I be doing right now?** | **`STRATEGY_REVIEW.md`** — plan, freeze rule, report skeleton |
+| **What should I be doing right now?** | **Writing the report.** `report_notes.md` for material, `STRATEGY_REVIEW.md` for the skeleton and the noise argument |
+| How did it end, and what did that settle? | `submissions/log.md`, final section — the post-mortem |
 | How do I run it? | `README.md`, `model/run_all.R` |
 | What's been tried, and what is already dead? | `EXPERIMENTS.md` — the ⛔ table especially |
 | What are the findings? | `report_notes.md` (the 15-mark deliverable) |
@@ -285,24 +315,29 @@ Then apply, in order:
   is **208 of 1,135 respondents** (`model/predict_lb.R`).
 - ~~"a leak concentrates in one fold"~~ — **false for structural leaks**, see Known traps.
 
-## Open — endgame state (30 Jul, ~18h to close)
+## Closed — how the competition actually ended, and what it settled
 
-The former standing item here — "refit the blend weight honestly" — was **measured on 30 Jul
-and closed**: flat-to-negative on the segment metric at every honest weight (see Corrections).
+Kaggle closed 1 Aug 2026. **`cand_pool5050_final00.csv`: public 1.185 (3rd), private 1.185
+(4th).** Nothing about the model is open any more. What the close *settled*, in order of how
+much the report should lean on it:
 
-What actually remains, in order of evidence:
+1. **Public 1.185, private 1.185 — zero drift.** The private set is ~1,499 rows with a
+   sampling sd of ~0.011 on the none-rate alone, and the score did not move a tick. This is
+   the direct answer to rubric item (ii) and the strongest fact the project owns. It says the
+   pipeline did not overfit the public board, and that `r*` — calibrated purely against public
+   rows — transferred intact to rows it had never touched.
+2. **Rank moved 3rd → 4th on an unchanged score.** Exactly the paired ranking noise
+   (SE 0.006–0.012) this repo spent two weeks distinguishing from the ±0.02 absolute wobble.
+   The prediction was that public rank is nearly uninformative about private rank; the outcome
+   demonstrates it on our own file.
+3. **The gain came from measurement, not search.** 1.193 → 1.185 came from noticing the second
+   track had never been anchored to the already-measured `r*`, plus a fixed-weight pool with a
+   Hölder bound. Neither spent selection budget. ~160 searched arms on 30 Jul produced one
+   ≈1.7σ survivor; a constant recovered by algebra from one returned score was worth more.
+4. **Three pre-registered forecasts, three hits**, all committed before upload: `r*`; 1.1930
+   for `final00` (returned 1.193); 1.186 band 1.184–1.189 for the pool (returned 1.185).
 
-1. **The one survivor of ~160 arms tested on 30 Jul is the nested residual-logit correction**
-   (6 coefficients, uniform weights, penalty 0.03): **+0.00300** seg-rw on production folds
-   (z +0.77) and **+0.00628** on `folds_b` (z +1.60) — same sign on two independent fold
-   structures, combined ≈1.7σ. It never clears the project's own z ≥ 2 bar; it is the
-   best-supported remaining gain, not a proven one. It ships in `sub_20260730_final00.csv`
-   together with the probe anchor (a *measured* constant, worth +0.00104 on our margin).
-2. **The probe anchor is the only intervention that ever beat its own forecast on the board**
-   (predicted 0.00879 recoverable for a file at p4 ≈ 0.211; the board returned ~0.010). On our
-   file, which is already near the right margin, it is worth only ~0.001.
-3. Pending at time of writing: iter70 (six-family model search), iter71 (capacity ×
-   invariance × population), and the symmetry forest. Judge any survivor by the iter67
-   harness gates before it goes near a submission.
+Still-unverifiable-from-this-checkout items are listed under Known traps — do not quote the
++0.00300/+0.00628 residual-logit numbers as reproducible.
 
-After Kaggle closes the freeze is permanent and the only deliverable is the report.
+**The only deliverable now is the report, due 10 Aug.** Start from `report_notes.md`.

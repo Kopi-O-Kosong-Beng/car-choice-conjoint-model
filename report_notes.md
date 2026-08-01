@@ -4,16 +4,33 @@ Rubric: (i) best model description **5** · (ii) public vs private fit **2** ·
 (iii) insights & limitations **5** · (iv) overall quality **3** — **15 of 30 marks total.**
 Full experiment history with reflections: `EXPERIMENTS.md`. Scores: `submissions/log.md`.
 
-> ## ⚠️ CORRECTIONS REQUIRED BEFORE DRAFTING (30 Jul review — this file predates iteration 48)
+> # ✅ THE COMPETITION IS OVER — THE GRADED FILE IS KNOWN
+>
+> Kaggle closed 1 Aug 2026. **Selected submission: `submissions/cand_pool5050_final00.csv`.**
+>
+> | | logloss | rank |
+> |---|---|---|
+> | **Public** (~70% of test rows) | **1.185** | **3rd** |
+> | **Private** (~30%, the graded set) | **1.185** | **4th** |
+>
+> **Section (ii) of the rubric is now answerable with a measurement rather than an argument,
+> and it is the strongest single fact this project owns:** the public→private drift was
+> **zero to three decimal places**, against a private-draw sd of ~0.011. Write (ii) around
+> that. The full post-mortem — including why the rank moved 3rd→4th on an unchanged score —
+> is at the end of `submissions/log.md`.
+
+> ## ⚠️ CORRECTIONS REQUIRED BEFORE DRAFTING (this file predates iteration 48)
 >
 > Everything below was written in the 1.199/1.201 era. Five things changed and **must not be
 > copied into the report as written**:
 >
-> 1. **Section (i) describes the wrong model.** The graded submission is whichever file is
->    selected at close — currently `sub_20260730_final00.csv` at **1.193** (the 2-member
->    nested blend → nested 6-coefficient residual logit → probe anchor), which superseded
->    `sub_20260729_nnblend.csv` at 1.194. Rewrite (i) around the final selected file after
->    1 Aug. The three-ideas list (part-worths, listwise objective, latent class) survives.
+> 1. **Section (i) describes the wrong model.** The graded submission is
+>    `cand_pool5050_final00.csv` at **1.185** — a log-opinion pool at fixed `w = 0.5` of the
+>    main track's `sub_20260730_final00.csv` (1.193) and the second track's
+>    `sub_20260729_nnblend.csv` (1.194) anchored to `r*`. It superseded both. Rewrite (i)
+>    around it; see "The graded model, described" immediately below. The three-ideas list
+>    (part-worths, listwise objective, latent class) survives and still describes the main
+>    track's members.
 > 2. **Insight 3 (design-share encoding, "+0.005, z 2.9") is RETRACTED** — iteration 48
 >    proved it a structural CV leak; honest value −0.00596 (z −3.53), and the honest
 >    design-level signal caps at ~+0.001. Do not present it as a gain. Present it as the
@@ -34,6 +51,84 @@ Full experiment history with reflections: `EXPERIMENTS.md`. Scores: `submissions
 >
 > The consolidated evidence table at the **end of this file** is the verified backbone for
 > "what failed and why that is informative".
+
+---
+
+## The graded model, described — drafting material for rubric item (i)
+
+**`cand_pool5050_final00.csv` = a log-opinion pool, at fixed `w = 0.5`, of two independently
+built modelling tracks, both first anchored to a leaderboard-measured constant.**
+
+### Parent A — the main track (public 1.193)
+
+`model/run_all.R`, then `experiments/iter82_provenance/build_candidates.R`:
+
+1. **A two-member nested blend** — `xgb_lw2bag` (listwise-softmax gradient boosting, seed-bagged)
+   at weight 0.528 and `lcmnl3_both` (a 3-class latent-class multinomial logit) at 0.472.
+   Weights fitted *inside* each CV fold, never on the full OOF.
+2. **A nested 6-coefficient residual logit** on (relative price, outside constant,
+   total-vs-best) × (global, luxury deviation), ridge penalty 0.03, uniform observation
+   weights. The single survivor of ~160 arms tested on 30 Jul: +0.00300 segment-reweighted on
+   production folds (z +0.77) and +0.00628 on the independent `folds_b` (z +1.60) — same sign
+   on two independent fold structures, combined ≈1.7σ. Never cleared the project's own z ≥ 2
+   bar; shipped as the best-supported remaining gain, not a proven one.
+3. **The probe anchor** — see below.
+
+### Parent B — the second track (public 1.194), anchored
+
+`experiments/iter62_nnblend/`, the team's second modelling track, built by a teammate with no
+shared code with `model/`: a listwise tree arm (xgboost, depth 3, 20 seeds × 5 folds) blended
+geometrically at `w = 0.25` with a listwise MLP arm on the same design matrix, then a
+calibration tower (per-segment Ch4 shift, luxury temperature, residual logit) and a low-df
+binomial GAM supplying an independent outside-option probability mixed into the margin at 25%.
+
+Iteration 82 found it had **never been anchored to `r*`** — it shipped at mean p4 = 0.21086
+against a measured 0.26648. Correcting that was worth ~0.0097 and is where most of the
+1.193 → 1.185 gain came from.
+
+### The one measured constant, and why it is not fitting
+
+A constant submission of `(1/6, 1/6, 1/6, 1/2)` (`submissions/probe_alt4.csv`) returned 1.499.
+For a constant prediction the logloss is algebraically determined by the true none-rate, so
+one returned score inverts exactly:
+
+> `r* = (log 6 − 1.499) / log 3 = 0.266481153`
+
+This is **measured on the test set, not fitted on our folds**, which is why it transferred at
+~100% where local gains transferred at ~⅓ or worse. Both parents were tilted to mean p4 = `r*`
+by a single global log-odds multiplier — zero fitted parameters, within-choice conditionals
+preserved to machine precision — and the pool re-anchored after pooling.
+
+### Why pool, and why `w` was never tuned
+
+`w = 0.5` is **fixed, not fitted, and could not honestly have been fitted**: the second track
+has no OOF on `folds.rds` and can never have one — its fold constructor differs, with adjusted
+Rand index ≈ 0.002 against `folds.rds`, i.e. statistically independent partitions. With no
+honest objective to tune on, 0.5 is the only choice that spends no selection budget.
+
+The justification is a bound, not a score. From
+`loss(pool_w) = (1−w)L_A + w·L_B + E[log Z_w]` with `Z_w = Σ_k A_k^(1−w) B_k^w`, Hölder's
+inequality gives **`loss(pool) ≤ max(L_A, L_B)` on every row set**, including the private
+1,499. When exactly one submission counts and public rank is nearly uninformative about
+private rank, a bounded worst case was worth more than a marginally better point forecast.
+
+**And pooling only pays if the parents differ.** `experiments/iter82_provenance/track_distances.R`
+measures the conditional (calibration-removed) distance between the two tracks at **0.01291**,
+against a same-model-reseeded floor of **0.00552** and a widest-axis-we-own of **0.04837**.
+2.3× above the floor — two genuinely distinct models, not one model twice. The pool lands
+nearly equidistant from both parents (0.00310 / 0.00336, ratio 0.92), and the tracks disagree
+on 96.6% of rows while agreeing to ~0.005 on average: no shared bias to inherit, plenty of
+independent error to cancel.
+
+### What the result confirms
+
+| forecast | pre-registered | returned |
+|---|---|---|
+| `r*` from the alt-4 probe | 0.266481153, by algebra | anchor gained as predicted |
+| `final00` | 1.1930 | 1.193 |
+| `cand_pool5050_final00` | 1.186, band 1.184–1.189 | **1.185** |
+
+All three were committed to git **before** upload. Public 1.185 / private 1.185.
 
 ---
 

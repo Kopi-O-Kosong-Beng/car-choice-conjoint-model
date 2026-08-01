@@ -6,8 +6,29 @@ strategist. Feedback first, then the refined process, then the dated endgame pla
 No new modelling is proposed here except one pure-variance measurement.*
 
 **State when written:** nested blend **1.12819** (`xgb_lw2bag` 0.528 + `lcmnl3_both`
-0.472), public **1.199** (best), rival reference 1.210, benchmark 1.38629.
+0.472), public **1.199** (best), other-team reference 1.210, benchmark 1.38629.
 `sub_20260726_2328.csv` built, not yet uploaded. Kaggle closes 1 Aug; report due 10 Aug.
+
+> ## ✅ RESOLVED — this document is now a historical record of the plan
+>
+> Kaggle closed 1 Aug 2026. Selected submission `submissions/cand_pool5050_final00.csv`:
+> **public 1.185 (3rd), private 1.185 (4th)**. See `submissions/log.md` for the full
+> post-mortem and `README.md` for the summary.
+>
+> **Two calls in this document were tested by the outcome, and both held:**
+>
+> 1. **Part II.1's noise decomposition.** It argued the ±0.02 figure everyone quoted was
+>    *absolute* wobble, while the thing that decides rank is *paired* and ~0.006–0.012 —
+>    so public rank says almost nothing about private rank. Outcome: our score was
+>    identical on both halves (1.185 / 1.185) and the rank still moved, 3rd → 4th. Exactly
+>    the predicted behaviour: rank noise without score noise.
+> 2. **The freeze.** The argument was that additional search spends a measured replication
+>    budget and degrades what already works. The final gain came from neither a new model
+>    nor a retune — it came from applying an *already-measured* constant (`r*`) to a track
+>    that had never been audited against it, plus a variance hedge with a Hölder bound.
+>    No selection budget was spent on either.
+>
+> The remaining deliverable is the report (`report_notes.md`), due **10 Aug**.
 
 ---
 

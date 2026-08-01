@@ -12,60 +12,63 @@ representative — see [Working agreements](#working-agreements).
 
 ---
 
-## Where we stand
+## ✅ Final result — Kaggle closed 1 Aug 2026
 
-| | logloss |
-|---|---|
-| Benchmark (25% for everything) | 1.38629 |
-| Our first submission | 1.233 public |
-| Top of board | **1.183 public** |
-| Two-member main-track blend | 1.197 public (local CV 1.12819) |
-| **Ours — live, and our best** | **1.193 public** (`sub_20260730_final00.csv`) |
+**Selected submission: `submissions/cand_pool5050_final00.csv`.**
 
-**11th of ~40** as of 30 Jul, in a three-way tie at 1.193. The board reads
-1.183 / 1.184 / 1.186 / 1.186 / 1.188 / 1.190 / 1.190 / 1.192 / 1.193 ×3 — **sixteen teams
-inside 0.013**.
+| | logloss | rank |
+|---|---|---|
+| Benchmark (25% for everything) | 1.38629 | — |
+| Our first submission | 1.2230 public | — |
+| **Public** (~70% of test rows) | **1.185** | **3rd** |
+| **Private** (~30%, the graded set) | **1.185** | **4th** |
 
-> ### ⚠️ The public board is 70% of the test set. The grade is the other 30%.
+Public score over the two weeks: 1.2230 → 1.201 → 1.197 → 1.194 → 1.193 → **1.185**.
+Rank: 11th of ~40 on 30 Jul → **3rd public, 4th private** at the close.
+
+> ### The public→private drift was zero, and that is the headline
 >
-> Kaggle states it plainly: *"This leaderboard is calculated with approximately 70% of the
-> test data. The final results will be based on the other 30%."* So the private set is
-> **~1,499 rows**, and the paired respondent-clustered ranking SE on that is **0.006–0.012**
-> (`STRATEGY_REVIEW.md` Part II.1).
+> Kaggle scored ~70% of the test rows publicly and graded the other ~30% (**~1,499 rows**).
+> That private draw alone could have moved the absolute score by
+> `sqrt(0.2665·0.7335/1499)` ≈ **0.011**. It moved by **less than one tick**: 1.185 public,
+> 1.185 private.
 >
-> **The entire top-16 spread is about one standard error.** Public rank is close to
-> uninformative about final rank — we could plausibly finish anywhere from 2nd to 20th
-> without anything changing. Do not read the public ordering as standings.
+> So the model did not overfit the leaderboard. Every constant we calibrated against the
+> public 70% — `r* = 0.266481153` above all — transferred intact to rows it had never seen.
 >
-> **Only ONE submission counts for the final score.** If none is selected, Kaggle
-> auto-selects the best public. Select `sub_20260730_final00.csv` explicitly rather than
-> relying on that.
->
-> One consequence for our own calibration: `r* = 0.266481153` was measured from
-> `probe_alt4`'s **public** score, so it is the none-rate of the 70%. The private 30% has its
-> own draw, sd ≈ `sqrt(0.2665·0.7335/1499)` ≈ **0.011**. The probe anchor's +0.00104 is a
-> public-set figure and will not transfer exactly.
+> **The rank slipped one place on a score that did not move.** At a paired
+> respondent-clustered ranking SE of **0.006–0.012** (`STRATEGY_REVIEW.md` Part II.1), the
+> whole top of the board sits inside one standard error, so a 3rd→4th shift on an unchanged
+> score is exactly what the noise model predicted. The rank moved; the model did not.
 
 ### How the score progressed
 
 1. **1.197** — the two-member main-track blend (`xgb_lw2bag` + `lcmnl3_both`), the model
    documented throughout this README and produced by `model/run_all.R`.
-2. **1.193** — `submissions/sub_20260730_final00.csv`: the two-member nested blend → a nested
-   6-coefficient residual-logit correction → the probe anchor. Built only from our own two
-   members plus our own nested refit.
+2. **1.194** — `submissions/sub_20260729_nnblend.csv`, the first entry scored from the team's
+   second modelling track (`experiments/iter62_nnblend/`).
+3. **1.193** — `submissions/sub_20260730_final00.csv`: the two-member nested blend → a nested
+   6-coefficient residual-logit correction → the probe anchor.
+4. **1.185** — `submissions/cand_pool5050_final00.csv`, the file we selected: a log-opinion
+   pool at fixed `w = 0.5` of step 3 and step 2-anchored-to-`r*`. Both tracks are ours; they
+   share no code, and `experiments/iter82_provenance/track_distances.R` measures them at
+   conditional distance **0.01291**, 2.3× above the same-model-reseeded floor of 0.00552 —
+   so the pool averages two genuinely distinct models rather than one model twice.
 
 *(`submissions/log.md` carries the full submission history, including superseded entries.)*
 
-> **The forecast for step 2 was 1.1930 and the board returned 1.193.** That is the second
-> pre-registered prediction this project has made that came true, and the first about a
-> *model change* rather than a measured constant. It confirms the segment-reweighted OOF as
-> the leaderboard instrument, and it means the earlier period of *inverted* transfer
-> (local improved, public regressed) was the encoding leak — not a broken methodology.
+> **Three pre-registered predictions, all of which came true.** `r*` from the alt-4 probe;
+> 1.1930 forecast for `final00` against a returned 1.193; and 1.186 (band 1.184–1.189) for
+> the file we finally shipped, against a returned **1.185**. The forecasts were committed
+> before upload precisely so they could not be revised afterwards.
+>
+> This also settles the earlier period of *inverted* transfer (local improved, public
+> regressed): that was the encoding leak of iteration 48, not a broken methodology.
 
 > ### ⚠️ The 1.12341 "improvement" was refuted on the leaderboard
 >
 > A previous version of this README recommended a five-member free-sign blend at local CV
-> **1.12341**, merged as [PR #1](https://github.com/Kopi-O-Kosong-Beng/TAE_R-izzlers/pull/1).
+> **1.12341**, merged from branch `sheil/free-sign-blend-1.12341` (commit `d41a8a2`).
 > It has since been submitted twice and **scores worse than the two-member blend it was
 > meant to replace**:
 >
@@ -227,7 +230,7 @@ score *worse than the benchmark*.
 
 ## The combiner could not represent a negative weight
 
-*(+0.00478, z = 3.84 — iteration 35, [PR #1](https://github.com/Kopi-O-Kosong-Beng/TAE_R-izzlers/pull/1), not yet production)*
+*(+0.00478, z = 3.84 — iteration 35, branch `sheil/free-sign-blend-1.12341`, not yet production)*
 
 For thirty-four iterations `model/06_blend.R` fitted the pool weights as
 

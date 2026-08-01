@@ -9,17 +9,28 @@ Human readers want [`README.md`](README.md) instead.
 
 - SUTD Analytics Edge Kaggle competition. Predict choice among 4 car safety bundles.
   Metric: multiclass logloss. **R only** — hard rule, never propose Python.
-- Current: nested blend **1.12819**, public **1.199** (benchmark 1.38629, rival 1.210).
-  Kaggle closes **1 Aug**, report due **10 Aug**.
+- **✅ FINISHED.** Kaggle closed 1 Aug 2026. Selected submission
+  `submissions/cand_pool5050_final00.csv`: **public 1.185 (3rd), private 1.185 (4th)**.
+  Benchmark 1.38629. Report due **10 Aug** — 15 of 30 marks, and the only thing left.
 
-### ⛔ The project is FROZEN for modelling
+### ⛔ The competition is over — the freeze is permanent
 
-**The default correct action is report work, not model improvement.** Twenty-six iterations
-have been run and the search space is measured-exhausted; `EXPERIMENTS.md`'s ⛔ table
-probably already contains your idea along with the number that killed it. Proposing a new
-model, feature, or blend member requires the user to explicitly re-open the freeze — say so
-and ask. Read [`STRATEGY_REVIEW.md`](STRATEGY_REVIEW.md) before proposing any plan; it holds
-the reasoning, the endgame timetable, and the report skeleton.
+**The only correct action is report work.** There is no score left to move and no submission
+left to make. `EXPERIMENTS.md`'s ⛔ table probably already contains any modelling idea you are
+about to have, along with the number that killed it. If the user asks for a run anyway, it
+should be to produce a figure or number the report needs — and even then, prefer reading an
+existing artifact.
+
+Start from [`report_notes.md`](report_notes.md); it now carries a drafted "The graded model,
+described" section for rubric item (i). The post-mortem for item (ii) is the final section of
+[`submissions/log.md`](submissions/log.md).
+
+**The headline finding, and the answer to rubric item (ii):** public 1.185, private 1.185 —
+**zero drift to three decimals**, against a ~1,499-row private draw whose own sampling sd is
+~0.011. The model did not overfit the leaderboard, and `r*` — a constant calibrated entirely
+against public rows — transferred intact to rows it had never seen. The rank still slipped
+3rd → 4th on an unchanged score, which is the paired ranking noise (SE 0.006–0.012) made
+visible. **The rank moved; the model did not.**
 
 ### The five things most likely to make you wrong
 
