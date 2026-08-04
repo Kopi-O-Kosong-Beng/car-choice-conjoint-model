@@ -1,0 +1,718 @@
+% The Analytics Edge Data Competition 2026 -- Team 3 report
+% Compile: pdflatex (MiKTeX). Two passes for references.
+\documentclass[11pt]{article}
+\usepackage[a4paper,margin=2.2cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\definecolor{acc}{RGB}{31,71,136}
+\definecolor{accB}{RGB}{40,105,95}
+\definecolor{meas}{RGB}{176,124,34}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,fit,calc,backgrounds}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.17}
+\usepackage{caption}
+\captionsetup{font=small,labelfont=bf,skip=4pt}
+\usepackage{titlesec}
+\titlespacing*{\section}{0pt}{7.5pt}{3.5pt}
+\titlespacing*{\subsection}{0pt}{5.5pt}{2.5pt}
+\titleformat{\section}{\large\bfseries\color{acc}}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection}{0.6em}{}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\scshape 40.016 The Analytics Edge}
+\fancyhead[R]{\small\scshape Team 3}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0.3pt}
+\usepackage[colorlinks=true,linkcolor=acc,urlcolor=acc,citecolor=acc]{hyperref}
+\setlength{\parskip}{2pt}
+\setlength{\parindent}{12pt}
+\widowpenalty=10000
+\clubpenalty=10000
+
+\begin{document}
+
+% ---------------------------------------------------------------- cover page
+\begin{titlepage}
+\noindent
+\begin{minipage}[b]{0.45\textwidth}
+\includegraphics[width=40mm]{sutd_logo.pdf}
+\end{minipage}%
+\hfill
+\begin{minipage}[b]{0.5\textwidth}
+\raggedleft
+{\bfseries 40.016 The Analytics Edge}\\[1mm]
+Data Competition 2026
+\end{minipage}
+
+\vspace{5mm}
+\noindent{\color{acc}\rule{\textwidth}{1.6pt}}
+
+\vspace{26mm}
+\noindent{\Huge\bfseries\color{acc} Predicting Choice Among\\[3.5mm] Car Safety Bundles\par}
+\vspace{7mm}
+\noindent{\Large Final Report \,\textperiodcentered\, Team 3 R-izzlers\par}
+
+\vspace{16mm}
+\noindent\colorbox{acc!8}{%
+\begin{minipage}{\dimexpr\textwidth-2\fboxsep}
+\vspace{3.5mm}
+\centering
+\begin{tabular}{c@{\hspace{16mm}}c}
+{\large\bfseries 1.185} & {\large\bfseries 1.185}\\[0.5mm]
+public leaderboard, 3rd place & private leaderboard, 4th place\\
+\end{tabular}
+\vspace{3.5mm}
+\end{minipage}}
+
+\vspace{20mm}
+\noindent
+\begin{minipage}[t]{0.48\textwidth}
+{\bfseries Prepared by}\\[2.5mm]
+\begin{tabular}{@{}l@{\hspace{7mm}}l}
+Chia Zhi Feng & 1009327\\[0.8mm]
+Kavya Santosh Nair & 1009736\\[0.8mm]
+Sheil Ketan Mistry & 1009394\\[0.8mm]
+Nicole Ann Chia & 1009029\\
+\end{tabular}
+\end{minipage}%
+\hfill
+\begin{minipage}[t]{0.44\textwidth}
+\raggedleft
+{\bfseries Course Instructors}\\[2.5mm]
+Karthik Natarajan\\[0.8mm]
+Yihan Du
+\end{minipage}
+
+\vfill
+\noindent{\color{acc!60}\rule{\textwidth}{0.5pt}}\\[2.5mm]
+\noindent Kaggle team name: \texttt{sheil\_mistry\_team\_3}\hfill Submitted: 10 August 2026
+\end{titlepage}
+
+% ------------------------------------------------------------ contents page
+\pagenumbering{roman}
+\tableofcontents
+\newpage
+\pagenumbering{arabic}
+
+% ------------------------------------------------------------------- body
+\section*{Summary}
+Our graded submission, \texttt{cand\_pool5050\_final00.csv}, scored 1.185 on the public
+leaderboard (3rd place) and 1.185 on the private one (4th place), against a benchmark
+of 1.386. It is an equally weighted log-space pool of two
+independently built models, both calibrated to a single constant that we measured from the
+leaderboard itself rather than fitted on our folds. The public score and the private score
+were identical to three decimal places, consistent with a pipeline that did not overfit
+the public board, and every forecast we committed to version control before uploading
+came true. This report describes the validation machinery that every decision passed through
+(Section~\ref{sec:valid}), the model (Section~\ref{sec:model}), the experiments that
+failed and what each failure taught us (Section~\ref{sec:fail}), what the fitted models
+say about car buyers (Section~\ref{sec:insight}), and how local scores related to the two
+leaderboards (Section~\ref{sec:lb}).
+
+\section{Introduction}\label{sec:data}
+
+Each of 1{,}135 survey respondents faced 19 choice tasks. A task shows three configured
+safety bundles and a fourth option, ``none of these'', and the respondent picks one. We
+predict the four choice probabilities for every task of 263 \emph{new} respondents
+(4{,}997 tasks), scored by mean multiclass log loss. About 70\% of the test rows form the
+public leaderboard and the remaining 30\%, roughly 1{,}499 rows, form the private one that
+decides grades.
+
+Three facts about the data shaped everything we built. First, the outside option is the
+single most chosen alternative: 30.2\% of training choices, against 22.0, 25.0 and 22.7\%
+for the three real bundles. Declining to buy is the modal behaviour, not an afterthought.
+Second, the 19 product attributes are ordinal tiers (three to seven levels; price has
+twelve), so treating levels as numbers imposes a linearity the data rejects
+(Section~\ref{sec:insight}). Third, the test respondents are a different population:
+markedly wealthier (median income \$60k in training against \$80k in test; mean \$75k
+against \$151k), better educated, and far more concentrated in luxury vehicle segments
+(69\% of test tasks against 9\% of training tasks). The competition is therefore as much about
+surviving a population shift as about fitting choices.
+
+\section{Validation before modelling}\label{sec:valid}
+
+\textbf{Grouped folds.} All cross-validation uses one fixed five-fold split grouped by
+respondent. Each person answers 19 tasks; a row-wise split would let a model learn ``this
+person is frugal'' from fifteen of their answers and be graded on the other four. Test
+respondents are strangers, so the local protocol must make every scored respondent a
+stranger too. A model's score on these held-out people is its out-of-fold (OOF) log
+loss, the held-out score quoted throughout this report. Blend weights are refit
+five times, each time excluding the fold being scored, so no number we acted on had seen
+its own tuning data; we call a score produced under that discipline \emph{nested}.
+
+\textbf{Noise floors before margins.} Early in the project we measured how much scores move
+when nothing changes but the random seed, because a claimed improvement smaller than that
+movement is not a result. The three floors differ by an order of magnitude, and using the
+wrong one cost us once (Section~\ref{sec:fail}):
+
+\begin{center}\small
+\begin{tabular}{lll}
+\toprule
+comparison & correct yardstick & measured \\
+\midrule
+two single models & seed sd of one model & 0.00283 \\
+two blends & seed sd of the blend & 0.00048 \\
+one model across folds & fold-to-fold sd & 0.013 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent Model comparisons use paired tests with respondent-clustered standard errors: a
+genuine 0.005 gain is invisible in headline scores (fold sd 0.013) but resolves clearly
+when the two models are differenced on identical rows.
+
+\section{The submitted model}\label{sec:model}
+
+The graded file, \texttt{cand\_pool5050\_final00.csv}, is a log-opinion pool (the two
+tracks' log probabilities averaged, then renormalised) at fixed weight $w=0.5$ of two
+tracks built independently by different team members, with no shared code and different
+fold constructors. Figure~\ref{fig:arch} shows the whole
+pipeline.
+
+\begin{figure}[t]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+  font=\small,
+  det/.style={font=\footnotesize, text=black!55},
+  box/.style={draw, rounded corners=2pt, align=center, inner sep=4.5pt, minimum height=9.5mm, fill=white},
+  membA/.style={box, draw=acc!55},
+  membB/.style={box, draw=accB!55},
+  measbox/.style={draw=meas!80!black, fill=meas!12, align=center, inner sep=4.5pt},
+  final/.style={draw=acc, fill=acc, text=white, rounded corners=2pt, align=center, inner sep=5.5pt},
+  lane/.style={rounded corners=5pt, inner sep=3.5mm},
+  arr/.style={-{Stealth[length=2.2mm]}, semithick, black!60},
+  mainarr/.style={-{Stealth[length=2.6mm]}, thick, black!70},
+  marr/.style={-{Stealth[length=2.2mm]}, semithick, densely dashed, meas!80!black},
+  wlab/.style={font=\footnotesize, text=black!55, inner sep=1.5pt},
+  node distance=7mm and 5mm]
+\node[membA, minimum width=36mm] (xgb) {listwise xgboost\\{\footnotesize\color{black!55}10 seeds, bagged}};
+\node[membA, minimum width=36mm, right=4mm of xgb] (lc) {latent-class logit\\{\footnotesize\color{black!55}3 classes, demographic entry}};
+\node[membA, below=of $(xgb.south)!0.5!(lc.south)$] (blend) {nested log-space blend\\{\footnotesize\color{black!55}weights refit inside each fold}};
+\node[membA, below=of blend] (rl) {residual logit\\{\footnotesize\color{black!55}6 coefficients, nested}};
+\node[measbox, below=of rl] (ancA) {anchor mean $p_4$ to $r^{*}$};
+\node[membB, minimum width=36mm, right=70mm of lc] (tree) {listwise tree arm\\{\footnotesize\color{black!55}matrix-factor features}};
+\node[membB, minimum width=36mm, right=4mm of tree] (nn) {listwise MLP arm\\{\footnotesize\color{black!55}torch}};
+\node[membB, below=of $(tree.south)!0.5!(nn.south)$] (gblend) {geometric blend\\{\footnotesize\color{black!55}then calibration tower}};
+\node[membB, below=of gblend] (gam) {GAM outside-option head\\{\footnotesize\color{black!55}moves only the buy rate}};
+\node[measbox] (ancB) at (gam |- ancA) {anchor mean $p_4$ to $r^{*}$};
+\node[font=\small\bfseries, text=acc!80!black, anchor=south,
+      above=3.5mm of $(xgb.north)!0.5!(lc.north)$] (labA) {Track A \(\;\cdot\;\) main track \(\;\cdot\;\) public 1.193};
+\node[font=\small\bfseries, text=accB!75!black, anchor=south,
+      above=3.5mm of $(tree.north)!0.5!(nn.north)$] (labB) {Track B \(\;\cdot\;\) built independently \(\;\cdot\;\) public 1.194 pre-anchor};
+\begin{scope}[on background layer]
+\node[lane, fill=acc!5, draw=acc!25, fit=(labA)(xgb)(lc)(blend)(rl)(ancA)] (laneA) {};
+\node[lane, fill=accB!5, draw=accB!25, fit=(labB)(tree)(nn)(gblend)(gam)(ancB)] (laneB) {};
+\end{scope}
+\node[box, draw=black!45, fill=black!3] at ($(labA.north)!0.5!(labB.north)+(0,9mm)$) (data)
+  {conjoint survey responses\\{\footnotesize\color{black!55}1{,}135 respondents $\times$ 19 tasks; test: 263 new people}};
+\node[measbox] at ($(ancA.east)!0.5!(ancB.west)$) (probe)
+  {{\scshape\color{meas!60!black} measurement}\\probe, 27 Jul\\{\footnotesize $(\tfrac16,\tfrac16,\tfrac16,\tfrac12)$ scored 1.499}\\$\Rightarrow\; r^{*}=0.266481$};
+\node[final, below=13mm of probe] (pool)
+  {log-opinion pool, $w=0.5$, re-anchored\\\bfseries public 1.185, private 1.185};
+\draw[arr] (data.west) -| (laneA.north);
+\draw[arr] (data.east) -| (laneB.north);
+\coordinate (bL) at ($(blend.north)+(-7mm,0)$);
+\coordinate (bR) at ($(blend.north)+(7mm,0)$);
+\coordinate (gL) at ($(gblend.north)+(-7mm,0)$);
+\coordinate (gR) at ($(gblend.north)+(7mm,0)$);
+\draw[arr] (bL |- xgb.south) -- node[wlab, left]{0.528} (bL);
+\draw[arr] (bR |- lc.south) -- node[wlab, right]{0.472} (bR);
+\draw[arr] (blend) -- (rl);
+\draw[arr] (rl) -- (ancA);
+\draw[arr] (gL |- tree.south) -- node[wlab, left]{0.75} (gL);
+\draw[arr] (gR |- nn.south) -- node[wlab, right]{0.25} (gR);
+\draw[arr] (gblend) -- (gam);
+\draw[arr] (gam) -- (ancB);
+\draw[mainarr] (ancA.south) |- (pool.west);
+\draw[mainarr] (ancB.south) |- (pool.east);
+\draw[marr] (probe.west) -- node[above, font=\footnotesize]{$r^{*}$} (ancA.east);
+\draw[marr] (probe.east) -- node[above, font=\footnotesize]{$r^{*}$} (ancB.west);
+\draw[marr] (probe.south) -- node[right, font=\footnotesize]{$r^{*}$} (pool.north);
+\end{tikzpicture}}
+\caption{The graded submission, data to file. Rounded boxes are fitted models; square
+amber boxes are the one measured constant and the places it is applied; numbers on edges
+are blend weights. The pool step fits nothing: $w=0.5$ was fixed before upload and never
+tuned. Track A as drawn scored public 1.193; track B's public 1.194 predates its anchor
+step, which was added at pooling (Section~\ref{sec:probe}).}
+\label{fig:arch}
+\end{figure}
+
+\subsection{Track A: a two-member blend}
+
+Track A rests on three modelling choices, each verified by a paired test.
+
+\emph{Part-worth coding} ($+0.020$, $z=11.8$, our largest single gain). Every attribute
+level receives its own utility rather than a constant step per level. The fitted price
+response drops steeply at first, then flattens and saturates at the top
+(Figure~\ref{fig:price}), a shape linear coding cannot express.
+
+\emph{A listwise training objective} ($+0.006$, $z=4.3$). The competition metric is a
+softmax over the four alternatives within a task, so only relative utilities matter. We
+train the boosted trees with a custom objective whose gradient is $p-y$ taken within each
+four-row choice set, making the training loss identical to the scored loss rather than a
+pointwise proxy.
+
+\emph{Discrete heterogeneity} ($+0.013$, $z=3.8$). A three-class latent-class conditional
+logit whose class membership is predicted from demographics only. Why this form of
+heterogeneity works when richer forms fail is the subject of
+Section~\ref{sec:insight}.
+
+The two members, a ten-seed bag of the listwise xgboost (out-of-fold 1.13682) and the
+latent-class logit with task-position terms (1.13863), are pooled in log space with
+weights 0.528 and 0.472 refit inside each fold, giving a nested score of 1.12819. We
+report these figures with a caveat we discovered ourselves and describe in
+Section~\ref{sec:fail}: an encoding defect inflates them by roughly 0.008, and the honest
+nested figure is close to 1.136. Two further nested steps finish the track. The first is
+a residual logit, a small correction layer that nudges the blend's log probabilities
+using six fitted coefficients on three features (relative price, an outside-option
+constant, and a bundle's total feature count minus its best rival's), each also
+interacted with a luxury-segment indicator. The second is the probe anchor described next. The residual logit was the sole survivor of roughly 160 candidate
+adjustments tested on 30 July: $+0.00300$ on the production folds and $+0.00628$ on an
+independent fold structure, the same sign twice but only about $1.7\sigma$ combined. We
+shipped it as the best-supported remaining gain, not as a proven one.
+
+\subsection{Track B: a tree and a neural network}
+
+The second track was built independently by a different team member and shares no code
+with track A. A listwise xgboost arm augmented with matrix-factorisation taste features
+(a rank-3 taste subspace fitted on training choices, then predicted from demographics so
+that unseen respondents receive taste estimates cold) is blended geometrically with a
+listwise multilayer perceptron. A calibration tower follows: per-segment shifts of the
+outside-option probability, a temperature that flattens overconfident predictions for
+luxury-segment respondents, a ridge residual logit, and finally a low-degree-of-freedom
+binomial GAM (generalised additive model) that supplies an independent probability of choosing
+``none'', mixed into the margin at 25\%. The GAM head only moves how often someone buys;
+which bundle they would buy is carried through unchanged. Because this track's fold
+construction differs from track A's (Section~\ref{sub:pool}), it has no out-of-fold
+score comparable to track A's numbers. Its one measured public score is 1.194, before
+anchoring, and its anchored variant carried a pre-registered forecast of 1.185, band
+1.183 to 1.191, which the pool superseded before it could be tested. Its blended arms
+score 1.153 out of fold on the track's own partition (recomputed from the submitted
+artifacts; not comparable to track A's differently partitioned numbers).
+
+\subsection{The measured constant \texorpdfstring{$r^{*}$}{r*}}\label{sec:probe}
+
+On 27 July we spent one of our daily submissions on a measurement instead of an attempt,
+applying a known leaderboard-probing idea to our setting. The file
+\texttt{probe\_alt4.csv} predicts the same vector
+$(\tfrac16,\tfrac16,\tfrac16,\tfrac12)$ on every row. For a constant prediction the log
+loss is exact algebra in one unknown, the fraction $r$ of scored rows whose true answer is
+``none'':
+\[
+L \;=\; (1-r)\log 6 + r\log 2 \;=\; \log 6 - r\log 3
+\qquad\Longrightarrow\qquad
+r^{*} \;=\; \frac{\log 6 - 1.499}{\log 3} \;=\; 0.266481.
+\]
+The board displays three decimals, so the returned 1.499 pins the public none-share to
+a band of roughly 0.2660 to 0.2669; we anchored to the displayed value's point solution.
+\textbf{This number is measured on the test set, not fitted on our folds}, so we
+expected it to transfer more reliably than any fold-fitted correction; the private
+result was consistent with that expectation, though it cannot isolate the anchor's
+contribution. Both tracks were tilted so their mean predicted
+probability of ``none'' ($p_4$) equals $r^{*}$, using a single global odds multiplier that leaves every
+within-purchase conditional probability unchanged. Track A moved little ($+0.00104$
+expected). Track B, we found during a final audit, had shipped with mean $p_4 = 0.211$
+and had never been anchored; correcting it was worth roughly $0.0097$ and accounts for
+most of the improvement from 1.193 to 1.185.
+
+\subsection{The pool, and why \texorpdfstring{$w$}{w} was never tuned}\label{sub:pool}
+
+The two tracks use different fold constructions (adjusted Rand index 0.002, effectively
+unrelated partitions), so no clean nested estimate for tuning $w$ was available from the
+two prediction sets we had; building one would have meant refitting both tracks under a
+shared fold structure, which time did not permit. We fixed $w=0.5$, which spends no
+selection budget, and relied on a bound rather
+than a forecast: writing the pooled loss as
+$(1-w)L_A + wL_B + \mathrm{E}[\log Z_w]$ with $Z_w=\sum_{k=1}^{4} A_k^{1-w}B_k^{w}$ taken
+over the four alternatives of each row, H\"older's inequality gives $Z_w \le 1$, hence
+\[
+\mathrm{loss(pool)} \;\le\; (1-w)\,L_A + w\,L_B \;\le\; \max(L_A, L_B)
+\]
+on every set of rows, including the private 1{,}499.
+Pooling only pays if the parents genuinely differ, so we measured that too: the tracks'
+within-purchase predictions sit 0.0129 apart on average, 2.3 times the 0.0055 floor
+obtained by reseeding a single model, and they disagree on 96.6\% of rows. Two distinct models, not one model
+twice. When exactly one submission counts and public rank says little about private rank
+(Section~\ref{sec:lb}), a bounded worst case was worth more to us than a marginally
+better point forecast.
+
+\subsection{The field the members beat}\label{sub:field}
+
+Before track A's two blend members were chosen, nine model families were fitted to the
+same data under the identical grouped validation of Section~\ref{sec:valid}. The blend
+members are simply the last two standing. Figures are plain out-of-fold log loss; rows involving
+trees inherit the inflation caveat of Section~\ref{sec:fail}.
+
+\begin{center}\small
+\begin{tabular}{lrl}
+\toprule
+model family & OOF & verdict \\
+\midrule
+listwise xgboost, 10-seed bag & 1.13682 & \textbf{blend member 1} \\
+latent-class logit, 3 classes & 1.13863 & \textbf{blend member 2} \\
+nested logit, \{bundles\} vs \{none\} & 1.15681 & indistinguishable from plain logit \\
+part-worth conditional logit & 1.15686 & one-class special case of member 2 \\
+elastic-net logit, demographic interactions & 1.16718 & shrinkage cannot substitute for part-worths \\
+two-stage: buy at all, then which bundle & 1.17169 & splits one utility scale in two \\
+mixed logit, continuous coefficients & 1.17281 & predicts a population average (Section~\ref{sec:insight}) \\
+wide four-class xgboost & 1.17456 & cannot compare within a choice set \\
+hierarchical Bayes & 1.23703 & cold start (Section~\ref{sec:insight}) \\
+\midrule
+nested blend of the two blend members & 1.12819 & honest $\approx 1.136$ (Section~\ref{sec:fail}) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent Read top to bottom, the last column is the course in miniature: what separates
+the winners is not capacity but fit to the structure of the decision, a shared utility
+scale across the four alternatives, ordinal attribute tiers left free to bend, and taste
+heterogeneity routed through something observable about a stranger.
+
+\section{What failed, and what it taught us}\label{sec:fail}
+
+More of what this report knows came from experiments that failed than from the three
+ideas that worked. Three episodes, in increasing order of cost, and then what they
+changed.
+
+\subsection{The seed is a hyperparameter nobody tunes}
+
+With subsampling at 0.8 and a random early-stopping holdout, refitting the identical
+xgboost configuration under ten seeds moved the out-of-fold score across a range of
+0.0090 (sd 0.00283). That sd is larger than most margins in our experiment log. It
+invalidated one accepted result: a monotone price constraint (forcing predicted utility
+never to rise with price), adopted for an apparent
+$+0.00172$, retested paired across ten seeds at $-0.00034$ with 95\% CI
+$[-0.00159, +0.00092]$, winning five seeds of ten. The constraint did nothing; we had
+been carrying the same model twice under different names. Averaging over seeds is also
+the one improvement that cannot overfit, since it selects nothing; yet at the blend
+level it was worth only $+0.00029$, because a blend is itself a variance-reduction
+device and its members already absorb most of each other's seed noise. \textbf{Bagging
+and blending are substitutes, not complements.}
+
+\subsection{A leak that honoured the fold rule}
+
+One experiment scored 1.0996 when nothing else we had built had broken 1.128: an
+apparent leap of 0.03, half again our largest genuine gain, from a single derived
+feature: the average residual (observed minus predicted) of the other respondents
+who saw the same choice-set design, always computed from other folds. The fold rule was
+honoured; the leak was in the baseline. Each reference respondent carried a prediction
+from a model trained on folds that included the scored fold, and a deep tree can partially
+memorise a design, so subtracting the baseline handed the target its own label back with
+the sign flipped. Rebuilt with the leak made structurally impossible (for every ordered
+pair of folds, fit excluding both), the gain fell to $-0.00430$ ($z=-4.54$). The clean
+version had passed both of our leak detectors, and passed them more convincingly than the
+leaky one. A signal test can establish that a feature contains information; it cannot
+establish that a flexible learner's gain comes from that information rather than from a
+leak riding alongside it. Only a construction that makes the leak impossible settles
+the question.
+
+\subsection{A structural leak that survived 47 iterations}
+
+A design-share encoding (per-design empirical choice shares, built with the standard
+leave-one-fold-out discipline) sat in the production model for 47 iterations and appeared
+to be worth $+0.022$. It was a leak of a kind our checks were not designed to catch: the
+encoding function was applied once, before the cross-validation loop, so training rows
+were encoded from a reference set that contained the scored fold. Because the defect is
+baked into the construction, it appears \emph{uniformly} in every fold; per-fold
+consistency, our standard screen, proves nothing about honesty. Three tests do work, and
+we used all of them: build an honest twin with matched support (honest value $-0.00596$,
+$z=-3.53$); check whether the gain grows with model capacity, since real effects saturate
+while leaks do not (from $-0.0004$ at depth 4 to $+0.078$ at depth 10); and ablate the
+feature entirely. The retraction also voided our hyperparameter sweep, whose honest
+ranking reversed, and explains a period in which local gains produced public
+\emph{regressions}: two submissions built on contaminated validation improved locally by
+0.005 and 0.016 and scored 1.209 and 1.205 publicly, against 1.199 before them. Five
+pre-registered gates had passed for one of those submissions; every gate was computed on
+reweightings of the same contaminated out-of-fold predictions. \textbf{Many tests
+sharing one assumption are one test.}
+
+\subsection{What the episode changed}
+
+After the discovery, plain cross-validation scores were treated as an anti-signal below
+1.128 (past that point, a better local score predicted a worse public one), and
+decisions moved to a segment-reweighted out-of-fold metric (training
+respondents reweighted to the test segment mix) that tracked the public board to 0.001
+when leak-free. Its effective sample is only 208 of 1{,}135 respondents, so we used it to
+judge and never to fit; fitting on a reweighted objective was refuted three separate
+times in our log, each time because the effective-sample collapse costs more variance
+than the bias it removes.
+
+\section{What the data says about buyers}\label{sec:insight}
+
+\begin{figure}[b]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  width=0.62\textwidth, height=4.2cm,
+  xlabel={price level (1 = cheapest of 12)}, ylabel={part-worth utility},
+  xmin=0.5, xmax=12.5, ymin=-2.15, ymax=0.15,
+  xtick={1,...,12}, tick label style={font=\footnotesize},
+  label style={font=\footnotesize},
+  grid=major, grid style={black!12},
+  legend style={font=\footnotesize, at={(0.03,0.03)}, anchor=south west, draw=none, fill=none}]
+\addplot[color=acc, mark=*, mark size=1.6pt, semithick] coordinates
+{(1,0) (2,-0.52) (3,-0.76) (4,-0.90) (5,-1.08) (6,-1.11) (7,-1.22) (8,-1.38) (9,-1.47) (10,-1.71) (11,-1.93) (12,-1.92)};
+\addlegendentry{fitted part-worths}
+\addplot[color=black!55, dashed, thick] coordinates {(1,0) (12,-1.92)};
+\addlegendentry{what linear coding forces}
+\end{axis}
+\end{tikzpicture}
+\caption{Price response flattens: the first step up from the cheapest level costs 0.52
+utility, later steps average 0.13, and the top two levels are indistinguishable. Freeing
+this shape was worth $+0.020$ log loss, the largest single gain of the project.}
+\label{fig:price}
+\end{figure}
+
+\subsection{Three kinds of buyer, and what the aggregate curve hides}
+
+The latent-class model splits respondents into three near-equal segments (shares rounded
+to one decimal), with membership predicted from demographics; the strongest drivers are
+annual mileage, night driving, education and parking situation:
+
+\begin{center}\small
+\begin{tabular}{lccc}
+\toprule
+segment & share & price response & outside-option constant \\
+\midrule
+value-conscious buyers & 36.6\% & $-1.65$, steady decline & $-1.40$ (buys readily) \\
+price-indifferent buyers & 32.1\% & $+0.50$, flat to positive & $-1.30$ (buys readily) \\
+reluctant non-buyers & 31.4\% & $-0.60$, mild & $+0.17$ (inclined to decline) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+This reframes Figure~\ref{fig:price}. A single logit fitted to everyone shows the
+flattening curve, which invites a psychophysical reading (people perceive price ratios,
+not differences). The segment model suggests much of that flattening is a mixing artefact:
+average a steep response, a flat one and a mild one, and the aggregate bends even though
+no segment's own curve does. Whichever reading is right, the pricing implication stands:
+at the top of the range one price step is nearly invisible to buyers, so shaving a single
+tier off a premium bundle buys almost nothing.
+One caveat needs stating: a positive price coefficient
+for the second segment is not behaviourally standard, and we cannot distinguish price
+acting as a quality signal from residual confounding with bundle richness, so we present
+it as an estimated pattern rather than established psychology. Commercially the third
+segment is the finding: \textbf{nearly a third of respondents belong to a segment inclined to
+decline at every price we tested}, so discounting is unlikely to reach them, and the
+leverage sits in the first two segments.
+
+\subsection{Heterogeneity is only usable in discrete form}
+
+Mixed logit with continuous random coefficients estimates large heterogeneity (price
+sensitivity varying six-fold across the interquartile range, outside-option constant
+sd 2.47) yet scored 1.173 against 1.157 for the fixed-coefficient model and earned zero
+blend weight. Hierarchical Bayes, the textbook tool for panel conjoint, made the reason
+quantitative. Scoring identical rows two ways:
+
+\begin{center}\small
+\begin{tabular}{lc}
+\toprule
+prediction for the same rows & log loss \\
+\midrule
+each respondent's own fitted tastes (posterior mean) & 0.352 \\
+population-averaged tastes, what a new respondent gets & 1.229 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The 0.877 gap is the cold-start problem stated as a number: everything HB learns about
+individuals is structurally unavailable for the 263 strangers it is graded on. Its full
+overall score, 1.23703 in the table of Section~\ref{sub:field}, makes it our worst
+model. The latent-class model wins with the same idea
+because it routes heterogeneity through a bottleneck: demographics predict a three-way
+membership ($(3-1)\times 29$ demographics $=58$ parameters) rather than shifting all 73
+part-worths per demographic ($6\times 73=438$), so HB reached eight times the parameters
+from a fifth of the demographics. Ablating demographics \emph{improved} HB from 1.237 to 1.164 while the same
+information carries 93\% of the latent-class model's gain. \textbf{Heterogeneity helps
+only to the extent it can be recovered from what you observe about a stranger}, and a
+low-dimensional discrete route is what makes that recovery estimable from 1{,}135 people.
+
+\subsection{Opting out is not a separate decision}
+
+Since ``none'' is the modal choice, we tried treating it specially twice: a two-stage
+model (buy at all, then which bundle) scored 1.172 ($z=-11$), and a nested logit
+isolating the outside option matched plain multinomial logit to three decimals, so the
+textbook correction for independence of irrelevant alternatives was not the binding
+constraint either. Declining is governed by
+the same utility scale as choosing between bundles; what varies across people is the
+threshold, which is what the latent-class constants capture.
+
+\subsection{Fatigue arrives as sharpened price sensitivity}\label{sub:fatigue}
+
+\begin{figure}[b]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  width=0.62\textwidth, height=4.0cm,
+  xlabel={task position within the survey session}, ylabel={share choosing ``none''},
+  xmin=0.5, xmax=19.5, ymin=0.20, ymax=0.38,
+  xtick={1,5,10,15,19}, ytick={0.20,0.25,0.30,0.35},
+  yticklabel={\pgfmathprintnumber{\tick}},
+  tick label style={font=\footnotesize},
+  label style={font=\footnotesize},
+  grid=major, grid style={black!12}]
+\addplot[color=acc, mark=*, mark size=1.5pt, semithick] coordinates
+{(1,0.237) (2,0.242) (3,0.258) (4,0.242) (5,0.283) (6,0.305) (7,0.300) (8,0.305)
+ (9,0.297) (10,0.345) (11,0.295) (12,0.320) (13,0.319) (14,0.315) (15,0.353)
+ (16,0.323) (17,0.344) (18,0.322) (19,0.337)};
+\end{axis}
+\end{tikzpicture}
+\caption{Raw training data, no model: the share of tasks answered ``none'' climbs from
+23.7\% on a session's first task to above 33\% late in the session, roughly ten
+percentage points of drift. Section~\ref{sub:fatigue} weighs two explanations for it.}
+\label{fig:fatigue}
+\end{figure}
+
+The walk-away rate rises steadily across the 19 tasks of a survey session
+(Figure~\ref{fig:fatigue}), and the data favour one explanation over its rival. Adding task-position terms to the latent-class utility was
+worth $+0.0053$ ($z=6.3$) and replicated on an independent fold structure ($+0.0042$,
+$z=4.7$). A specification allowing only the price coefficient to steepen with task
+position reproduces 105\% of the observed drift in declining, while a pure scale-drift
+account (respondents answering more noisily) reproduces essentially none of it. Late in
+a session people are not choosing randomly; they are behaving like sharper price
+hagglers, and since the outside option is always the cheapest thing on offer, sharper
+price response mechanically raises refusals. The effect retains 119\% of its value under
+reweighting to the test population, the strongest retention of any gain we measured.
+
+\subsection{The population shift, and a prediction it let us test}
+
+Because test respondents are wealthier, we added explicit price-by-income interactions
+(linear models extrapolate; trees cannot) and audited every accepted gain by reweighting
+training respondents to the test income distribution: part-worth coding retains 101\% of
+its value, the listwise objective 112\%, the latent-class model 79\%. The membership
+channel also made a falsifiable claim: routing wealthier respondents toward buying
+segments, the latent-class model predicted a test walk-away rate of 0.223, far below the
+training rate of 0.302. The probe measured 0.266. The direction was right, wealthier
+people do decline less, and the magnitude was overshot, which is why we anchored to the
+measured value rather than to any model's opinion.
+
+\subsection{Where the remaining headroom lies}
+
+We can state where the remaining accuracy sits and why we stopped searching for it. An
+oracle handed each respondent's own observed choice rates scores 0.986 against 1.130 for
+the blend as it stood when we measured this, so under this construction the remaining
+loss lives in a 0.144 gap of person-specific behaviour. Decomposing choice variance,
+only the outside option is strongly personal (33\% between-respondent, against 5 to 7\%
+for the bundles), and demographics as we fitted them explain just 11.2\% of that
+between-respondent variation. \textbf{Roughly 89\% of the between-respondent variation
+in walking away is unexplained by everything we observed}, and no model fitted on these
+features can recover variation they do not carry. Choice-set identity alone also leaves
+most of the error in place: a predictor built purely from design identity scores 1.307.
+We therefore spent the final week on measurement and variance control rather than new
+models; Section~\ref{sec:lb} shows that is where the remaining score was.
+
+\section{Public versus private}\label{sec:lb}
+
+\subsection{Local scores predict the board poorly, and we measured how poorly}
+
+\begin{center}\small
+\begin{tabular}{cccc}
+\toprule
+local nested OOF & public & offset & transfer of the local gain \\
+\midrule
+1.17683 & 1.223 & $+0.046$ & (first submission) \\
+1.13878 & 1.201 & $+0.062$ & $\sim$58\% \\
+1.13556 & 1.201 & $+0.065$ & invisible (rounding floor) \\
+1.13044 & 1.199 & $+0.069$ & $\sim$24 to 39\% \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Cross-validated scores were optimistic by a stable 0.05 to 0.07: partly the documented
+population shift, partly ordinary selection optimism from testing many ideas against one
+fold structure. Transfer of local gains decayed from 58\% to about a third, then went
+negative during the leak era of Section~\ref{sec:fail} (two local improvements returned
+1.209 and 1.205). The public board also has a resolution floor: a 0.0032 local
+improvement produced no visible public change at three displayed decimals. Our response
+was the segment-reweighted metric (which tracked the board to 0.001 when leak-free) for
+judging, and leaderboard measurement rather than leaderboard climbing for calibrating.
+
+\subsection{Three forecasts, committed before upload}
+
+Both forecasts below were committed to version control before their uploads, so neither
+could be revised after the fact. A third pre-registration, $r^{*}$ with its derivation,
+faced its test only at the close, on private rows it had never touched.
+
+\begin{center}\small
+\begin{tabular}{lccc}
+\toprule
+quantity & forecast & band & returned \\
+\midrule
+track A final file & 1.1930 & point forecast & 1.193 \\
+graded pool & 1.186 & 1.184 to 1.189 & \textbf{1.185} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{What the close settled}
+
+The private score equalled the public score to three decimal places, 1.185, although
+the private subset's none-choice share alone carries a sampling sd of about 0.011 on
+roughly 1{,}499 tasks. Every constant calibrated on public rows, above all $r^{*}$, then
+faced rows it had never touched. One rounded aggregate cannot isolate any single
+constant's transfer, but the result is what intact transfer predicts: no detectable
+deterioration at the board's displayed precision.
+
+The rank still slipped from 3rd to 4th on an unchanged score, and that was predictable
+too, because ranking noise and score noise are different quantities. The sd of one team's
+absolute score on 1{,}500 rows is about $\pm 0.02$, which tempts the conclusion that
+nothing smaller can matter; but all teams are
+scored on the same rows, so rank differences are paired, the shared row-difficulty
+shocks cancel, and the relevant standard error is 0.006 to 0.012, driven only by where
+teams disagree. Our lead over the nearest rival was about one to two paired standard
+errors: a probable win, never a safe one. \textbf{The rank moved; the model did not.} We regard
+the zero drift, the forecasts landing, and the one-place rank slip as a single
+consistent picture of a pipeline that was calibrated, not lucky.
+
+\section{Limitations}\label{sec:limits}
+
+The irreducible noise is large: per-respondent mean loss ranges from 0.59 to 2.71, and
+most of what drives the outside option is unobserved (Section~\ref{sec:insight}). Two of
+our gains are population-specific and would not survive a new experimental design or
+population: anything routed through choice-set identity, and the latent-class membership
+channel (79\% retention under income reweighting). The three-segment structure is one of
+several that fit comparably; the existence of heterogeneity is robust, the specific
+boundaries are not. The shipped tree still contains the defective encoding step of
+Section~\ref{sec:fail}: we measured its removal as board-neutral and judged late
+rebuilding an unnecessary risk, but a new project should not copy that feature step. Finally, we optimise average log
+loss only; no subgroup is separately calibrated, and predictions are least reliable
+where support is thinnest: the wealthy luxury segments the test set concentrates on.
+
+\section{Reproducibility}\label{sec:repro}
+
+The code package carries two different guarantees. Fresh training
+reconstructs both modelling procedures approximately: track A via
+\texttt{model/run\_all.R} followed by the residual logit and anchor, track B via its own
+\texttt{run\_all.R}. Multithreaded xgboost and torch make bit-exact retraining
+impossible across machines, so retrained tracks land within about $10^{-3}$ of the
+scored ones. Separately, a deterministic reconstruction of the graded submission, built
+by \texttt{build\_candidates.R} from the two pinned track outputs and the probe algebra,
+agrees with the scored file to within $2\times10^{-5}$. Two traps
+cost us real time and are documented in the package: xgboost 3.x returns a matrix from
+\texttt{predict} where 2.x returned a vector, silently scrambling reshaped predictions;
+and in a conditional logit anything constant within a choice set is unidentified, so the
+price reference level must sit on a real bundle, with a rank-revealing QR on the
+task-demeaned design catching the rest.
+
+\section{Conclusion}\label{sec:conc}
+
+Three first-week structural choices, part-worth coding, a listwise objective and
+demographically routed discrete heterogeneity, produced nearly all the accuracy this
+project earned. The weeks that followed added more knowledge than score:
+an account of where the remaining accuracy sits, two dissected leaks, and a
+demonstration that a leaderboard can serve as a measuring instrument rather than a slot
+machine. The submission carried a worst-case bound instead of a bet and landed where its
+pre-registered forecast said it would, on both halves of the test set. For future
+cohorts, one sentence: measure the noise floor before trusting a gain, build the honest
+twin of every clever construction, and when the test set will be strangers, validate as
+if every scored respondent were one.
+
+\end{document}

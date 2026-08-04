@@ -1,502 +1,175 @@
-# TAE R-izzlers — Analytics Edge Data Competition 2026
+# Predicting Choice Among Car Safety Bundles
 
-Predicting which of four car safety-feature bundles a respondent chooses.
-**R only** (competition rule). Metric: multiclass logloss, lower is better.
+![R](https://img.shields.io/badge/R-4.6-276DC3?logo=r&logoColor=white)
+![public](https://img.shields.io/badge/public%20leaderboard-1.185%20%283rd%29-1f4788)
+![private](https://img.shields.io/badge/private%20leaderboard-1.185%20%284th%29-1f4788)
+![course](https://img.shields.io/badge/SUTD%2040.016-The%20Analytics%20Edge%202026-555555)
 
-**Team:** zf · Sheil · Kavya · Nicole. One Kaggle account, held by the team
-representative — see [Working agreements](#working-agreements).
+A Kaggle-style discrete-choice competition: given a conjoint survey in which 1,135
+respondents each faced 19 choice tasks, predict which of three car safety bundles a
+**brand-new** respondent picks, or whether they walk away, scored by multiclass log loss
+on 263 unseen people.
 
-> ⚠️ **Keep this repository private until after 10 August 2026.** It contains the
-> competition data and our full modelling approach. A public repo would hand both to
-> every other team. Course rule also forbids sharing data outside the team.
+Our submission scored **1.185 on the public board and 1.185 on the private board**,
+identical to three decimal places, against a 1.386 benchmark. Every forecast we committed
+to version control before uploading came true, including the final score to within one
+tick. This repository holds the full pipeline, 80+ logged experiments including the
+failures, and the final report.
 
----
+**Team 3 R-izzlers:** Chia Zhi Feng, Kavya Santosh Nair, Sheil Ketan Mistry, Nicole Ann Chia.
 
-## ✅ Final result — Kaggle closed 1 Aug 2026
+![Model architecture](docs/images/architecture.png)
 
-**Selected submission: `submissions/cand_pool5050_final00.csv`.**
+The graded file is an equally weighted log-opinion pool of two tracks built
+independently by different team members with no shared code. Both tracks are anchored to
+a single constant, `r*`, that we did not fit at all: we measured it from the leaderboard
+itself (the amber thread above).
 
-| | logloss | rank |
+## The measurement that beat two weeks of model search
+
+One daily submission was spent on a constant prediction, `(1/6, 1/6, 1/6, 1/2)` on every
+row. For a constant prediction the log loss is algebra in one unknown, so the returned
+score inverts into the test set's true walk-away rate:
+
+```
+score = log 6  -  r · log 3          the board returned 1.499
+r*    = (log 6 - 1.499) / log 3  =  0.2665
+```
+
+That single measured constant ended up worth more than roughly 160 searched model
+variants on the final day, because it is a fact about the test set rather than a guess
+fitted on training folds. It also transferred: calibrated purely against public rows, it
+then met 1,499 private rows it had never touched, and the displayed score did not move.
+
+| pre-registered forecast (committed before upload) | predicted | returned |
 |---|---|---|
-| Benchmark (25% for everything) | 1.38629 | — |
-| Our first submission | 1.2230 public | — |
-| **Public** (~70% of test rows) | **1.185** | **3rd** |
-| **Private** (~30%, the graded set) | **1.185** | **4th** |
+| track A final file | 1.1930 | 1.193 |
+| graded pool | 1.186, band 1.184 to 1.189 | **1.185** |
 
-Public score over the two weeks: 1.2230 → 1.201 → 1.197 → 1.194 → 1.193 → **1.185**.
-Rank: 11th of ~40 on 30 Jul → **3rd public, 4th private** at the close.
+## What the data taught us
 
-> ### The public→private drift was zero, and that is the headline
->
-> Kaggle scored ~70% of the test rows publicly and graded the other ~30% (**~1,499 rows**).
-> That private draw alone could have moved the absolute score by
-> `sqrt(0.2665·0.7335/1499)` ≈ **0.011**. It moved by **less than one tick**: 1.185 public,
-> 1.185 private.
->
-> So the model did not overfit the leaderboard. Every constant we calibrated against the
-> public 70% — `r* = 0.266481153` above all — transferred intact to rows it had never seen.
->
-> **The rank slipped one place on a score that did not move.** At a paired
-> respondent-clustered ranking SE of **0.006–0.012** (`STRATEGY_REVIEW.md` Part II.1), the
-> whole top of the board sits inside one standard error, so a 3rd→4th shift on an unchanged
-> score is exactly what the noise model predicted. The rank moved; the model did not.
+**Price response flattens.** Giving each of the 12 price levels its own utility instead
+of a straight line was the single largest gain (+0.020 log loss). The first price step
+costs buyers 0.52 utility; later steps average 0.13; the top two levels are
+indistinguishable.
 
-### How the score progressed
+![Price part-worth curve](docs/images/price-curve.png)
 
-1. **1.197** — the two-member main-track blend (`xgb_lw2bag` + `lcmnl3_both`), the model
-   documented throughout this README and produced by `model/run_all.R`.
-2. **1.194** — `submissions/sub_20260729_nnblend.csv`, the first entry scored from the team's
-   second modelling track (`experiments/iter62_nnblend/`).
-3. **1.193** — `submissions/sub_20260730_final00.csv`: the two-member nested blend → a nested
-   6-coefficient residual-logit correction → the probe anchor.
-4. **1.185** — `submissions/cand_pool5050_final00.csv`, the file we selected: a log-opinion
-   pool at fixed `w = 0.5` of step 3 and step 2-anchored-to-`r*`. Both tracks are ours; they
-   share no code, and `experiments/iter82_provenance/track_distances.R` measures them at
-   conditional distance **0.01291**, 2.3× above the same-model-reseeded floor of 0.00552 —
-   so the pool averages two genuinely distinct models rather than one model twice.
+**A third of respondents are not reachable by discounts.** A three-class latent-class
+logit, with class membership predicted from demographics only, splits the population into
+value-conscious buyers (36.6%), price-indifferent buyers (32.1%), and a segment inclined
+to decline at every tested price (31.4%).
 
-*(`submissions/log.md` carries the full submission history, including superseded entries.)*
+**Survey fatigue behaves like sharpened price sensitivity.** The walk-away rate climbs
+about ten percentage points across a session. A model that only lets price sensitivity
+steepen with task position reproduces 105% of that drift; a "people answer more noisily"
+account reproduces essentially none of it.
 
-> **Three pre-registered predictions, all of which came true.** `r*` from the alt-4 probe;
-> 1.1930 forecast for `final00` against a returned 1.193; and 1.186 (band 1.184–1.189) for
-> the file we finally shipped, against a returned **1.185**. The forecasts were committed
-> before upload precisely so they could not be revised afterwards.
->
-> This also settles the earlier period of *inverted* transfer (local improved, public
-> regressed): that was the encoding leak of iteration 48, not a broken methodology.
+![Fatigue curve](docs/images/fatigue-curve.png)
 
-> ### ⚠️ The 1.12341 "improvement" was refuted on the leaderboard
->
-> A previous version of this README recommended a five-member free-sign blend at local CV
-> **1.12341**, merged from branch `sheil/free-sign-blend-1.12341` (commit `d41a8a2`).
-> It has since been submitted twice and **scores worse than the two-member blend it was
-> meant to replace**:
->
-> | | local CV | public |
-> |---|---|---|
-> | two-member blend (live) | 1.12819 | **1.197** |
-> | five-member free-sign, calibrated | 1.12341 | **1.209** |
-> | five-member free-sign, raw | 1.12341 | **1.211** |
->
-> Local said better by 0.005; the board says worse by 0.012 — a **sign flip**, at about 2.5
-> paired standard errors. Do not ship it. The full analysis is
-> [iteration 43 in `EXPERIMENTS.md`](EXPERIMENTS.md), and the methodological lesson is
-> [below](#the-failure-that-taught-us-most).
+**Personal taste is only usable when a stranger's data can reach it.** Hierarchical
+Bayes scores 0.352 when allowed to use each person's own fitted tastes and 1.229 when a
+new respondent gets the population average; since every test respondent is a stranger,
+the fanciest textbook model finished dead last. The latent-class model wins with the same
+idea routed through a 58-parameter demographic bottleneck instead of 438 free parameters.
 
-Our local cross-validation and the Kaggle score differ by about +0.07. That gap is
-expected — see [Why local ≠ Kaggle](#why-local--kaggle-matters) below, and it turned out to
-be deeper than we understood when we wrote that section.
+## Nine model families entered, two survived
 
----
+| model family | OOF log loss | verdict |
+|---|---|---|
+| listwise xgboost, 10-seed bag | 1.137 | **blend member 1** |
+| latent-class logit, 3 classes | 1.139 | **blend member 2** |
+| nested logit | 1.157 | indistinguishable from plain logit |
+| part-worth conditional logit | 1.157 | special case of member 2 |
+| elastic-net logit | 1.167 | shrinkage cannot mimic part-worths |
+| two-stage buy/which | 1.172 | splits one decision in two |
+| mixed logit | 1.173 | predicts a population average |
+| wide four-class xgboost | 1.175 | cannot compare within a choice set |
+| hierarchical Bayes | 1.237 | cold start |
 
-## Quick start
+What separates the winners is not capacity but fit to the structure of the decision: a
+shared utility scale across the four alternatives, ordinal attribute tiers left free to
+bend, and heterogeneity routed through something observable about a new person.
 
-**Prerequisite:** R ≥ 4.5 with `data.table`, `xgboost`, `mlogit`, `dfidx`, `glmnet`, `Matrix`.
+## The part we are proudest of: the failures
 
-```r
-install.packages(c("data.table","xgboost","mlogit","dfidx","glmnet","Matrix"))
-```
+The experiment log ([EXPERIMENTS.md](EXPERIMENTS.md)) records every dead end with the
+number that killed it. Three earned a place in the final report:
 
-**Run everything** (~30 min) from the repository root:
+- **A leak that honoured the fold rule.** A derived feature scored 1.0996, an apparent
+  0.03 leap, while respecting leave-one-fold-out discipline perfectly. The leak was in
+  the baseline it subtracted. Rebuilt so the leak was structurally impossible, the gain
+  was **negative** (z = -4.5), even though every detector we had passed it.
+- **A structural leak that survived 47 iterations.** An encoding applied once, before
+  the CV loop, inflated scores uniformly in every fold, which is exactly why per-fold
+  checks never caught it. Real effects saturate with model capacity; this one grew
+  monotonically. That test, an honest twin, and an ablation are what finally killed it.
+- **The seed is a hyperparameter nobody tunes.** Re-running one xgboost under ten seeds
+  moved its score by more than most margins in our log. One accepted result died when
+  retested paired across seeds.
 
-```powershell
-# Windows: R is often not on PATH, so call it by full path
-& "C:\Program Files\R\R-4.6.0\bin\Rscript.exe" model/run_all.R
-```
+The habit that survived the project: measure the noise floor before trusting a gain, and
+build the honest twin of every clever construction.
 
-```bash
-# macOS / Linux
-Rscript model/run_all.R
-```
+## Validation discipline
 
-That writes a timestamped CSV into `submissions/`, ready to upload.
-
-**Run only part of it** — every stage saves to `model/artifacts/`, so you can start midway:
-
-```powershell
-& "C:\Program Files\R\R-4.6.0\bin\Rscript.exe" model/run_all.R blend submit
-```
-
-Stages: `tests · data · folds · mnl_pw · xgb_lw · blend · submit · audit`
-
----
-
-## Which model is the best one?
-
-**Production blends two models.** Everything else is supporting infrastructure or
-superseded work kept for the record.
-
-| script | model | OOF | weight |
-|---|---|---|---|
-| [`experiments/iter26_seedbag/run.R`](experiments/iter26_seedbag/run.R) | listwise xgboost, **10 seeds averaged** | 1.13682 | **0.528** |
-| [`experiments/iter25_taskpos/run.R`](experiments/iter25_taskpos/run.R) | **latent-class conditional logit + task position** | 1.13863 | **0.472** |
-| [`model/06_blend.R`](model/06_blend.R) | pools them in log-space + temperature | **1.12819** | — |
-
-> **This two-member blend is the production model and the best we have.**
-> [`experiments/iter35_freepool5/run.R`](experiments/iter35_freepool5/run.R) reaches a lower
-> *local* number (1.12341) by letting the combiner use negative weights — but it scores
-> **1.209** on the board against this blend's 1.197. It is kept for the record, not for use.
-> `members.txt` has always declared the two-member blend and was never switched.
-
-**The blend used to have four members and now has two, at an unchanged score.** Two of them
-turned out not to be models at all:
-
-- `xgb_mono` (monotone price constraint) was **retracted** — retested paired across ten seeds
-  it is worth −0.00034, CI [−0.00159, +0.00092], winning 5 of 10. Its original +0.00172 was
-  smaller than the seed noise it was measured against. It was a duplicate of the
-  unconstrained tree for eighteen iterations.
-- `mnl_pw` contributed **−0.00006** (z = −1.89) on leave-one-out. The latent-class model with
-  one class reproduces it to four decimals, so it is a strict generalisation.
-
-The two survivors are the opposite ends of the blend's only genuine axis of disagreement —
-tree versus logit, which carries 93% of the error variance — and the weights split near-evenly
-across it.
-
-The two highest-weighted models currently live under `experiments/` rather than `model/`.
-That is deliberate while the research round is open — `model/members.txt` is the single
-source of truth for what is in the blend, and `model/run_all.R` runs them from where they are.
-
-Everything in [`model/legacy/`](model/legacy/) scored worse and earns zero weight
-(linear-coded logit, mixed logit, wide xgboost, elastic net). Kept because the report
-discusses what we tried, not only what won.
-
----
+- **Folds grouped by respondent, always.** Each person answers 19 tasks; a row-wise
+  split lets a model learn the person instead of the product. Test respondents are
+  strangers, so validation must make every scored respondent a stranger too.
+- **Nested everything.** Blend weights, calibration coefficients, and feature scalings
+  are refit inside each fold; no number we acted on had seen its own tuning data.
+- **Three separate noise floors**, measured before quoting any margin: single-model seed
+  sd 0.0028, blend-level seed sd 0.0005, fold-to-fold sd 0.013.
+- **Paired tests with respondent-clustered standard errors** for every comparison.
 
 ## Repository map
 
 ```
-model/                    the production pipeline
-  run_all.R               ENTRY POINT — start here
-  00_load.R               CSV -> long format (1 row per alternative) + features
-  01_folds.R              5 CV folds, grouped by respondent (see below)
-  02_mnl_partworth.R      MODEL 1 — part-worth conditional logit
-  03_xgb_listwise.R       MODEL 2 — listwise-objective xgboost
-  06_blend.R              weighted log-space blend, nested evaluation
-                          BLEND_WEIGHTS=free opts into unconstrained-sign weights
-                          (default is the simplex; see iteration 35)
-  07_submit.R             writes the Kaggle CSV, validates format
-  99_utils.R              logloss, fold construction, normalisation helpers
-  encode_design.R         design-level empirical-share encoder
-  compare.R               paired model comparison with clustered SEs
-  shift_audit.R           does an improvement survive the train->test shift?
-  members.txt             which models enter the blend
-  tests.R                 unit tests
-  legacy/                 superseded models (zero blend weight)
-
-experiments/              research log — one folder per iteration, immutable
-Vault/                    Obsidian knowledge base (course notes + competition)
-submissions/              generated CSVs + log.md of every score we've seen
-EXPERIMENTS.md            what we tried, what worked, and why — with reflections
-report_notes.md           material for the 8-page report (worth 15 of 30 marks)
-Raw Dump/                 course materials + competition data (unmodified)
+model/                    track A pipeline: load, folds, members, blend, submit
+experiments/              80+ numbered iterations, hypothesis and verdict in each header
+  iter62_nnblend/         track B, the independent second track (tree + neural net)
+  iter82_provenance/      assembly of the graded pool and its audit
+submissions/              every scored CSV, plus log.md with the full submission history
+report/                   final report, LaTeX source and PDF
+EXPERIMENTS.md            the complete experiment log, failures included
+STRATEGY_REVIEW.md        the mid-competition strategy audit
+Vault/                    course-theory notes (Obsidian vault)
 ```
 
----
+## Reproducing
 
-## The three things that actually made the score
+R 4.6 with `data.table`, `xgboost` (3.x), `mlogit`, `dfidx`, `glmnet`, `Matrix`,
+`bayesm`. Run everything from the repository root.
 
-Each was verified with a paired test using respondent-clustered standard errors
-(`model/compare.R`), not just a lower headline number.
+```bash
+# track A, end to end (~2.5 h; each stage saves its artifacts and resumes if interrupted)
+Rscript model/run_all.R
 
-### 1. Part-worth coding — the big one (+0.020, z = 11.8)
-
-Attributes are 3–7 level tiers and Price has 12 levels, but we originally coded them as
-plain numbers, which forces utility to move by a constant amount per level step. Giving
-each level its own utility revealed that **price response is concave**:
-
-| price level | 2 | 3 | 4 | 5 | … | 10 | 11 | 12 |
-|---|---|---|---|---|---|---|---|---|
-| utility | −0.52 | −0.76 | −0.90 | −1.08 | … | −1.71 | −1.93 | −1.92 |
-
-Each step hurts less than the one before, and the top two levels are indistinguishable —
-sensitivity saturates. People respond to price ratios, not differences.
-
-### 2. Listwise objective (+0.006, z = 4.3)
-
-The old xgboost scored each alternative as an independent "was this chosen?" binary and
-we normalised afterwards. But the metric is a softmax over the four alternatives in a
-choice set — only *relative* utility matters. A custom gradient (`p − y` with the softmax
-taken within each 4-row task) makes the training loss identical to the competition metric.
-
-### 3. Design-level encoding (+0.005, z = 2.9)
-
-This is a *designed* conjoint experiment: only 299 distinct choice sets per task position,
-each shown to ~4.7 people, and **98.5% of test rows reuse a design that appears in
-training**. The empirical choice share within a design is therefore observable. Support is
-thin (~3.8 rows per design) so the shares must be shrunk heavily — at weak shrinkage they
-score *worse than the benchmark*.
-
----
-
-## The combiner could not represent a negative weight
-
-*(+0.00478, z = 3.84 — iteration 35, branch `sheil/free-sign-blend-1.12341`, not yet production)*
-
-For thirty-four iterations `model/06_blend.R` fitted the pool weights as
-
-```r
-w <- exp(theta[1:M]); w <- w / sum(w)      # softmax -> the simplex
+# reassemble the graded pool from the tracked prediction artifacts (~2 s)
+Rscript experiments/iter82_provenance/build_candidates.R
 ```
 
-which forces every weight non-negative and forces them to sum to one. So a **negative
-coefficient was not disfavoured — it was unrepresentable.** A member whose optimal
-coefficient is negative could only be pinned at `w ≈ 0`, and was then written down as
-*"earns weight 0.000, contributes nothing"* and dropped.
+On Windows, R is often not on PATH:
 
-That phrase appears verbatim in `members.txt`. It is also why an exhaustive frontier probe
-concluded that adding any member to the pool was worth at most *"+0.00027, **at negative
-weight**"* — it could see the sign and had no way to act on it. The probe measured
-correctly and concluded wrongly, because it inherited the constraint it was measuring under.
-
-**A negative weight is not a bad model — it is a control variate.** The four tree models are
-fitted on overlapping views of the same design with the same algorithm, so their errors share
-a large common component (93% of the error variance lies in one direction). A *strictly worse*
-tree is a noisy but nearly unbiased reading of that shared bias, and subtracting a multiple of
-it cancels the bias without touching the signal only the good tree has.
-
-| combiner | nested OOF |
-|---|---|
-| 2 members, simplex (production) | 1.12819 |
-| 2 members, free sign | 1.12819 ← *must agree, and does* |
-| 5 members, free sign | **1.12341** |
-
-The three added members score 1.155, 1.175 and 1.172 — every one **worse** than either
-incumbent. Only trees price negative; the part-worth logit prices at ≈0, because that
-direction is already spanned by the latent-class model.
-
-**One methodological warning this produced.** Negative weights on out-of-fold predictions is
-the classic way stacked generalisation fails, and our usual leak test — *"a real gain appears
-in every fold, a leak concentrates in one"* — **cannot detect it**, because fold-correlated
-structure appears in every fold too. The instrument that does work is a **within-fold shuffle
-placebo**: permute the added members' OOF rows *inside* each fold, preserving every fold-level
-property while destroying row-level alignment. It recovered **−3%** of the gain, and an
-independently built noise placebo agreed at −4%.
-
-**And then it failed anyway.** See the next section — that placebo, and five other checks,
-were all blind to the thing that actually broke it.
-
----
-
-## The failure that taught us most
-
-*(iteration 43 — read this one if you read nothing else)*
-
-The blend above was the most heavily verified result in the project:
-
-| check | result |
-|---|---|
-| within-fold shuffle placebo | recovers −3% |
-| matched-noise placebo | −4% |
-| **member-level replication on an independent respondent partition** | **+0.00308, z +3.17, 103% retention** |
-| placebo member (a near-duplicate) | prices *positive*, gains nothing — as the theory predicts |
-| multiplicity, 46 candidates scanned | z +3.84 against a Bonferroni bar of 3.27 |
-| segment reweighting to the test population | **167% retention** |
-| margin-neutralised gain | +0.00480 — the gain is not none-rate movement |
-
-**It scored 1.209 against the incumbent's 1.197.**
-
-### Why every check missed it
-
-A control variate cancels shared bias only if it **drifts with the member it corrects**.
-Member OOF predictions come from fits on 80% of respondents; the shipped test predictions come
-from 100%-data refits. The three subtracted trees are older artifacts whose test refits moved
-differently from `xgb_lw2bag`'s — the tree family's OOF→test none-rate drift spans **0.0157**.
-Subtracting a correction sized for a gap that no longer exists *adds* bias.
-
-The sign is what makes it violent. With positive weights you average, and errors partly cancel.
-With negative weights you take a **difference**, and differences amplify: if A drifts by δ_A and
-B by δ_B independently, then A − 0.35·B drifts with variance `var_A + 0.12·var_B`. The errors
-add.
-
-### The rule worth carrying
-
-> **Cross-validation holds the training procedure fixed and varies the data. Deployment varies
-> the training procedure too — and nothing in CV can see that.**
-
-All seven checks were computed on out-of-fold predictions or a reweighting of them. Counting
-independent *tests* is not the same as counting independent *assumptions*: seven tests
-collapsed to one assumption, that OOF predictions represent test predictions.
-
-Three concrete rules follow:
-
-1. **Negative weights require matched-regime members.** A control variate must be refit under
-   the *same* protocol as the member it corrects.
-2. **"Verified N ways" is worthless if the N tests share a blind spot.** Ask what each test
-   *cannot* see, and check whether the answers coincide.
-3. **The leaderboard is not a scoreboard — it is the only instrument for one specific
-   question.** Spending a submission to answer it cost nothing, because Kaggle auto-selects
-   the best public score. The real mistake would have been shipping this at the end untested.
-
----
-
-## Measuring the test set directly
-
-We spent one submission on a CSV where **every row is the same constant** `(1/6, 1/6, 1/6, 1/2)`.
-For a constant prediction the logloss is exact algebra, so the returned score inverts to a fact
-about the graded data:
-
-```
-score = 1.7918 − 1.0986 · r        ⇒        r = (1.7918 − score) / 1.0986
+```powershell
+& "C:\Program Files\R\R-4.6.0\bin\Rscript.exe" model/run_all.R
 ```
 
-where `r` is the fraction of scored rows on which "none of these" was chosen. Kaggle returned
-**1.499**, so **r = 0.2665** (3-dp band 0.2661–0.2670). It is the only direct observation of
-the test population anyone on the team has, and it cost one slot — the probe scores ~1.5, so it
-can never be auto-selected and cannot affect the grade.
+The graded submission itself is tracked at `submissions/cand_pool5050_final00.csv`.
+Multithreaded tree training is not bit-reproducible across machines, so fresh retraining
+lands within about 1e-3 of the scored artifacts; the pool assembly from tracked
+artifacts is deterministic. The report documents both guarantees precisely.
 
-**It rejected every prior belief.** The latent-class model predicted 0.2237, an independent
-estimator said ~0.30, the tree was nearly exact at 0.2726. It also killed a candidate that
-would have pushed the shipped rate to 0.2064 — roughly 0.010 of damage avoided.
+## The report
 
-**And the correction it implies is confirmed.** Two submissions of the *same five members*,
-differing only in the none-column, isolate it exactly:
+The 8-page final report is the distilled version of everything here: the model, the
+probe, the leak forensics, the behavioural findings, and why the public and private
+scores agreed to the third decimal.
 
-| ships p4 | none-margin cost | public |
-|---|---|---|
-| 0.2377 | 0.00223 | 1.211 |
-| 0.2622 | 0.00005 | 1.209 |
-
-Predicted gain from the shift **0.00218**; observed **0.002**. The dial works, even though the
-model it was attached to does not.
-
-**A statistical subtlety worth recording.** Shrinking the correction by `w* = e²/(e²+s²)` is
-wrong — that minimises mean-squared error of the *rate*. Expected logloss `E[KL(r‖t)]` is
-minimised at `t = E[r]`, and the split-type variance adds a constant that does not move the
-optimum. Shrink only for prior pull on the mean.
-
-### The model-probe — measuring without spending a slot on a throwaway
-
-The constant probe above works because a constant prediction has closed-form logloss. Its
-cost is that it scores ~1.5 and can never be selected: the whole slot buys information and
-nothing else. **Iteration 80 removed that cost.**
-
-Take a live candidate `A` and build `B` by adding **one constant to the alternative-4 logit
-per segment**. Two things then hold exactly:
-
-- `A` and `B` share the within-buy conditional (verified to 2.22e-16), so it cancels from the
-  score difference;
-- the logit shift is constant within each segment (verified to 1.07e-14), so the difference is
-  **linear in each segment's mean none-rate** — and within-segment heterogeneity cancels, so
-  no homogeneity assumption is needed.
-
-One returned score therefore identifies the split, while the file remains a real candidate
-that can win. Recovery is algebraically exact (simulation error ~3e-15).
-
-We shipped luxury p4 = 0.285; the board returned **1.217**, giving **r_lux = 0.2236**. Our
-model already implied 0.2314 — within one sampling standard deviation — so the per-segment
-correction is worth **+0.00037** and the margin channel is closed. It also refuted the
-board-inversion estimate (0.171, ~6σ away) outright.
-
-**The limit is the interesting part.** The conditional cancels *by construction* — that is
-precisely what makes the inversion exact. So this instrument is structurally incapable of
-saying anything about the three-way choice among real bundles, which is where the remaining
-headroom actually is (oracle 0.986 against the blend's 1.130). It is exquisitely precise about
-the half of the problem that is finished, and blind to the half that is not.
+**[report/report.pdf](report/report.pdf)** ([LaTeX source](report/report.tex))
 
 ---
 
-## Why local ≠ Kaggle (matters)
-
-**Folds are grouped by respondent.** Each person answers 19 choice tasks. If you split
-randomly by row, a model sees 15 of someone's answers and is graded on the other 4 — it
-learns "this person is stingy" and aces the holdout. Local score looks great; Kaggle
-doesn't, because the test set is 263 people who appear nowhere in training. Splitting by
-*person* makes local validation mirror the real task. This is the single most important
-thing to preserve if you modify the pipeline.
-
-**Nested blending.** Blend weights are refit five times, each excluding the fold it is
-evaluated on, so no number we act on has seen its own tuning data.
-
-**The test population is different.** Test respondents are roughly twice as wealthy
-(median income $60k → $80k, p75 $85k → $125k). `model/shift_audit.R` reweights training
-respondents to look like the test population and rechecks every improvement. Part-worth
-coding retains 101% of its value and the listwise objective 112% — both structural. The
-design encoding retains only 77%, since its shares encode a poorer population's tastes.
-
----
-
-## Working agreements
-
-- **One Kaggle account only** (team representative's). Using more than one is an academic
-  integrity violation under the competition rules.
-- **Two submissions per day**, resetting ~08:00 SGT.
-- **Record every public score** in [`submissions/log.md`](submissions/log.md) — that's how
-  we calibrate what a local improvement is actually worth.
-- **R only.** Any package is allowed; other languages are not.
-
----
-
-## The knowledge base
-
-`Vault/` is an Obsidian vault covering the course theory and the competition work.
-**Open the repository root as the vault** (not `Vault/` itself) so the lecture PDFs under
-`Raw Dump/` open as links inside Obsidian. Note-to-note links use bare filenames, so they
-resolve either way; the PDF links need the repo root.
-
-<!-- To add the graph view: in Obsidian press Ctrl+G (graph view), arrange it, then use
-     Win+Shift+S to snip. Save as docs/images/vault-graph.png and this will render. -->
-![Obsidian graph view of the vault](docs/images/vault-graph.png)
-
-Start at `Vault/00 Hub.md`. The competition notes are:
-[Brief & Rules](Vault/Competition/Brief%20&%20Rules.md) ·
-[Data Dictionary](Vault/Competition/Data%20Dictionary.md) ·
-[Modeling Strategy & Results](Vault/Competition/Modeling%20Strategy%20&%20Results.md) ·
-[Key Findings](Vault/Competition/Key%20Findings.md)
-
-## Want to continue the work?
-
-**Forty-five iterations are done, and the model search is measured-exhausted.** Iterations
-27–34 searched model space hard across six independent axes and produced almost nothing.
-Iteration 35 found a real defect by *reading the combiner* rather than searching — a single
-line that had constrained every blend ever fitted here — but the leaderboard then refuted the
-fix (above). Iterations 37, 38, 40 closed the combiner from four more directions; 39 and 45
-tuned the tree and found nothing; 44 confirmed that respondents genuinely differ in
-decisiveness (τ = 1.609) but could not turn it into accuracy.
-
-**Do not re-open these.** Each is closed by a measurement, not an opinion:
-
-| channel | closed by |
-|---|---|
-| adding a positive-weight member | frontier probe: best possible **+0.00027** across 32 artifacts, 7 families |
-| combiner search | greedy, forward, backward, ridge over 41 members, class intercepts — **all land at 1.1234** |
-| negative-weight control variates | **1.209 on the board** vs 1.197 (iteration 43) |
-| calibration maps / temperature | an *oracle* in-sample 20-bin recalibration makes logloss **worse** |
-| per-respondent dispersion | model captures 29–35% of the true spread, and `√R²` predicts **31%** — correctly shrunk |
-| hierarchical Bayes | `hbmnl_nod` already earns weight in the 41-member ridge fit; the total does not move |
-
-**Where the remaining headroom provably is.** Oracle per-respondent rates would take the blend
-from 1.12969 to **0.98565** — a gap of 0.144 — but demographics reach only **11.2%** of that
-heterogeneity, so ~0.016 is all that is demographically reachable, and much of it is already
-captured. **~89% of what drives the outside option is unobservable in this dataset.**
-
-The lesson worth carrying: when the search space is genuinely exhausted, look at the
-*apparatus* doing the searching. Start with [`STRATEGY_REVIEW.md`](STRATEGY_REVIEW.md) for the
-plan through 10 August; the remaining marks are still mostly in the report.
-
-If you want to understand *what* was tried, open [`EXPERIMENTS.md`](EXPERIMENTS.md) and read
-the **"👉 PICK UP HERE"** section, especially the ⛔ table of settled ideas — each one has the
-number that killed it, so nobody repeats them.
-
-Three things to know before you trust any number in here:
-
-- **There is no single noise floor.** Comparing two single models needs the seed sd
-  (**0.00283**); comparing two blends needs the blend-level sd (**0.00048**). Confusing them
-  is how one accepted result survived eighteen iterations before being retracted.
-- **Shrink every win**: ×0.8 for measured replication on an independent fold structure, then
-  **×~½ (band 0.38–0.75)** for what reaches the leaderboard. *The older "×⅓ and decaying"
-  figure is superseded* — it was built on two steps that fell below Kaggle's three-decimal
-  display resolution, so it was reading rounding as decay. Re-measured across all five scored
-  submissions on 27 Jul; the most recent step transferred at ~89%.
-- **Check what a test can actually see.** The per-fold leak signature above is the right tool
-  for a leaking *feature* and the wrong tool for a leaking *combiner*. Ask what your detector
-  would look like under the specific failure you fear, not under failure in general.
-
-## Reading order for someone new
-
-1. This README
-2. [`EXPERIMENTS.md`](EXPERIMENTS.md) — every hypothesis, result, and what we'd do
-   differently, including the failures
-3. [`model/02_mnl_partworth.R`](model/02_mnl_partworth.R) and
-   [`model/03_xgb_listwise.R`](model/03_xgb_listwise.R) — the two models
-4. [`report_notes.md`](report_notes.md) — findings written up for the report
-5. `Vault/` — open the repository root as an Obsidian vault; start at `Vault/00 Hub.md`
+*Course project for SUTD 40.016 The Analytics Edge (2026), instructors Karthik Natarajan
+and Yihan Du. Competition data belongs to the course; this repository stays private
+until grading is complete.*
