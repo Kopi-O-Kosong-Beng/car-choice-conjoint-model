@@ -1,0 +1,48 @@
+name: Kaggle result
+
+# The competition closed on 1 August 2026, so the leaderboard is frozen and there is
+# nothing for a nightly job to catch. Run this by hand from the Actions tab whenever
+# the result line should be re-confirmed against Kaggle. To put it on a timer instead,
+# uncomment the schedule below.
+on:
+  workflow_dispatch:
+  # schedule:
+  #   - cron: "0 3 1 * *"   # 03:00 UTC on the first of each month
+
+permissions:
+  contents: write
+
+concurrency:
+  group: kaggle-result
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install the Kaggle client
+        run: pip install --quiet --disable-pip-version-check kaggle
+
+      - name: Read the leaderboard and rewrite the result line
+        env:
+          KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+          KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+        run: python .github/scripts/kaggle_result.py
+
+      - name: Commit if the line moved
+        run: |
+          if git diff --quiet -- README.md; then
+            echo "README.md unchanged, nothing to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          git commit -m "chore: re-confirm the Kaggle result from the leaderboard API"
+          git push

@@ -54,3 +54,7 @@ report/qa*.pdf
 report/preview.pdf
 report/report_new.pdf
 report/report_v2.pdf
+
+# Python bytecode from local script checks
+__pycache__/
+*.pyc

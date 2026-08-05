@@ -1,6 +1,7 @@
 # Predicting Choice Among Car Safety Bundles
 
 ![R](https://img.shields.io/badge/R-4.6-276DC3?logo=r&logoColor=white)
+[![Kaggle](https://img.shields.io/badge/Kaggle-competition%20page-20BEFF?logo=kaggle&logoColor=white)](https://www.kaggle.com/competitions/the-analytics-edge-competition-2026)
 ![public](https://img.shields.io/badge/public%20leaderboard-1.185%20%283rd%29-1f4788)
 ![private](https://img.shields.io/badge/private%20leaderboard-1.185%20%284th%29-1f4788)
 ![course](https://img.shields.io/badge/SUTD%2040.016-The%20Analytics%20Edge%202026-555555)
@@ -15,6 +16,12 @@ identical to three decimal places, against a 1.386 benchmark. Every forecast we 
 to version control before uploading came true, including the final score to within one
 tick. This repository holds the full pipeline, 80+ logged experiments including the
 failures, and the final report.
+
+<!-- KAGGLE:START -->
+> **Result confirmation:** run the [Kaggle result workflow](.github/workflows/kaggle-result.yml)
+> from the Actions tab and this line is replaced with the rank, field size and score read
+> straight from the Kaggle API.
+<!-- KAGGLE:END -->
 
 **Team 3 R-izzlers:** Chia Zhi Feng, Kavya Santosh Nair, Sheil Ketan Mistry, Nicole Ann Chia.
 
