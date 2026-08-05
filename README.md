@@ -18,9 +18,7 @@ tick. This repository holds the full pipeline, 80+ logged experiments including 
 failures, and the final report.
 
 <!-- KAGGLE:START -->
-> **Result confirmation:** run the [Kaggle result workflow](.github/workflows/kaggle-result.yml)
-> from the Actions tab and this line is replaced with the rank, field size and score read
-> straight from the Kaggle API.
+> **Read from the [Kaggle leaderboard](https://www.kaggle.com/competitions/the-analytics-edge-competition-2026) on 05 August 2026:** team `Sheil_Mistry_Team_3` placed **3 of 66** on the public board with a score of **1.185**. Kaggle serves the public leaderboard through its API, so the private placing of 4th is not shown here. This line is written by [a workflow](.github/workflows/kaggle-result.yml), not by hand.
 <!-- KAGGLE:END -->
 
 **Team 3 R-izzlers:** Chia Zhi Feng, Kavya Santosh Nair, Sheil Ketan Mistry, Nicole Ann Chia.

@@ -4,9 +4,14 @@ Reads KAGGLE_USERNAME and KAGGLE_KEY from the environment (GitHub Actions secret
 downloads the competition leaderboard, finds our team's row, and rewrites the block
 between the KAGGLE:START and KAGGLE:END markers in README.md.
 
-Only our own team's rank and score are written out. The downloaded leaderboard also
-contains every other team's name and score, and none of that is published: those are
-other students, and the file stays in the runner's temp directory.
+Two things worth knowing about what Kaggle returns:
+
+  * The download is the PUBLIC leaderboard, even after a competition closes. Our own
+    private placing (4th) differs from our public placing (3rd), so this line is
+    labelled public rather than final.
+  * Only our own team's row is written out. The same file carries every other team's
+    name, score and member usernames; none of that is published, and it stays in the
+    runner's temporary directory.
 """
 
 import csv
@@ -20,7 +25,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 COMPETITION = "the-analytics-edge-competition-2026"
-TEAM = "sheil_mistry_team_3"
+TEAM = "Sheil_Mistry_Team_3"
 COMP_URL = f"https://www.kaggle.com/competitions/{COMPETITION}"
 
 README = Path("README.md")
@@ -31,6 +36,20 @@ END = "<!-- KAGGLE:END -->"
 def fail(message):
     print(f"error: {message}", file=sys.stderr)
     raise SystemExit(1)
+
+
+def norm(name):
+    """Kaggle ships the header capitalised and with a BOM; compare on neither."""
+    return (name or "").lstrip("﻿").strip().lower()
+
+
+def pick(row, *candidates):
+    """Fetch a column by case-insensitive name, tolerating the BOM on the first one."""
+    lookup = {norm(k): v for k, v in row.items()}
+    for candidate in candidates:
+        if norm(candidate) in lookup:
+            return lookup[norm(candidate)]
+    return None
 
 
 def explain_http_error(err):
@@ -86,20 +105,20 @@ def load_leaderboard(workdir):
         with plain.open(newline="", encoding="utf-8") as fh:
             return list(csv.DictReader(fh))
 
-    fail(
-        "Kaggle returned no leaderboard file. The usual causes are an account that "
-        "never joined this competition, or expired API credentials."
-    )
+    fail("Kaggle returned no leaderboard file for this competition.")
 
 
 def find_team(rows):
-    """Kaggle returns the leaderboard already ordered by the competition metric."""
     for position, row in enumerate(rows, start=1):
-        if (row.get("teamName") or "").strip().lower() == TEAM.lower():
-            return position, row
+        if norm(pick(row, "TeamName")) == norm(TEAM):
+            rank = (pick(row, "Rank") or "").strip() or str(position)
+            score = (pick(row, "Score") or "").strip() or "unavailable"
+            return rank, score
+    columns = ", ".join(sorted(norm(k) for k in rows[0])) if rows else "none"
     fail(
-        f"team {TEAM!r} was not found among {len(rows)} leaderboard rows. "
-        "If the team was renamed on Kaggle, update TEAM in this script."
+        f"team {TEAM!r} was not found among {len(rows)} leaderboard rows.\n"
+        f"  Columns Kaggle returned: {columns}\n"
+        "  If the team was renamed on Kaggle, update TEAM in this script."
     )
 
 
@@ -127,18 +146,17 @@ def main():
     if not rows:
         fail("the leaderboard came back empty.")
 
-    rank, row = find_team(rows)
+    rank, score = find_team(rows)
     total = len(rows)
-    score = (row.get("score") or "").strip() or "unavailable"
     checked = datetime.now(timezone.utc).strftime("%d %B %Y")
 
     block = (
         f"{START}\n"
-        f"> **Confirmed against the [Kaggle leaderboard]({COMP_URL}) on {checked}:** "
-        f"team `{TEAM}` finished **{rank} of {total}** with a final score of "
-        f"**{score}**. This line is rewritten by "
-        f"[a workflow](.github/workflows/kaggle-result.yml) that reads the Kaggle API, "
-        f"not typed by hand.\n"
+        f"> **Read from the [Kaggle leaderboard]({COMP_URL}) on {checked}:** team "
+        f"`{TEAM}` placed **{rank} of {total}** on the public board with a score of "
+        f"**{score}**. Kaggle serves the public leaderboard through its API, so the "
+        f"private placing of 4th is not shown here. This line is written by "
+        f"[a workflow](.github/workflows/kaggle-result.yml), not by hand.\n"
         f"{END}"
     )
 
