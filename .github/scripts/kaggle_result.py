@@ -33,13 +33,46 @@ def fail(message):
     raise SystemExit(1)
 
 
+def explain_http_error(err):
+    """Turn Kaggle's bare HTTP codes into something actionable."""
+    status = getattr(getattr(err, "response", None), "status_code", None)
+    if status == 401:
+        fail(
+            "Kaggle rejected the credentials (401).\n"
+            "  The secrets are reaching the runner, so the values themselves are wrong.\n"
+            "  Check, in this order:\n"
+            "   1. KAGGLE_USERNAME must be the profile slug from kaggle.com/<username>, "
+            "not an email address and not the display name.\n"
+            "   2. KAGGLE_KEY must be only the value of \"key\" from kaggle.json, "
+            "without quotes, braces or a trailing newline.\n"
+            "   3. Creating a new API token on Kaggle invalidates the previous one, so "
+            "if a token was regenerated after the secret was saved, save the new value."
+        )
+    if status == 403:
+        fail(
+            "Kaggle authenticated the account but refused this competition (403).\n"
+            f"  Open {COMP_URL} while signed in as that account and accept the rules. "
+            "In-class competitions stay closed to accounts that never joined."
+        )
+    if status == 404:
+        fail(
+            f"Kaggle has no competition called {COMPETITION!r} (404). "
+            "Check the slug in the competition URL and update COMPETITION in this script."
+        )
+    fail(f"Kaggle API call failed: {err}")
+
+
 def load_leaderboard(workdir):
     """Download the leaderboard and return its rows, newest Kaggle format or older zip."""
     from kaggle.api.kaggle_api_extended import KaggleApi
+    from requests.exceptions import HTTPError
 
-    api = KaggleApi()
-    api.authenticate()
-    api.competition_leaderboard_download(COMPETITION, path=str(workdir))
+    try:
+        api = KaggleApi()
+        api.authenticate()
+        api.competition_leaderboard_download(COMPETITION, path=str(workdir))
+    except HTTPError as err:
+        explain_http_error(err)
 
     for archive in sorted(workdir.glob("*.zip")):
         with zipfile.ZipFile(archive) as zf:
@@ -71,8 +104,22 @@ def find_team(rows):
 
 
 def main():
-    if not (os.environ.get("KAGGLE_USERNAME") and os.environ.get("KAGGLE_KEY")):
+    user = os.environ.get("KAGGLE_USERNAME", "")
+    key = os.environ.get("KAGGLE_KEY", "")
+    if not (user and key):
         fail("KAGGLE_USERNAME and KAGGLE_KEY must both be set in the environment.")
+
+    # Catch the two mistakes that produce a confusing 401, without echoing any value.
+    if "{" in user or "{" in key:
+        fail(
+            "A secret contains '{', so the whole kaggle.json was probably pasted in. "
+            "KAGGLE_USERNAME takes only the username, KAGGLE_KEY only the key."
+        )
+    if "@" in user:
+        fail(
+            "KAGGLE_USERNAME looks like an email address. Kaggle wants the profile "
+            "slug shown at kaggle.com/<username>."
+        )
 
     with tempfile.TemporaryDirectory() as tmp:
         rows = load_leaderboard(Path(tmp))
