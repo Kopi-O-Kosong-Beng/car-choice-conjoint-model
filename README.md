@@ -171,7 +171,16 @@ The 8-page final report is the distilled version of everything here: the model, 
 probe, the leak forensics, the behavioural findings, and why the public and private
 scores agreed to the third decimal.
 
-**[report/report.pdf](report/report.pdf)** ([LaTeX source](report/report.tex))
+<p align="center">
+  <a href="report/report.pdf"><img src="docs/images/report-p1-cover.png" width="23%" alt="Report cover page"></a>
+  <a href="report/report.pdf"><img src="docs/images/report-p4-architecture.png" width="23%" alt="Model architecture"></a>
+  <a href="report/report.pdf"><img src="docs/images/report-p7-insights.png" width="23%" alt="Buyer segments and price response"></a>
+  <a href="report/report.pdf"><img src="docs/images/report-p8-fatigue.png" width="23%" alt="Survey fatigue analysis"></a>
+</p>
+
+<p align="center"><em>Cover, the two-track architecture, buyer segments, survey fatigue. Click any page to open the full PDF.</em></p>
+
+**[Read the full report (PDF)](report/report.pdf)** &nbsp;·&nbsp; [LaTeX source](report/report.tex)
 
 ---
 
