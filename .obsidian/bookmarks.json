@@ -1,0 +1,31 @@
+{
+  "items": [
+    {
+      "type": "graph",
+      "ctime": 1786349630897,
+      "title": "Car-Joint-Model-kaggle",
+      "options": {
+        "collapse-filter": false,
+        "search": "",
+        "showTags": true,
+        "showAttachments": true,
+        "hideUnresolved": false,
+        "showOrphans": true,
+        "collapse-color-groups": false,
+        "colorGroups": [],
+        "collapse-display": false,
+        "showArrow": true,
+        "textFadeMultiplier": -2.5,
+        "nodeSizeMultiplier": 1.01407661164746,
+        "lineSizeMultiplier": 1.64889442541264,
+        "collapse-forces": false,
+        "centerStrength": 0.306135160386173,
+        "repelStrength": 5.32544378698225,
+        "linkStrength": 0.126751790719402,
+        "linkDistance": 30,
+        "scale": 0.25883865621816116,
+        "close": true
+      }
+    }
+  ]
+}

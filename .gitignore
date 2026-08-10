@@ -58,3 +58,12 @@ report/report_v2.pdf
 # Python bytecode from local script checks
 __pycache__/
 *.pyc
+
+# Overleaf upload bundle, rebuilt on demand from report/
+report/overleaf-upload.zip
+TAE_Report.zip
+
+# figs_standalone build products; only the rendered PNGs in docs/images/ are tracked
+docs/figs_standalone.aux
+docs/figs_standalone.log
+docs/figs_standalone.pdf
