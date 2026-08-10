@@ -141,6 +141,12 @@ STRATEGY_REVIEW.md        the mid-competition strategy audit
 Vault/                    course-theory notes (Obsidian vault)
 ```
 
+![The repository as an Obsidian graph](docs/images/vault-graph.png)
+
+<p align="center"><em>The whole repository as a linked graph: every script, prediction
+artifact, log and course note. The dense core is the experiment log citing the artifacts
+that settled each iteration.</em></p>
+
 ## Reproducing
 
 R 4.6 with `data.table`, `xgboost` (3.x), `mlogit`, `dfidx`, `glmnet`, `Matrix`,
@@ -173,12 +179,12 @@ scores agreed to the third decimal.
 
 <p align="center">
   <a href="report/report.pdf"><img src="docs/images/report-p1-cover.png" width="23%" alt="Report cover page"></a>
-  <a href="report/report.pdf"><img src="docs/images/report-p4-architecture.png" width="23%" alt="Model architecture"></a>
-  <a href="report/report.pdf"><img src="docs/images/report-p7-insights.png" width="23%" alt="Buyer segments and price response"></a>
-  <a href="report/report.pdf"><img src="docs/images/report-p8-fatigue.png" width="23%" alt="Survey fatigue analysis"></a>
+  <a href="report/report.pdf"><img src="docs/images/report-p3-architecture.png" width="23%" alt="Model architecture"></a>
+  <a href="report/report.pdf"><img src="docs/images/report-p5-price.png" width="23%" alt="Price part-worth curve and the leakage post-mortem"></a>
+  <a href="report/report.pdf"><img src="docs/images/report-p7-fatigue.png" width="23%" alt="Leaderboard transfer and survey fatigue"></a>
 </p>
 
-<p align="center"><em>Cover, the two-track architecture, buyer segments, survey fatigue. Click any page to open the full PDF.</em></p>
+<p align="center"><em>Cover, the two-track architecture, price response, leaderboard transfer and survey fatigue. Click any page to open the full PDF.</em></p>
 
 **[Read the full report (PDF)](report/report.pdf)** &nbsp;·&nbsp; [LaTeX source](report/report.tex)
 

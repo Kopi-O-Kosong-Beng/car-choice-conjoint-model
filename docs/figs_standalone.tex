@@ -40,7 +40,7 @@
 \node[font=\small\bfseries, text=acc!80!black, anchor=south,
       above=3.5mm of $(xgb.north)!0.5!(lc.north)$] (labA) {Track A \(\;\cdot\;\) main track \(\;\cdot\;\) public 1.193};
 \node[font=\small\bfseries, text=accB!75!black, anchor=south,
-      above=3.5mm of $(tree.north)!0.5!(nn.north)$] (labB) {Track B \(\;\cdot\;\) built independently \(\;\cdot\;\) public 1.194 pre-anchor};
+      above=3.5mm of $(tree.north)!0.5!(nn.north)$] (labB) {Track B \(\;\cdot\;\) secondary track \(\;\cdot\;\) public 1.194 pre-anchor};
 \begin{scope}[on background layer]
 \node[lane, fill=acc!5, draw=acc!25, fit=(labA)(xgb)(lc)(blend)(rl)(ancA)] (laneA) {};
 \node[lane, fill=accB!5, draw=accB!25, fit=(labB)(tree)(nn)(gblend)(gam)(ancB)] (laneB) {};
